@@ -59,6 +59,12 @@ dependencies:
   # Animations
   lottie: ^3.0.0
 
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
+
+  # Charts
+  fl_chart: ^0.66.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -85,6 +91,7 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

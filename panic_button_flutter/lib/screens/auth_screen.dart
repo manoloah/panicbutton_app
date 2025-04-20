@@ -15,6 +15,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isLogin = true;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -23,35 +24,70 @@ class _AuthScreenState extends State<AuthScreen> {
     super.dispose();
   }
 
+  void _showError(String message) {
+    setState(() => _errorMessage = message);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  String _getReadableError(String error) {
+    if (error.contains('Invalid login credentials')) {
+      return 'Email o contraseña incorrectos';
+    } else if (error.contains('User already registered')) {
+      return 'Este email ya está registrado';
+    } else if (error.contains('Invalid email')) {
+      return 'Email inválido';
+    } else if (error.contains('Password should be at least 6 characters')) {
+      return 'La contraseña debe tener al menos 6 caracteres';
+    }
+    return 'Ha ocurrido un error. Por favor intenta de nuevo.';
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       if (_isLogin) {
         final response = await Supabase.instance.client.auth.signInWithPassword(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (response.user != null && mounted) {
           context.go('/');
+        } else {
+          _showError('No se pudo iniciar sesión');
         }
       } else {
         final response = await Supabase.instance.client.auth.signUp(
-          email: _emailController.text,
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (response.user != null && mounted) {
-          context.go('/');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cuenta creada exitosamente. Por favor verifica tu email.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          setState(() => _isLogin = true);
+        } else {
+          _showError('No se pudo crear la cuenta');
         }
       }
+    } on AuthException catch (e) {
+      _showError(_getReadableError(e.message));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
+      _showError(_getReadableError(e.toString()));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -84,23 +120,35 @@ class _AuthScreenState extends State<AuthScreen> {
                     color: Colors.white,
                   ),
                 ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Email',
-                    labelStyle: const TextStyle(color: Color(0xFFB0B0B0)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                    prefixIcon: Icon(Icons.email, color: Color(0xFFB0B0B0)),
                   ),
+                  keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu email';
+                    }
+                    if (!value.contains('@') || !value.contains('.')) {
+                      return 'Por favor ingresa un email válido';
                     }
                     return null;
                   },
@@ -108,21 +156,18 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _passwordController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Contraseña',
-                    labelStyle: const TextStyle(color: Color(0xFFB0B0B0)),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.1),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
+                    prefixIcon: Icon(Icons.lock, color: Color(0xFFB0B0B0)),
                   ),
                   obscureText: true,
                   style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu contraseña';
+                    }
+                    if (value.length < 6) {
+                      return 'La contraseña debe tener al menos 6 caracteres';
                     }
                     return null;
                   },
@@ -138,12 +183,19 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Text(_isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () => setState(() => _isLogin = !_isLogin),
+                  onPressed: _isLoading ? null : () => setState(() => _isLogin = !_isLogin),
                   child: Text(
                     _isLogin
                         ? '¿No tienes una cuenta? Regístrate'
