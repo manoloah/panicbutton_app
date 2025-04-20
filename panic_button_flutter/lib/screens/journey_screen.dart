@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:panic_button_flutter/widgets/bottom_navigation.dart';
+import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
 
 class JourneyScreen extends StatelessWidget {
   const JourneyScreen({super.key});
@@ -50,6 +50,7 @@ class JourneyScreen extends StatelessWidget {
         child: Stack(
           children: [
             SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 100),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -76,10 +77,10 @@ class JourneyScreen extends StatelessWidget {
               ),
             ),
             const Positioned(
-              bottom: 0,
               left: 0,
               right: 0,
-              child: BottomNavigation(),
+              bottom: 0,
+              child: CustomNavBar(currentIndex: 0),
             ),
           ],
         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/panic_button.dart';
-import 'package:panic_button_flutter/widgets/bottom_navigation.dart';
+import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -47,7 +47,7 @@ class HomeScreen extends StatelessWidget {
               bottom: 0,
               left: 0,
               right: 0,
-              child: BottomNavigation(),
+              child: CustomNavBar(currentIndex: 1),
             ),
           ],
         ),
