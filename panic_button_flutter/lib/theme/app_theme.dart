@@ -22,7 +22,7 @@ class AppTheme {
   // Single dark theme
   static ThemeData dark() {
     // ---- Colour scheme --------------------------------------------------
-    final colors = ColorScheme(
+    const colors = ColorScheme(
       brightness: Brightness.dark,
       primary: _greenAccent, // default CTA
       onPrimary: _bg, // text/icon on green buttons
