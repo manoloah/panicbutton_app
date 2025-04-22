@@ -1,3 +1,4 @@
+// lib/screens/auth_screen.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -26,10 +27,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _showError(String message) {
     setState(() => _errorMessage = message);
+
+    final cs = Theme.of(context).colorScheme;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(message, style: TextStyle(color: cs.onError)),
+        backgroundColor: cs.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -77,7 +80,6 @@ class _AuthScreenState extends State<AuthScreen> {
             const SnackBar(
               content: Text(
                   'Cuenta creada exitosamente. Por favor verifica tu email.'),
-              backgroundColor: Colors.green,
             ),
           );
           setState(() => _isLogin = true);
@@ -98,8 +100,10 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -111,27 +115,25 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 48),
                 Text(
                   'PanicButton',
-                  style: Theme.of(context).textTheme.displayLarge,
+                  style: textTheme.displayLarge,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
                 Text(
                   _isLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                      ),
+                  style: textTheme.headlineMedium,
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: cs.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(color: cs.error),
                     ),
                   ),
                 ],
@@ -140,10 +142,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   controller: _emailController,
                   decoration: const InputDecoration(
                     labelText: 'Email',
-                    prefixIcon: Icon(Icons.email, color: Color(0xFFB0B0B0)),
+                    prefixIcon: Icon(Icons.email),
                   ),
                   keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu email';
@@ -159,10 +160,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   controller: _passwordController,
                   decoration: const InputDecoration(
                     labelText: 'Contraseña',
-                    prefixIcon: Icon(Icons.lock, color: Color(0xFFB0B0B0)),
+                    prefixIcon: Icon(Icons.lock),
                   ),
                   obscureText: true,
-                  style: const TextStyle(color: Colors.white),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingresa tu contraseña';
@@ -176,19 +176,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B383),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: cs.onPrimary,
                             strokeWidth: 2,
                           ),
                         )
@@ -203,7 +196,6 @@ class _AuthScreenState extends State<AuthScreen> {
                     _isLogin
                         ? '¿No tienes una cuenta? Regístrate'
                         : '¿Ya tienes una cuenta? Inicia sesión',
-                    style: const TextStyle(color: Color(0xFFB0B0B0)),
                   ),
                 ),
               ],

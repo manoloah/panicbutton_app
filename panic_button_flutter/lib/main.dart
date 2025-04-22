@@ -17,7 +17,7 @@ import 'package:panic_button_flutter/config/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     // Load environment variables in development
     if (const bool.fromEnvironment('dart.vm.product') == false) {
@@ -26,7 +26,8 @@ void main() async {
       debugPrint('Environment variables loaded:');
       debugPrint('SUPABASE_URL: ${SupabaseConfig.supabaseUrl}');
       // Print only the first few characters of the key for security
-      debugPrint('SUPABASE_ANON_KEY: ${SupabaseConfig.supabaseAnonKey.substring(0, 10)}...');
+      debugPrint(
+          'SUPABASE_ANON_KEY: ${SupabaseConfig.supabaseAnonKey.substring(0, 10)}...');
     }
 
     // Initialize Supabase
@@ -39,7 +40,7 @@ void main() async {
   } catch (e) {
     debugPrint('Error initializing Supabase: $e');
   }
-  
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -49,8 +50,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'PanicButton',
-      theme: AppTheme.lightTheme,
+      title: 'Tu botón de pánico',
+      theme: AppTheme.dark(),
       routerConfig: _router,
     );
   }
