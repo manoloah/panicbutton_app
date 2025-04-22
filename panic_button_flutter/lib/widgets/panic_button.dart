@@ -9,7 +9,8 @@ class PanicButton extends StatefulWidget {
   State<PanicButton> createState() => _PanicButtonState();
 }
 
-class _PanicButtonState extends State<PanicButton> with SingleTickerProviderStateMixin {
+class _PanicButtonState extends State<PanicButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isPressed = false;
 
@@ -53,8 +54,8 @@ class _PanicButtonState extends State<PanicButton> with SingleTickerProviderStat
           return Transform.scale(
             scale: 1.0 - (_controller.value * 0.1),
             child: Container(
-              width: 200,
-              height: 200,
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Theme.of(context).colorScheme.primary,
@@ -68,22 +69,23 @@ class _PanicButtonState extends State<PanicButton> with SingleTickerProviderStat
               ),
               child: Center(
                 child: Text(
-                  'CALMA',
+                  'EMPEZAR',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    fontSize: 32,
-                    color: Colors.white,
-                  ),
+                        fontSize: 32,
+                      ),
                 ),
               ),
             ),
           );
         },
       ),
-    ).animate(
-      onPlay: (controller) => controller.repeat(),
-    ).shimmer(
-      duration: const Duration(seconds: 2),
-      color: Colors.white.withOpacity(0.2),
-    );
+    )
+        .animate(
+          onPlay: (controller) => controller.repeat(),
+        )
+        .shimmer(
+          duration: const Duration(seconds: 3),
+          color: Colors.white,
+        );
   }
-} 
+}
