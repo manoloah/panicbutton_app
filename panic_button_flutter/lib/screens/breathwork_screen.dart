@@ -1,3 +1,4 @@
+// lib/screens/breathwork_screen.dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -15,8 +16,7 @@ class _BreathworkScreenState extends State<BreathworkScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isBreathing = false;
-  int _totalSeconds = 0;
-  int _remainingSeconds = 180; // 3 minutes default
+  int _remainingSeconds = 180;
   Timer? _timer;
   String _phase = 'Presiona para comenzar';
   final int _inhaleSeconds = 4;
@@ -29,7 +29,7 @@ class _BreathworkScreenState extends State<BreathworkScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 12), // Full breath cycle
+      duration: const Duration(seconds: 12),
     );
   }
 
@@ -46,20 +46,13 @@ class _BreathworkScreenState extends State<BreathworkScreen>
       _phase = 'Inhala';
       _phaseSeconds = _inhaleSeconds;
     });
-
     _controller.repeat();
-    _startTimer();
-  }
-
-  void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
-          _totalSeconds++;
           _phaseSeconds--;
-
           if (_phaseSeconds <= 0) {
             switch (_phase) {
               case 'Inhala':
@@ -93,21 +86,21 @@ class _BreathworkScreenState extends State<BreathworkScreen>
   }
 
   void _addTime() {
-    setState(() {
-      _remainingSeconds += 180; // Add 3 more minutes
-    });
+    setState(() => _remainingSeconds += 180);
   }
 
   String _formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '$minutes:${remainingSeconds.toString().padLeft(2, '0')}';
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF132737),
       body: SafeArea(
         child: Stack(
           children: [
@@ -115,15 +108,10 @@ class _BreathworkScreenState extends State<BreathworkScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'PanicButton',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  Text('PanicButton', style: tt.displayLarge),
                   const SizedBox(height: 40),
+
+                  // 🌬 Breathing circle
                   GestureDetector(
                     onTap: _isBreathing ? _stopBreathing : _startBreathing,
                     child: Container(
@@ -131,101 +119,80 @@ class _BreathworkScreenState extends State<BreathworkScreen>
                       height: 280,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF00B383),
+                        color: cs.primary, // brand green
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00B383).withOpacity(0.3),
+                            color: cs.primary.withOpacity(0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
                         ],
                       ),
                       child: Stack(
+                        alignment: Alignment.center, // ← CENTER ALL CHILDREN
                         children: [
-                          // Wave Animation
-                          AnimatedBuilder(
-                            animation: _controller,
-                            builder: (context, child) {
-                              return ClipPath(
-                                clipper: WaveClipper(
-                                  animation: _controller.value,
-                                  phase: _phase,
-                                ),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withOpacity(0.3),
+                          // Wave
+                          Positioned.fill(
+                            child: AnimatedBuilder(
+                              animation: _controller,
+                              builder: (context, _) {
+                                return ClipPath(
+                                  clipper: WaveClipper(
+                                    animation: _controller.value,
+                                    phase: _phase,
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                          // Text
-                          Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _phase,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                if (_isBreathing) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _phaseSeconds.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 48,
-                                      fontWeight: FontWeight.bold,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withOpacity(0.3),
                                     ),
                                   ),
-                                ],
-                              ],
+                                );
+                              },
                             ),
+                          ),
+
+                          // Phase text & counter
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _phase,
+                                style: tt.headlineMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                              if (_isBreathing) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  _phaseSeconds.toString(),
+                                  style: tt.displayLarge,
+                                ),
+                              ],
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 40),
-                  Text(
-                    _formatTime(_remainingSeconds),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+
+                  // Timer
+                  Text(_formatTime(_remainingSeconds), style: tt.displayLarge),
+
+                  // Add time
                   if (_isBreathing) ...[
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: _addTime,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: const Text(
-                        '+3 minutos',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
+                      child: const Text('+3 minutos'),
                     ),
                   ],
                 ],
               ),
             ),
+
+            // Bottom nav
             const Positioned(
               left: 0,
               right: 0,
@@ -248,39 +215,33 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    final baseHeight = size.height * 0.5;
-    final amplitude = size.height * 0.2;
-    const frequency = 2 * math.pi;
+    final baseH = size.height * 0.5;
+    final amp = size.height * 0.2;
+    const freq = 2 * math.pi;
+    double waveH = baseH;
 
-    // Adjust wave based on breathing phase
-    double waveHeight = baseHeight;
     switch (phase) {
       case 'Inhala':
-        waveHeight = baseHeight - (amplitude * animation);
+        waveH = baseH - (amp * animation);
         break;
       case 'Exhala':
-        waveHeight = baseHeight + (amplitude * animation);
+        waveH = baseH + (amp * animation);
         break;
       case 'Mantén':
-        // Keep current height
         break;
     }
 
     path.moveTo(0, size.height);
-
     for (double x = 0; x < size.width; x++) {
-      final y = waveHeight +
-          amplitude *
-              math.sin((x / size.width * frequency) + (animation * frequency));
+      final y =
+          waveH + amp * math.sin((x / size.width * freq) + (animation * freq));
       path.lineTo(x, y);
     }
-
     path.lineTo(size.width, size.height);
     path.close();
-
     return path;
   }
 
   @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
+  bool shouldReclip(covariant CustomClipper<Path> old) => true;
 }
