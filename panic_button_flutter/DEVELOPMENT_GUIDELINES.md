@@ -24,6 +24,13 @@
 - Placeholder text  
 - Alert messages
 
+**User-Facing Hierarchy**
+- DisplayLarge → top‑level hero
+- HeadlineLarge → screen titles
+- HeadlineMedium/Small → sub‑section or card titles
+- Title… → smaller widget‑level labels
+- Body… / Label… → paragraph text and buttons
+
 ---
 
 ### File Structure
