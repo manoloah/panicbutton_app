@@ -131,9 +131,6 @@ class _BoltScreenState extends State<BoltScreen> {
       appBar: AppBar(
         // uses theme.appBarTheme.backgroundColor
         elevation: 0,
-        title: Text(
-          'Mide tu probabilidad de tener un ataque de pánico',
-        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -145,8 +142,17 @@ class _BoltScreenState extends State<BoltScreen> {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Text(
+                  'Mide tu probabilidad de tener un ataque de pánico',
+                  style: tt.displayMedium,
+                  textAlign: TextAlign.center,
+                ),
+              ),
               // Description
               Text(
                 'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. Es un gran indicador tu nivel de ansiedad y tu capacidad para manejar el estrés.',

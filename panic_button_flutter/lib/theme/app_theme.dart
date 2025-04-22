@@ -44,6 +44,17 @@ class AppTheme {
         fontSize: 36,
         color: _white,
       ),
+      displayMedium: GoogleFonts.unbounded(
+        fontWeight: FontWeight.bold,
+        fontSize: 32,
+        color: _white,
+      ),
+
+      headlineLarge: GoogleFonts.unbounded(
+        fontWeight: FontWeight.bold,
+        fontSize: 34,
+        color: _white,
+      ),
       headlineMedium: GoogleFonts.unbounded(
         fontWeight: FontWeight.bold,
         fontSize: 28,
