@@ -1,3 +1,4 @@
+// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/panic_button.dart';
@@ -8,8 +9,11 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      // backgroundColor omitted → uses scaffoldBackgroundColor (#132737)
       body: SafeArea(
         child: Stack(
           children: [
@@ -18,8 +22,8 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'PanicButton',
-                    style: Theme.of(context).textTheme.displayLarge,
+                    'Encuetra la calma',
+                    style: tt.displayLarge,
                   ),
                   const SizedBox(height: 48),
                   const PanicButton(),
@@ -28,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
                       'Cuando sientas un ataque de pánico, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      style: tt.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -39,7 +43,7 @@ class HomeScreen extends StatelessWidget {
               top: 16,
               right: 16,
               child: IconButton(
-                icon: const Icon(Icons.settings, color: Colors.white),
+                icon: Icon(Icons.settings, color: cs.onBackground),
                 onPressed: () => context.push('/settings'),
               ),
             ),
