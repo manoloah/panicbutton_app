@@ -34,78 +34,93 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         title: const Text('Configuración'),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Cuenta',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+      body: ListView(
+        children: [
+          _SettingsGroup(
+            title: 'Cuenta',
+            children: [
+              _SettingsItem(
+                title: 'Perfil',
+                onTap: () => context.push('/settings/profile'),
+                showDivider: true,
               ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+              _SettingsItem(
+                title: 'Preferencias',
+                onTap: () => context.push('/settings/preferences'),
+                showDivider: true,
               ),
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    title: 'Mi Perfil',
-                    onTap: () => context.push('/profile'),
-                    showDivider: true,
-                  ),
-                  _SettingsItem(
-                    title: 'Preferencias',
-                    onTap: () {
-                      // TODO: Implement preferences
-                    },
-                    showDivider: true,
-                  ),
-                  _SettingsItem(
-                    title: 'Notificaciones',
-                    onTap: () {
-                      // TODO: Implement notifications
-                    },
-                    showDivider: false,
-                  ),
-                ],
+              _SettingsItem(
+                title: 'Notificaciones',
+                onTap: () => context.push('/settings/notifications'),
+                showDivider: false,
               ),
-            ),
-            const SizedBox(height: 40),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0),
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _handleLogout(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red.withOpacity(0.3),
-                  foregroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Cerrar Sesión',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            ],
+          ),
+          _SettingsGroup(
+            title: 'Suscripción',
+            children: [
+              _SettingsItem(
+                title: 'Escoge un plan',
+                onTap: () => context.push('/subscribe'),
+                showDivider: false,
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+          _SettingsGroup(
+            title: 'Soporte',
+            children: [
+              _SettingsItem(
+                title: 'Centro de ayuda',
+                onTap: () {
+                  // TODO: Open external URL
+                },
+                showDivider: false,
+              ),
+            ],
+          ),
+        ],
       ),
       bottomNavigationBar: const CustomNavBar(currentIndex: 3),
+    );
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  final String title;
+  final List<Widget> children;
+
+  const _SettingsGroup({
+    required this.title,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: children,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -75,7 +75,8 @@ class _AuthScreenState extends State<AuthScreen> {
         if (response.user != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Cuenta creada exitosamente. Por favor verifica tu email.'),
+              content: Text(
+                  'Cuenta creada exitosamente. Por favor verifica tu email.'),
               backgroundColor: Colors.green,
             ),
           );
@@ -98,7 +99,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -117,8 +118,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 Text(
                   _isLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                  ),
+                        color: Colors.white,
+                      ),
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 16),
@@ -195,7 +196,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: _isLoading ? null : () => setState(() => _isLogin = !_isLogin),
+                  onPressed: _isLoading
+                      ? null
+                      : () => setState(() => _isLogin = !_isLogin),
                   child: Text(
                     _isLogin
                         ? '¿No tienes una cuenta? Regístrate'
@@ -210,4 +213,4 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
     );
   }
-} 
+}

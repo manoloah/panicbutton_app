@@ -5,8 +5,8 @@ class AppTheme {
   // Palette
   static const Color primaryColor = Color(0xFF132737); // deep blue
   static const Color secondaryColor = Color(0xFFB0B0B0);
-  static const Color accentColor = Color(0xFFFFFFFF); // text/icons over blue
-  static const Color buttonColor = Color(0xFF00B383);
+  static const Color accentColor = Color(0xFFFFFFFF);
+  static const Color buttonColor = Color(0xFF00B383); //0xFF00B383
   static const Color darkButtonColor = Color(0xFF1A392A);
   static const Color disabledColor = Color(0xFF444444);
 

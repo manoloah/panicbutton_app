@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -27,7 +27,7 @@ class HomeScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Text(
-                      'Cuando sientas ansiedad, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
+                      'Cuando sientas un ataque de pánico, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
                       style: Theme.of(context).textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
@@ -40,7 +40,7 @@ class HomeScreen extends StatelessWidget {
               right: 16,
               child: IconButton(
                 icon: const Icon(Icons.settings, color: Colors.white),
-                onPressed: () => context.push('/profile'),
+                onPressed: () => context.push('/settings'),
               ),
             ),
             const Positioned(
@@ -54,4 +54,4 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

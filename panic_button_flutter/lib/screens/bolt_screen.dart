@@ -143,7 +143,7 @@ class _BoltScreenState extends State<BoltScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/profile'),
+            onPressed: () => context.go('/settings'),
           ),
         ],
       ),

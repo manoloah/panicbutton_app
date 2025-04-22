@@ -5,7 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:panic_button_flutter/screens/home_screen.dart';
 import 'package:panic_button_flutter/screens/breathwork_screen.dart';
-import 'package:panic_button_flutter/screens/profile_screen.dart';
+import 'package:panic_button_flutter/screens/settings_screen.dart';
+import 'package:panic_button_flutter/screens/profile_settings_screen.dart';
+import 'package:panic_button_flutter/screens/notifications_settings_screen.dart';
+import 'package:panic_button_flutter/screens/preferences_settings_screen.dart';
 import 'package:panic_button_flutter/screens/journey_screen.dart';
 import 'package:panic_button_flutter/screens/auth_screen.dart';
 import 'package:panic_button_flutter/screens/bolt_screen.dart';
@@ -81,8 +84,20 @@ final _router = GoRouter(
       builder: (context, state) => const BreathworkScreen(),
     ),
     GoRoute(
-      path: '/profile',
-      builder: (context, state) => const ProfileScreen(),
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/profile',
+      builder: (context, state) => const ProfileSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/notifications',
+      builder: (context, state) => const NotificationsSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/preferences',
+      builder: (context, state) => const PreferencesSettingsScreen(),
     ),
     GoRoute(
       path: '/journey',

@@ -11,7 +11,8 @@ class BreathworkScreen extends StatefulWidget {
   State<BreathworkScreen> createState() => _BreathworkScreenState();
 }
 
-class _BreathworkScreenState extends State<BreathworkScreen> with SingleTickerProviderStateMixin {
+class _BreathworkScreenState extends State<BreathworkScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isBreathing = false;
   int _totalSeconds = 0;
@@ -45,7 +46,7 @@ class _BreathworkScreenState extends State<BreathworkScreen> with SingleTickerPr
       _phase = 'Inhala';
       _phaseSeconds = _inhaleSeconds;
     });
-    
+
     _controller.repeat();
     _startTimer();
   }
@@ -249,7 +250,7 @@ class WaveClipper extends CustomClipper<Path> {
     final path = Path();
     final baseHeight = size.height * 0.5;
     final amplitude = size.height * 0.2;
-    final frequency = 2 * math.pi;
+    const frequency = 2 * math.pi;
 
     // Adjust wave based on breathing phase
     double waveHeight = baseHeight;
@@ -266,19 +267,20 @@ class WaveClipper extends CustomClipper<Path> {
     }
 
     path.moveTo(0, size.height);
-    
+
     for (double x = 0; x < size.width; x++) {
       final y = waveHeight +
-          amplitude * math.sin((x / size.width * frequency) + (animation * frequency));
+          amplitude *
+              math.sin((x / size.width * frequency) + (animation * frequency));
       path.lineTo(x, y);
     }
-    
+
     path.lineTo(size.width, size.height);
     path.close();
-    
+
     return path;
   }
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
-} 
+}

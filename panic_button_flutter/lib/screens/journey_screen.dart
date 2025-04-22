@@ -8,35 +8,40 @@ class JourneyScreen extends StatelessWidget {
     {
       'id': 1,
       'title': 'Respiración Consciente',
-      'description': 'Aprende los fundamentos de la respiración consciente con este ejercicio de 2 minutos.',
+      'description':
+          'Aprende los fundamentos de la respiración consciente con este ejercicio de 2 minutos.',
       'isCompleted': true,
       'isLocked': false,
     },
     {
       'id': 2,
       'title': 'Respiración 4-7-8',
-      'description': 'Domina la técnica de respiración 4-7-8 para calmar tu sistema nervioso.',
+      'description':
+          'Domina la técnica de respiración 4-7-8 para calmar tu sistema nervioso.',
       'isCompleted': false,
       'isLocked': false,
     },
     {
       'id': 3,
       'title': 'Respiración Alterna',
-      'description': 'Aprende a equilibrar tu energía con la respiración alterna por la nariz.',
+      'description':
+          'Aprende a equilibrar tu energía con la respiración alterna por la nariz.',
       'isCompleted': false,
       'isLocked': true,
     },
     {
       'id': 4,
       'title': 'Respiración de Fuego',
-      'description': 'Aumenta tu energía y vitalidad con la poderosa técnica de respiración de fuego.',
+      'description':
+          'Aumenta tu energía y vitalidad con la poderosa técnica de respiración de fuego.',
       'isCompleted': false,
       'isLocked': true,
     },
     {
       'id': 5,
       'title': 'Retención Avanzada',
-      'description': 'Desbloquea el siguiente nivel de calma con técnicas avanzadas de retención de respiración.',
+      'description':
+          'Desbloquea el siguiente nivel de calma con técnicas avanzadas de retención de respiración.',
       'isCompleted': false,
       'isLocked': true,
     },
@@ -45,7 +50,7 @@ class JourneyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -60,18 +65,19 @@ class JourneyScreen extends StatelessWidget {
                     Text(
                       'Tu Camino',
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 32,
-                      ),
+                            fontSize: 32,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Construye tu resiliencia día a día con estos ejercicios progresivos',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: const Color(0xFFB0B0B0),
-                      ),
+                            color: const Color(0xFFB0B0B0),
+                          ),
                     ),
                     const SizedBox(height: 32),
-                    ...journeySteps.map((step) => _buildJourneyStep(context, step)),
+                    ...journeySteps
+                        .map((step) => _buildJourneyStep(context, step)),
                   ],
                 ),
               ),
@@ -120,16 +126,20 @@ class JourneyScreen extends StatelessWidget {
                 Text(
                   step['title'],
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: step['isLocked'] ? const Color(0xFF777777) : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                        color: step['isLocked']
+                            ? const Color(0xFF777777)
+                            : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   step['description'],
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: step['isLocked'] ? const Color(0xFF666666) : const Color(0xFFB0B0B0),
-                  ),
+                        color: step['isLocked']
+                            ? const Color(0xFF666666)
+                            : const Color(0xFFB0B0B0),
+                      ),
                 ),
               ],
             ),
@@ -177,8 +187,8 @@ class JourneyScreen extends StatelessWidget {
           Text(
             'Completado',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: const Color(0xFF00B383),
-            ),
+                  color: const Color(0xFF00B383),
+                ),
           ),
         ],
       );
@@ -187,7 +197,9 @@ class JourneyScreen extends StatelessWidget {
     return ElevatedButton(
       onPressed: step['isLocked'] ? null : () {},
       style: ElevatedButton.styleFrom(
-        backgroundColor: step['isLocked'] ? const Color(0xFF444444) : const Color(0xFF00B383),
+        backgroundColor: step['isLocked']
+            ? const Color(0xFF444444)
+            : const Color(0xFF00B383),
         disabledBackgroundColor: const Color(0xFF444444),
         foregroundColor: Colors.white,
         disabledForegroundColor: const Color(0xFF777777),
@@ -195,4 +207,4 @@ class JourneyScreen extends StatelessWidget {
       child: Text(step['isLocked'] ? 'Bloqueado' : 'Comenzar'),
     );
   }
-} 
+}
