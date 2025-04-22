@@ -16,7 +16,7 @@ This app helps anyone going through a panic or anxiety episode regulate themselv
 ### 1. Main Screen = Panic Button
 > Immediate action.
 
-- Large blue button → "Presiona y encuentra la calma"  
+- Large green button → "Presiona y encuentra la calma"  
 - On tap → 3-minute guided breathwork starts  
 - Visual guide: Simple animation showing inhale / hold / exhale  
 
@@ -31,7 +31,7 @@ This app helps anyone going through a panic or anxiety episode regulate themselv
 ### 3. BOLT Score Tracker
 > For long-term progress.
 
-- Users can measure their BOLT Score (CO₂ tolerance indicator)  
+- Users can measure their BOLT Score (CO₂ tolerance and stress indicator)  
 - Test = Hold breath after exhale  
 - Timer runs → Result saved to user profile  
 
@@ -57,10 +57,15 @@ This app helps anyone going through a panic or anxiety episode regulate themselv
 
 ## Backend Integration Notes
 
-Use this repo as reference:  
-https://github.com/JoaquinAcuna97/Flutter-Django-Login
+IMPORTANT: Backend with Django will be created later as application scales. 
 
-### Requirements:
+Current backend is managed fully in Supabase. Both storage and also databases. 
+## Current Backend Requirements:
+- Supabase for database mgmt 
+- Supabase for Auth 
+- Supabase for storage
+
+### Future Backedn Requirements:
 
 - Django backend verifying Firebase ID tokens  
 - Proper Firebase Authentication configuration (iOS & Android)  
@@ -68,17 +73,24 @@ https://github.com/JoaquinAcuna97/Flutter-Django-Login
 - Clear local setup for both backend & frontend  
 - Authenticated API calls from Flutter → Django using ID Token  
 
+Use this repo as reference:  
+https://github.com/JoaquinAcuna97/Flutter-Django-Login
+
 ---
 
 ## Deliverables Checklist
 
-- [ ] Working Flutter mobile app  
-- [ ] GitHub Repo  
-- [ ] Step-by-step setup guide  
+- [X] Working Flutter mobile app  
+- [X] GitHub Repo  
+- [X] Step-by-step setup guide  
 - [ ] Dockerized Django backend  
 - [ ] Sample `.env` files (Django + Flutter)  
-- [ ] Suggestions for UI polish (animations for calmness)  
-- [ ] Animation Idea → Expanding / contracting ball during breathing  
+- [X] Suggestions for UI polish (animations for calmness)  
+- [X] Animation Idea → Expanding / contracting ball during breathing  
+- [ ] Improved animation for breathing. 
+- [ ] Integrating sounds to breathing. 
+- [ ] Integrating guidance to breathing. 
+- [ ] Creating a journey where user can work and traing their stress capacity and reduce panic episodes with breathwork. 
 
 ---
 
@@ -105,7 +117,7 @@ https://github.com/JoaquinAcuna97/Flutter-Django-Login
 
 ---
 
-## Animation Logic — Flutter / Dart
+## Animation Logic — Flutter / Dart (Example) 
 
 ```dart
 import 'dart:async';
