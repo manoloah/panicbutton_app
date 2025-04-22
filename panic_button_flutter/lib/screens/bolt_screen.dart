@@ -365,7 +365,7 @@ class _BoltScreenState extends State<BoltScreen> {
                                 return Transform.rotate(
                                   angle: -math.pi / 4,
                                   alignment: Alignment.topLeft,
-                                  child: Text(label, style: tt.bodySmall),
+                                  child: Text(label, style: tt.bodyMedium),
                                 );
                               },
                             ),
