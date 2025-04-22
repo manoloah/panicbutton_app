@@ -17,7 +17,7 @@ class AppTheme {
   static const _greenAccent = Color(0xFF00B383); // highlights / CTAs
   static const _purpleAccent = Color(0xFF9049E7); // alt accent
   static const _error = Color(0xFFFF4500); // error
-  static const _errorLight = Color(0xFFEF5350); // error light
+  static const _errorLight = Color(0xFFEF9A9A); // error light
 
   // Single dark theme
   static ThemeData dark() {

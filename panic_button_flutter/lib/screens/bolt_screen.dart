@@ -1,9 +1,10 @@
+// lib/screens/bolt_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
 
 class BoltScreen extends StatefulWidget {
@@ -48,27 +49,27 @@ class _BoltScreenState extends State<BoltScreen> {
           .eq('user_id', user.id)
           .order('created_at', ascending: true)
           .limit(10);
-      
       setState(() {
         _scores = (response as List)
             .map((score) => BoltScore.fromJson(score))
             .toList();
       });
     } catch (e) {
-      debugPrint('Error loading BOLT scores: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar las puntuaciones'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackError('Error al cargar las puntuaciones');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackError(String message) {
+    final cs = Theme.of(context).colorScheme;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: cs.onError)),
+        backgroundColor: cs.error,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void _startMeasurement() {
@@ -77,8 +78,7 @@ class _BoltScreenState extends State<BoltScreen> {
       _isComplete = false;
       _seconds = 0;
     });
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() => _seconds++);
     });
   }
@@ -105,23 +105,12 @@ class _BoltScreenState extends State<BoltScreen> {
         'user_id': user.id,
         'created_at': DateTime.now().toIso8601String(),
       });
-
       await _loadScores();
       setState(() => _isComplete = false);
     } catch (e) {
-      debugPrint('Error saving BOLT score: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al guardar la puntuación'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showSnackError('Error al guardar la puntuación');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -134,12 +123,17 @@ class _BoltScreenState extends State<BoltScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF132737),
+      // uses theme.scaffoldBackgroundColor
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        // uses theme.appBarTheme.backgroundColor
         elevation: 0,
-        title: const Text('Mide Tu BOLT'),
+        title: Text(
+          'Mide tu probabilidad de tener un ataque de pánico',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -153,115 +147,76 @@ class _BoltScreenState extends State<BoltScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. Una mayor puntuación indica mejor salud respiratoria.',
-                style: TextStyle(
-                  color: Color(0xFFB0B0B0),
-                  fontSize: 16,
-                ),
+              // Description
+              Text(
+                'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. Es un gran indicador tu nivel de ansiedad y tu capacidad para manejar el estrés.',
+                style: tt.bodyMedium,
               ),
               const SizedBox(height: 30),
+
+              // Measurement container
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
                   children: [
+                    // Timer / result text
                     Text(
                       _isMeasuring
                           ? '$_seconds segundos'
                           : _isComplete
                               ? 'Tu puntuación: $_seconds segundos'
                               : 'Presiona para empezar',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      style: tt.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
+
+                    // Buttons
                     if (_isComplete) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          ElevatedButton(
+                          // Retry as outlined
+                          OutlinedButton(
                             onPressed: _resetMeasurement,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
                             child: const Text('Reintentar'),
                           ),
+                          // Save as primary
                           ElevatedButton(
                             onPressed: _saveMeasurement,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B383),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
                             child: const Text('Guardar'),
                           ),
                         ],
                       ),
                     ] else ...[
+                      // Start / Stop as primary
                       ElevatedButton(
-                        onPressed: _isMeasuring ? _stopMeasurement : _startMeasurement,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _isMeasuring 
-                              ? Colors.red 
-                              : const Color(0xFF00B383),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 15,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          _isMeasuring ? 'DETENER' : 'EMPEZAR',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed:
+                            _isMeasuring ? _stopMeasurement : _startMeasurement,
+                        child: Text(_isMeasuring ? 'DETENER' : 'EMPEZAR'),
                       ),
                     ],
                   ],
                 ),
               ),
+
               const SizedBox(height: 30),
+
+              // Progress chart or loader
               if (_isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (_scores.isNotEmpty) ...[
-                const Text(
-                  'Tu progreso',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Tu progreso', style: tt.headlineMedium),
                 const SizedBox(height: 16),
                 Container(
                   height: 250,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: LineChart(
@@ -270,12 +225,10 @@ class _BoltScreenState extends State<BoltScreen> {
                         show: true,
                         drawVerticalLine: false,
                         horizontalInterval: 10,
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: Colors.white.withOpacity(0.1),
-                            strokeWidth: 1,
-                          );
-                        },
+                        getDrawingHorizontalLine: (_) => FlLine(
+                          color: cs.onSurface.withOpacity(0.1),
+                          strokeWidth: 1,
+                        ),
                       ),
                       titlesData: FlTitlesData(
                         leftTitles: AxisTitles(
@@ -283,13 +236,10 @@ class _BoltScreenState extends State<BoltScreen> {
                             showTitles: true,
                             interval: 10,
                             reservedSize: 40,
-                            getTitlesWidget: (value, meta) {
+                            getTitlesWidget: (value, _) {
                               return Text(
                                 value.toInt().toString(),
-                                style: const TextStyle(
-                                  color: Color(0xFFB0B0B0),
-                                  fontSize: 12,
-                                ),
+                                style: tt.bodyMedium,
                               );
                             },
                           ),
@@ -297,17 +247,15 @@ class _BoltScreenState extends State<BoltScreen> {
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
-                            getTitlesWidget: (value, meta) {
-                              if (value.toInt() >= _scores.length) return const Text('');
+                            getTitlesWidget: (value, _) {
+                              if (value.toInt() >= _scores.length)
+                                return const Text('');
                               final date = _scores[value.toInt()].createdAt;
                               return Padding(
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
                                   DateFormat('MM/dd').format(date),
-                                  style: const TextStyle(
-                                    color: Color(0xFFB0B0B0),
-                                    fontSize: 12,
-                                  ),
+                                  style: tt.bodyMedium,
                                 ),
                               );
                             },
@@ -323,20 +271,18 @@ class _BoltScreenState extends State<BoltScreen> {
                       borderData: FlBorderData(show: false),
                       lineBarsData: [
                         LineChartBarData(
-                          spots: _scores.asMap().entries.map((entry) {
-                            return FlSpot(
-                              entry.key.toDouble(),
-                              entry.value.scoreSeconds.toDouble(),
-                            );
+                          spots: _scores.asMap().entries.map((e) {
+                            return FlSpot(e.key.toDouble(),
+                                e.value.scoreSeconds.toDouble());
                           }).toList(),
                           isCurved: true,
-                          color: const Color(0xFF00B383),
+                          color: cs.primary,
                           barWidth: 3,
                           isStrokeCapRound: true,
                           dotData: const FlDotData(show: true),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: const Color(0xFF00B383).withOpacity(0.1),
+                            color: cs.primary.withOpacity(0.1),
                           ),
                         ),
                       ],
@@ -365,4 +311,4 @@ class BoltScore {
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
-} 
+}
