@@ -1,3 +1,4 @@
+// lib/screens/notifications_settings_screen.dart
 import 'package:flutter/material.dart';
 
 class NotificationsSettingsScreen extends StatelessWidget {
@@ -5,19 +6,19 @@ class NotificationsSettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF132737),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
         title: const Text('Notificaciones'),
       ),
-      body: const Center(
+      body: Center(
         child: Text(
           'TODO: Implement notifications settings',
-          style: TextStyle(color: Colors.white),
+          style: tt.bodyLarge, // inherits font & color from your theme
+          textAlign: TextAlign.center,
         ),
       ),
     );
   }
-} 
+}
