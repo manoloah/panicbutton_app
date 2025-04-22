@@ -1,3 +1,4 @@
+// lib/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -7,18 +8,21 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   Future<void> _handleLogout(BuildContext context) async {
+    final cs = Theme.of(context).colorScheme;
     try {
       await Supabase.instance.client.auth.signOut();
-      if (context.mounted) {
-        context.go('/auth');
-      }
+      if (context.mounted) context.go('/auth');
     } catch (e) {
       debugPrint('Error during logout: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cerrar sesión'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: Text(
+              'Error al cerrar sesión',
+              style: TextStyle(color: cs.onError),
+            ),
+            backgroundColor: cs.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -27,11 +31,13 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF132737),
+      // backgroundColor omitted → uses scaffoldBackgroundColor
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        // uses appBarTheme.backgroundColor & titleTextStyle
         title: const Text('Configuración'),
       ),
       body: ListView(
@@ -78,6 +84,14 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ElevatedButton(
+              onPressed: () => _handleLogout(context),
+              child: const Text('Cerrar Sesión'),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: const CustomNavBar(currentIndex: 3),
@@ -96,6 +110,9 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -103,22 +120,16 @@ class _SettingsGroup extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: tt.headlineMedium,
           ),
         ),
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: cs.surface,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
@@ -138,25 +149,22 @@ class _SettingsItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
     return Column(
       children: [
         ListTile(
           title: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-            ),
+            style: tt.bodyLarge,
           ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: Colors.white,
-          ),
+          trailing: Icon(Icons.chevron_right, color: cs.onBackground),
           onTap: onTap,
         ),
         if (showDivider)
           Divider(
-            color: Colors.white.withOpacity(0.1),
+            color: cs.onSurface.withOpacity(0.1),
             height: 1,
             indent: 16,
             endIndent: 16,
@@ -164,4 +172,4 @@ class _SettingsItem extends StatelessWidget {
       ],
     );
   }
-} 
+}
