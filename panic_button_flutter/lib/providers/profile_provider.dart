@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 /// ─────────────────────────────────────────────────────── Data model
 class Profile {
@@ -97,8 +98,14 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
           .eq('id', user.id)
           .single() as Map<String, dynamic>;
 
-      state = AsyncData(Profile.fromJson(data));
+      // Create a new Profile instance with the data
+      final profile = Profile.fromJson(data);
+
+      // Update state with the new profile data
+      state = AsyncData(profile);
     } catch (e, st) {
+      debugPrint('Error loading profile: $e');
+      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }
@@ -122,6 +129,8 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
             updatedAt: DateTime.now(),
           ));
     } catch (e, st) {
+      debugPrint('Error updating avatar: $e');
+      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }
@@ -147,6 +156,8 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
             updatedAt: DateTime.now(),
           ));
     } catch (e, st) {
+      debugPrint('Error updating profile: $e');
+      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }

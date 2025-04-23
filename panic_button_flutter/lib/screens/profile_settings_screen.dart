@@ -27,25 +27,15 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _dobCtrl = TextEditingController();
   DateTime? _dob;
   bool _isLoading = false;
+  bool _hasUnsavedChanges = false;
 
   final _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
-  }
-
-  void _loadProfile() {
-    final profile = ref.read(profileProvider);
-    if (profile.hasValue) {
-      final p = profile.value!;
-      _firstNameCtrl.text = p.firstName ?? '';
-      _lastNameCtrl.text = p.lastName ?? '';
-      _usernameCtrl.text = p.username ?? '';
-      _dob = p.dateOfBirth;
-      _dobCtrl.text = _formatDate(_dob);
-    }
+    // Refresh profile data when screen is loaded
+    ref.read(profileProvider.notifier).refresh();
   }
 
   @override
@@ -61,18 +51,18 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     try {
       // Read the file
       final bytes = await file.readAsBytes();
-      
+
       // Decode image
       final image = img.decodeImage(bytes);
       if (image == null) return null;
 
       // Get the minimum dimension for square cropping
       final size = image.width < image.height ? image.width : image.height;
-      
+
       // Calculate crop dimensions to make it square from the center
       final left = (image.width - size) ~/ 2;
       final top = (image.height - size) ~/ 2;
-      
+
       // Crop and resize
       final cropped = img.copyCrop(
         image,
@@ -81,7 +71,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         width: size,
         height: size,
       );
-      
+
       // Resize to 400x400
       final resized = img.copyResize(
         cropped,
@@ -89,7 +79,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         height: 400,
         interpolation: img.Interpolation.linear,
       );
-      
+
       // Encode as JPEG
       return Uint8List.fromList(img.encodeJpg(resized, quality: 90));
     } catch (e) {
@@ -108,7 +98,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         maxWidth: 1024,
         maxHeight: 1024,
       );
-      
+
       if (picked == null) {
         debugPrint('No image selected');
         return;
@@ -122,7 +112,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         throw Exception('Error al procesar la imagen');
       }
 
-      debugPrint('Image processed successfully. Size: ${processedImageBytes.length} bytes');
+      debugPrint(
+          'Image processed successfully. Size: ${processedImageBytes.length} bytes');
 
       // Upload to Supabase and get signed URL
       final signedUrl = await SupabaseService.uploadAvatar(processedImageBytes);
@@ -167,6 +158,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       setState(() {
         _dob = picked;
         _dobCtrl.text = _formatDate(picked);
+        _hasUnsavedChanges = true;
       });
     }
   }
@@ -176,9 +168,90 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     return DateFormat('yyyy‑MM‑dd').format(date);
   }
 
+  Future<void> _showConfirmationDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar cambios'),
+        content:
+            const Text('¿Estás seguro de que deseas actualizar tu perfil?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await _saveProfile();
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        if (mounted) context.go('/auth');
+        return;
+      }
+
+      await ref.read(profileProvider.notifier).updateProfile({
+        'id': userId,
+        'first_name': _firstNameCtrl.text.trim(),
+        'last_name': _lastNameCtrl.text.trim(),
+        'username': _usernameCtrl.text.trim(),
+        'date_of_birth': _dob?.toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
+      if (mounted) {
+        setState(() => _hasUnsavedChanges = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Perfil actualizado')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
+
+    // Update controllers when profile data changes
+    profileAsync.whenData((profile) {
+      if (!_hasUnsavedChanges) {
+        if (_firstNameCtrl.text != profile.firstName) {
+          _firstNameCtrl.text = profile.firstName ?? '';
+        }
+        if (_lastNameCtrl.text != profile.lastName) {
+          _lastNameCtrl.text = profile.lastName ?? '';
+        }
+        if (_usernameCtrl.text != profile.username) {
+          _usernameCtrl.text = profile.username ?? '';
+        }
+        if (_dob != profile.dateOfBirth) {
+          _dob = profile.dateOfBirth;
+          _dobCtrl.text = _formatDate(_dob);
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -234,13 +307,18 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                     debugPrint('Error loading avatar: $error');
                                     return const Icon(Icons.person, size: 50);
                                   },
-                                  loadingBuilder: (context, child, loadingProgress) {
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
                                     if (loadingProgress == null) return child;
                                     return Center(
                                       child: CircularProgressIndicator(
-                                        value: loadingProgress.expectedTotalBytes != null
-                                            ? loadingProgress.cumulativeBytesLoaded /
-                                                loadingProgress.expectedTotalBytes!
+                                        value: loadingProgress
+                                                    .expectedTotalBytes !=
+                                                null
+                                            ? loadingProgress
+                                                    .cumulativeBytesLoaded /
+                                                loadingProgress
+                                                    .expectedTotalBytes!
                                             : null,
                                       ),
                                     );
@@ -268,7 +346,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                           Colors.white),
                                     ),
                                   )
-                                : const Icon(Icons.camera_alt, color: Colors.white),
+                                : const Icon(Icons.camera_alt,
+                                    color: Colors.white),
                             onPressed: _isLoading ? null : _pickImage,
                           ),
                         ),
@@ -291,6 +370,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     }
                     return null;
                   },
+                  onChanged: (_) => setState(() => _hasUnsavedChanges = true),
                 ),
                 const SizedBox(height: 16),
 
@@ -302,6 +382,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     helperText: 'Opcional',
                     border: OutlineInputBorder(),
                   ),
+                  onChanged: (_) => setState(() => _hasUnsavedChanges = true),
                 ),
                 const SizedBox(height: 16),
 
@@ -313,6 +394,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     helperText: 'Opcional',
                     border: OutlineInputBorder(),
                   ),
+                  onChanged: (_) => setState(() => _hasUnsavedChanges = true),
                 ),
                 const SizedBox(height: 16),
 
@@ -331,48 +413,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
                 // Save button
                 ElevatedButton(
-                  onPressed: _isLoading
+                  onPressed: _isLoading || !_hasUnsavedChanges
                       ? null
-                      : () async {
-                          if (!_formKey.currentState!.validate()) return;
-
-                          setState(() => _isLoading = true);
-                          try {
-                            final userId =
-                                Supabase.instance.client.auth.currentUser?.id;
-                            if (userId == null) {
-                              if (mounted) context.go('/auth');
-                              return;
-                            }
-
-                            await ref
-                                .read(profileProvider.notifier)
-                                .updateProfile({
-                              'id': userId,
-                              'first_name': _firstNameCtrl.text.trim(),
-                              'last_name': _lastNameCtrl.text.trim(),
-                              'username': _usernameCtrl.text.trim(),
-                              'date_of_birth': _dob?.toIso8601String(),
-                              'updated_at': DateTime.now().toIso8601String(),
-                            });
-
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Perfil actualizado')),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Error: ${e.toString()}')),
-                              );
-                            }
-                          } finally {
-                            if (mounted) setState(() => _isLoading = false);
-                          }
-                        },
+                      : _showConfirmationDialog,
                   child: _isLoading
                       ? const SizedBox(
                           width: 24,
