@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 /// ─────────────────────────────────────────────────────────────
 ///  BreathManu Brand – Dark Theme
 ///  All colour codes & font choices taken directly from the
-///  “Color & Brand – The BreathManu” document. :contentReference[oaicite:0]{index=0}
+///  "Color & Brand – The BreathManu" document. :contentReference[oaicite:0]{index=0}
 /// ─────────────────────────────────────────────────────────────
 class AppTheme {
   // Brand colours
@@ -30,7 +30,7 @@ class AppTheme {
       onSecondary: _bg,
       background: _bg,
       onBackground: _white,
-      surface: const Color(0xFF1E3244), // card/dialog surface
+      surface: Color(0xFF1E3244), // card/dialog surface
       onSurface: _white,
       error: _error,
       onError: _white,
@@ -49,7 +49,6 @@ class AppTheme {
         fontSize: 32,
         color: _white,
       ),
-
       headlineLarge: GoogleFonts.unbounded(
         fontWeight: FontWeight.bold,
         fontSize: 34,
@@ -103,7 +102,7 @@ class AppTheme {
         ),
       ),
 
-      // White “secondary” buttons (gray text)
+      // White "secondary" buttons (gray text)
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           backgroundColor: _white,

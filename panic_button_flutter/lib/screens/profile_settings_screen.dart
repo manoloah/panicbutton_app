@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image/image.dart' as img;
 
 import '../providers/profile_provider.dart';
 import '../services/supabase_service.dart';
@@ -25,6 +26,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _usernameCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
   DateTime? _dob;
+  bool _isLoading = false;
 
   final _imagePicker = ImagePicker();
 
@@ -55,30 +57,96 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     super.dispose();
   }
 
+  Future<Uint8List?> _processImage(XFile file) async {
+    try {
+      // Read the file
+      final bytes = await file.readAsBytes();
+      
+      // Decode image
+      final image = img.decodeImage(bytes);
+      if (image == null) return null;
+
+      // Get the minimum dimension for square cropping
+      final size = image.width < image.height ? image.width : image.height;
+      
+      // Calculate crop dimensions to make it square from the center
+      final left = (image.width - size) ~/ 2;
+      final top = (image.height - size) ~/ 2;
+      
+      // Crop and resize
+      final cropped = img.copyCrop(
+        image,
+        x: left,
+        y: top,
+        width: size,
+        height: size,
+      );
+      
+      // Resize to 400x400
+      final resized = img.copyResize(
+        cropped,
+        width: 400,
+        height: 400,
+        interpolation: img.Interpolation.linear,
+      );
+      
+      // Encode as JPEG
+      return Uint8List.fromList(img.encodeJpg(resized, quality: 90));
+    } catch (e) {
+      debugPrint('Error processing image: $e');
+      return null;
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
+      setState(() => _isLoading = true);
+
+      // Pick image
       final picked = await _imagePicker.pickImage(
         source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
       );
-      if (picked == null) return;
+      
+      if (picked == null) {
+        debugPrint('No image selected');
+        return;
+      }
 
-      final bytes = await picked.readAsBytes();
-      final userId = Supabase.instance.client.auth.currentUser!.id;
-      final url = await SupabaseService.uploadAvatar(bytes);
+      debugPrint('Image picked: ${picked.path}');
 
-      await ref.read(profileProvider.notifier).updateProfile({
-        'id': userId,
-        'avatar_url': url,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      // Process image
+      final processedImageBytes = await _processImage(picked);
+      if (processedImageBytes == null) {
+        throw Exception('Error al procesar la imagen');
+      }
+
+      debugPrint('Image processed successfully. Size: ${processedImageBytes.length} bytes');
+
+      // Upload to Supabase and get signed URL
+      final signedUrl = await SupabaseService.uploadAvatar(processedImageBytes);
+      debugPrint('Image uploaded successfully. Signed URL: $signedUrl');
+
+      // No need to update profile here as it's done in SupabaseService.uploadAvatar
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Avatar actualizado')),
         );
+        // Refresh profile to get the new avatar URL
+        ref.read(profileProvider.notifier).refresh();
       }
-    } catch (_) {
-      if (mounted) context.go('/auth');
+    } catch (e, stackTrace) {
+      debugPrint('Error in _pickImage: $e');
+      debugPrint('Stack trace: $stackTrace');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -124,7 +192,19 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Error: ${e.toString()}'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.read(profileProvider.notifier).refresh(),
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
         data: (profile) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -136,14 +216,38 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 Center(
                   child: Stack(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundImage: profile.avatarUrl != null
-                            ? NetworkImage(profile.avatarUrl!)
-                            : null,
-                        child: profile.avatarUrl == null
-                            ? const Icon(Icons.person, size: 50)
-                            : null,
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Theme.of(context).colorScheme.surface,
+                        ),
+                        child: profile.avatarUrl != null
+                            ? ClipOval(
+                                child: Image.network(
+                                  profile.avatarUrl!,
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    debugPrint('Error loading avatar: $error');
+                                    return const Icon(Icons.person, size: 50);
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                            : const Icon(Icons.person, size: 50),
                       ),
                       Positioned(
                         bottom: 0,
@@ -154,9 +258,18 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                             shape: BoxShape.circle,
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.camera_alt,
-                                color: Colors.white),
-                            onPressed: _pickImage,
+                            icon: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Icon(Icons.camera_alt, color: Colors.white),
+                            onPressed: _isLoading ? null : _pickImage,
                           ),
                         ),
                       ),
@@ -172,7 +285,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     labelText: 'Nombre',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (_) => null,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Por favor ingresa tu nombre';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -184,7 +302,6 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     helperText: 'Opcional',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (_) => null,
                 ),
                 const SizedBox(height: 16),
 
@@ -196,7 +313,6 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     helperText: 'Opcional',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (_) => null,
                 ),
                 const SizedBox(height: 16),
 
@@ -210,37 +326,64 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   ),
                   readOnly: true,
                   onTap: _pickDate,
-                  validator: (_) => null,
                 ),
                 const SizedBox(height: 24),
 
                 // Save button
                 ElevatedButton(
-                  onPressed: () async {
-                    if (!_formKey.currentState!.validate()) return;
-                    final userId =
-                        Supabase.instance.client.auth.currentUser?.id;
-                    if (userId == null) {
-                      if (mounted) context.go('/auth');
-                      return;
-                    }
+                  onPressed: _isLoading
+                      ? null
+                      : () async {
+                          if (!_formKey.currentState!.validate()) return;
 
-                    await ref.read(profileProvider.notifier).updateProfile({
-                      'id': userId,
-                      'first_name': _firstNameCtrl.text.trim(),
-                      'last_name': _lastNameCtrl.text.trim(),
-                      'username': _usernameCtrl.text.trim(),
-                      'date_of_birth': _dob?.toIso8601String(),
-                      'updated_at': DateTime.now().toIso8601String(),
-                    });
+                          setState(() => _isLoading = true);
+                          try {
+                            final userId =
+                                Supabase.instance.client.auth.currentUser?.id;
+                            if (userId == null) {
+                              if (mounted) context.go('/auth');
+                              return;
+                            }
 
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Perfil actualizado')),
-                      );
-                    }
-                  },
-                  child: const Text('Guardar cambios'),
+                            await ref
+                                .read(profileProvider.notifier)
+                                .updateProfile({
+                              'id': userId,
+                              'first_name': _firstNameCtrl.text.trim(),
+                              'last_name': _lastNameCtrl.text.trim(),
+                              'username': _usernameCtrl.text.trim(),
+                              'date_of_birth': _dob?.toIso8601String(),
+                              'updated_at': DateTime.now().toIso8601String(),
+                            });
+
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Perfil actualizado')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text('Error: ${e.toString()}')),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isLoading = false);
+                          }
+                        },
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text('Guardar cambios'),
                 ),
               ],
             ),

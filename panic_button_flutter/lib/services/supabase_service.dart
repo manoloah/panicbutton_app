@@ -1,7 +1,14 @@
 import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image/image.dart' as img;
+import 'package:flutter/foundation.dart';
 
 class SupabaseService {
+  static final _client = Supabase.instance.client;
+  static const _maxFileSizeBytes = 5 * 1024 * 1024; // 5MB
+  static const _avatarBucketName = 'avatars';
+
+  // Singleton pattern
   static final SupabaseService _instance = SupabaseService._internal();
   factory SupabaseService() => _instance;
   SupabaseService._internal();
@@ -103,33 +110,70 @@ class SupabaseService {
     }
   }
 
-  static Future<String?> uploadAvatar(
-    Uint8List bytes, {
-    String filename = 'avatar.png', // override if you want a different name
-  }) async {
+  static Future<String> uploadAvatar(Uint8List bytes) async {
     try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return null;
+      final user = _client.auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
 
-      final filePath = '$userId/$filename'; // avatars/<userId>/avatar.png
-      final storage = supabase.storage.from('avatars');
+      // Validate file size
+      if (bytes.length > _maxFileSizeBytes) {
+        throw Exception('La imagen es demasiado grande. Máximo 5MB permitido.');
+      }
 
-      // ⬇⬇ Upload (overwrites existing file)
-      await storage.uploadBinary(
-        filePath,
-        bytes,
-        fileOptions: const FileOptions(
-          cacheControl: '3600',
-          upsert: true,
-        ),
-      );
+      // Create a path that matches the RLS policy structure
+      final fileName = 'avatar.jpg';
+      final filePath = '${user.id}/$fileName';
+      debugPrint('Uploading avatar to path: $filePath');
 
-      // Return the public URL so you can store it in the profiles row
-      return storage.getPublicUrl(filePath);
-    } catch (e) {
-      print('Error uploading avatar: $e');
-      return null;
+      // First, try to remove existing avatar
+      try {
+        final response = await _client.storage
+            .from(_avatarBucketName)
+            .list();
+            
+        final existingFiles = response.where(
+          (file) => file.name.startsWith('${user.id}/'),
+        ).toList();
+            
+        if (existingFiles.isNotEmpty) {
+          await _client.storage.from(_avatarBucketName).remove([filePath]);
+          debugPrint('Removed existing avatar');
+        }
+      } catch (e) {
+        debugPrint('No existing avatar to remove or error: $e');
+      }
+
+      // Upload to Supabase Storage
+      await _client.storage
+          .from(_avatarBucketName)
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(
+              contentType: 'image/jpeg',
+              upsert: true,
+            ),
+          );
+      debugPrint('Upload successful');
+
+      // Get the public URL
+      final publicUrl = _client.storage.from(_avatarBucketName).getPublicUrl(filePath);
+      
+      // Add cache-busting parameter
+      final urlWithCacheBust = '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+      debugPrint('Generated URL with cache bust: $urlWithCacheBust');
+
+      // Update the profile with the new avatar URL
+      await _client.from('profiles').update({
+        'avatar_url': publicUrl, // Store clean URL in database
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
+      
+      return urlWithCacheBust;
+    } catch (e, stackTrace) {
+      debugPrint('Error uploading avatar: $e');
+      debugPrint('Stack trace: $stackTrace');
+      rethrow;
     }
   }
 }

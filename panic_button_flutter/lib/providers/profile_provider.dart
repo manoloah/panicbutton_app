@@ -100,35 +100,40 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
       state = AsyncData(Profile.fromJson(data));
     } catch (e, st) {
       state = AsyncError(e, st);
+      rethrow;
     }
   }
 
   // ─────────────────────────────────────────── Avatar update
   Future<void> updateAvatar(String url) async {
     final user = _client.auth.currentUser;
-    if (user == null) return;
+    if (user == null) throw Exception('User not authenticated');
 
     try {
+      // Update the database
       await _client.from('profiles').update({
         'avatar_url': url,
         'updated_at': DateTime.now().toIso8601String()
       }).eq('id', user.id);
 
+      // Update local state
       state = state.whenData((p) => p.copyWith(
             avatarUrl: url,
             updatedAt: DateTime.now(),
           ));
     } catch (e, st) {
       state = AsyncError(e, st);
+      rethrow;
     }
   }
 
   // ─────────────────────────────────────────── Generic update
   Future<void> updateProfile(Map<String, dynamic> fields) async {
     final user = _client.auth.currentUser;
-    if (user == null) return;
+    if (user == null) throw Exception('User not authenticated');
 
     try {
+      // Update the database
       await _client.from('profiles').upsert(fields);
 
       // Merge the local copy
@@ -143,6 +148,10 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
           ));
     } catch (e, st) {
       state = AsyncError(e, st);
+      rethrow;
     }
   }
+
+  // ─────────────────────────────────────────── Refresh
+  Future<void> refresh() => _loadProfile();
 }
