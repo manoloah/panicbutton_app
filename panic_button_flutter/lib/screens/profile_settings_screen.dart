@@ -19,22 +19,22 @@ class ProfileSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
-  // Controllers
+  // -------------------------- Controllers & form state
   final _formKey = GlobalKey<FormState>();
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
   final _usernameCtrl = TextEditingController();
   final _dobCtrl = TextEditingController();
   DateTime? _dob;
+
   bool _isLoading = false;
   bool _hasUnsavedChanges = false;
-
   final _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    // Refresh profile data when screen is loaded
+    // Refresh profile data on load
     ref.read(profileProvider.notifier).refresh();
   }
 
@@ -47,40 +47,22 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     super.dispose();
   }
 
+  // -------------------------- Image processing
   Future<Uint8List?> _processImage(XFile file) async {
     try {
-      // Read the file
       final bytes = await file.readAsBytes();
-
-      // Decode image
       final image = img.decodeImage(bytes);
       if (image == null) return null;
 
-      // Get the minimum dimension for square cropping
       final size = image.width < image.height ? image.width : image.height;
-
-      // Calculate crop dimensions to make it square from the center
       final left = (image.width - size) ~/ 2;
       final top = (image.height - size) ~/ 2;
 
-      // Crop and resize
-      final cropped = img.copyCrop(
-        image,
-        x: left,
-        y: top,
-        width: size,
-        height: size,
-      );
+      final cropped =
+          img.copyCrop(image, x: left, y: top, width: size, height: size);
+      final resized = img.copyResize(cropped,
+          width: 400, height: 400, interpolation: img.Interpolation.linear);
 
-      // Resize to 400x400
-      final resized = img.copyResize(
-        cropped,
-        width: 400,
-        height: 400,
-        interpolation: img.Interpolation.linear,
-      );
-
-      // Encode as JPEG
       return Uint8List.fromList(img.encodeJpg(resized, quality: 90));
     } catch (e) {
       debugPrint('Error processing image: $e');
@@ -88,64 +70,44 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     }
   }
 
+  // -------------------------- Pick & upload avatar
   Future<void> _pickImage() async {
     try {
       setState(() => _isLoading = true);
 
-      // Pick image
       final picked = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
         maxHeight: 1024,
       );
+      if (picked == null) return;
 
-      if (picked == null) {
-        debugPrint('No image selected');
-        return;
-      }
+      final processed = await _processImage(picked);
+      if (processed == null) throw Exception('Error al procesar la imagen');
 
-      debugPrint('Image picked: ${picked.path}');
+      // Upload and save only the file path
+      final filePath = await SupabaseService.uploadAvatar(processed);
+      debugPrint('Avatar stored at: $filePath');
 
-      // Process image
-      final processedImageBytes = await _processImage(picked);
-      if (processedImageBytes == null) {
-        throw Exception('Error al procesar la imagen');
-      }
-
-      debugPrint(
-          'Image processed successfully. Size: ${processedImageBytes.length} bytes');
-
-      // Upload to Supabase and get signed URL
-      final signedUrl = await SupabaseService.uploadAvatar(processedImageBytes);
-      debugPrint('Image uploaded successfully. Signed URL: $signedUrl');
-
-      // No need to update profile here as it's done in SupabaseService.uploadAvatar
+      // Refresh provider to get a fresh signed URL
+      await ref.read(profileProvider.notifier).refresh();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar actualizado')),
-        );
-        // Refresh profile to get the new avatar URL
-        ref.read(profileProvider.notifier).refresh();
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Avatar actualizado')));
       }
-    } catch (e, stackTrace) {
-      debugPrint('Error in _pickImage: $e');
-      debugPrint('Stack trace: $stackTrace');
+    } catch (e, st) {
+      debugPrint('Error picking image: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _handleSignOut() async {
-    await SupabaseService().signOut();
-    if (mounted) context.go('/auth');
-  }
-
+  // -------------------------- Date picker & formatter
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -163,11 +125,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     }
   }
 
+  // Formats date as 'yyyy-MM-dd' or empty string if null
   String _formatDate(DateTime? date) {
     if (date == null) return '';
-    return DateFormat('yyyy‑MM‑dd').format(date);
+    return DateFormat('yyyy-MM-dd').format(date);
   }
 
+  // -------------------------- Confirmation dialog
   Future<void> _showConfirmationDialog() async {
     final result = await showDialog<bool>(
       context: context,
@@ -193,6 +157,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     }
   }
 
+  // -------------------------- Save profile
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -215,26 +180,31 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
       if (mounted) {
         setState(() => _hasUnsavedChanges = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Perfil actualizado')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Perfil actualizado')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // -------------------------- Sign-out
+  Future<void> _handleSignOut() async {
+    await SupabaseService().signOut();
+    if (mounted) context.go('/auth');
+  }
+
+  // -------------------------- Build UI
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
 
-    // Update controllers when profile data changes
+    // Sync form fields when profile changes
     profileAsync.whenData((profile) {
       if (!_hasUnsavedChanges) {
         if (_firstNameCtrl.text != profile.firstName) {
@@ -257,27 +227,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
       appBar: AppBar(
         title: const Text('Configuración de Perfil'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _handleSignOut,
-          ),
+          IconButton(icon: const Icon(Icons.logout), onPressed: _handleSignOut),
         ],
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Error: ${e.toString()}'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.read(profileProvider.notifier).refresh(),
-                child: const Text('Reintentar'),
-              ),
-            ],
-          ),
-        ),
+        error: (e, _) => Center(child: Text('Error: $e')),
         data: (profile) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Form(
@@ -285,7 +240,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Avatar
+                // Avatar display & picker
                 Center(
                   child: Stack(
                     children: [
@@ -303,26 +258,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                                   fit: BoxFit.cover,
                                   width: 100,
                                   height: 100,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    debugPrint('Error loading avatar: $error');
-                                    return const Icon(Icons.person, size: 50);
-                                  },
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        value: loadingProgress
-                                                    .expectedTotalBytes !=
-                                                null
-                                            ? loadingProgress
-                                                    .cumulativeBytesLoaded /
-                                                loadingProgress
-                                                    .expectedTotalBytes!
-                                            : null,
-                                      ),
-                                    );
-                                  },
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.person, size: 50),
                                 ),
                               )
                             : const Icon(Icons.person, size: 50),
@@ -364,12 +301,8 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     labelText: 'Nombre',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Por favor ingresa tu nombre';
-                    }
-                    return null;
-                  },
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                   onChanged: (_) => setState(() => _hasUnsavedChanges = true),
                 ),
                 const SizedBox(height: 16),
@@ -411,7 +344,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Save button
+                // Save button invokes confirmation dialog
                 ElevatedButton(
                   onPressed: _isLoading || !_hasUnsavedChanges
                       ? null

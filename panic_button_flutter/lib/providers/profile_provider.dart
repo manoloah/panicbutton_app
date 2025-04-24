@@ -1,11 +1,13 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
 
-/// ─────────────────────────────────────────────────────── Data model
+import '../services/supabase_service.dart';
+
+/// ───────────────────────── Data model
 class Profile {
   final String id;
-  final String? avatarUrl;
+  final String? avatarUrl; // Signed URL for Image.network
   final String? firstName;
   final String? lastName;
   final String? username;
@@ -24,36 +26,7 @@ class Profile {
     this.updatedAt,
   });
 
-  /// JSON ←→ Dart helpers (no build_runner needed)
-  factory Profile.fromJson(Map<String, dynamic> json) => Profile(
-        id: json['id'] as String,
-        avatarUrl: json['avatar_url'] as String?,
-        firstName: json['first_name'] as String?,
-        lastName: json['last_name'] as String?,
-        username: json['username'] as String?,
-        dateOfBirth: json['date_of_birth'] == null
-            ? null
-            : DateTime.parse(json['date_of_birth'] as String),
-        createdAt: json['created_at'] == null
-            ? null
-            : DateTime.parse(json['created_at'] as String),
-        updatedAt: json['updated_at'] == null
-            ? null
-            : DateTime.parse(json['updated_at'] as String),
-      );
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'avatar_url': avatarUrl,
-        'first_name': firstName,
-        'last_name': lastName,
-        'username': username,
-        'date_of_birth': dateOfBirth?.toIso8601String(),
-        'created_at': createdAt?.toIso8601String(),
-        'updated_at': updatedAt?.toIso8601String(),
-      };
-
-  /// Convenient immutable update
+  /// Immutable update helper
   Profile copyWith({
     String? avatarUrl,
     String? firstName,
@@ -74,10 +47,11 @@ class Profile {
       );
 }
 
-/// ─────────────────────────────────────────────────────── Provider
+/// ───────────────────────── Provider
 final profileProvider =
     StateNotifierProvider<ProfileNotifier, AsyncValue<Profile>>(
-        (ref) => ProfileNotifier());
+  (ref) => ProfileNotifier(),
+);
 
 class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
   ProfileNotifier() : super(const AsyncLoading()) {
@@ -86,7 +60,7 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
 
   final _client = Supabase.instance.client;
 
-  // ─────────────────────────────────────────── Load
+  /// Loads the profile and generates a signed URL for the avatar
   Future<void> _loadProfile() async {
     try {
       final user = _client.auth.currentUser;
@@ -98,71 +72,102 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
           .eq('id', user.id)
           .single() as Map<String, dynamic>;
 
-      // Create a new Profile instance with the data
-      final profile = Profile.fromJson(data);
+      String? raw = data['avatar_url'] as String?;
+      String? signedAvatar;
 
-      // Update state with the new profile data
-      state = AsyncData(profile);
+      if (raw != null && raw.isNotEmpty) {
+        String path;
+        if (raw.startsWith('http')) {
+          final uri = Uri.parse(raw);
+          final seg = uri.pathSegments;
+          final pubIdx = seg.indexOf('public');
+          if (pubIdx >= 0 && seg.length > pubIdx + 2) {
+            // Skip 'public' and bucket name
+            path = seg.sublist(pubIdx + 2).join('/');
+          } else {
+            path = raw;
+          }
+        } else {
+          path = raw;
+        }
+        signedAvatar = await SupabaseService.getSignedAvatarUrl(path);
+      }
+
+      state = AsyncData(
+        Profile(
+          id: data['id'] as String,
+          avatarUrl: signedAvatar,
+          firstName: data['first_name'] as String?,
+          lastName: data['last_name'] as String?,
+          username: data['username'] as String?,
+          dateOfBirth: data['date_of_birth'] == null
+              ? null
+              : DateTime.parse(data['date_of_birth'] as String),
+          createdAt: data['created_at'] == null
+              ? null
+              : DateTime.parse(data['created_at'] as String),
+          updatedAt: data['updated_at'] == null
+              ? null
+              : DateTime.parse(data['updated_at'] as String),
+        ),
+      );
     } catch (e, st) {
       debugPrint('Error loading profile: $e');
-      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }
   }
 
-  // ─────────────────────────────────────────── Avatar update
-  Future<void> updateAvatar(String url) async {
+  /// Updates avatar path in DB then refreshes signed URL
+  Future<void> updateAvatar(String filePath) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
     try {
-      // Update the database
       await _client.from('profiles').update({
-        'avatar_url': url,
-        'updated_at': DateTime.now().toIso8601String()
+        'avatar_url': filePath,
+        'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
 
-      // Update local state
-      state = state.whenData((p) => p.copyWith(
-            avatarUrl: url,
-            updatedAt: DateTime.now(),
-          ));
+      final signed = await SupabaseService.getSignedAvatarUrl(filePath);
+      state = state.whenData(
+        (p) => p.copyWith(
+          avatarUrl: signed,
+          updatedAt: DateTime.now(),
+        ),
+      );
     } catch (e, st) {
       debugPrint('Error updating avatar: $e');
-      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }
   }
 
-  // ─────────────────────────────────────────── Generic update
+  /// Generic profile update
   Future<void> updateProfile(Map<String, dynamic> fields) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
     try {
-      // Update the database
       await _client.from('profiles').upsert(fields);
-
-      // Merge the local copy
-      state = state.whenData((p) => p.copyWith(
-            firstName: fields['first_name'] as String? ?? p.firstName,
-            lastName: fields['last_name'] as String? ?? p.lastName,
-            username: fields['username'] as String? ?? p.username,
-            dateOfBirth: fields['date_of_birth'] != null
-                ? DateTime.parse(fields['date_of_birth'] as String)
-                : p.dateOfBirth,
-            updatedAt: DateTime.now(),
-          ));
+      state = state.whenData(
+        (p) => p.copyWith(
+          firstName: fields['first_name'] as String? ?? p.firstName,
+          lastName: fields['last_name'] as String? ?? p.lastName,
+          username: fields['username'] as String? ?? p.username,
+          dateOfBirth: fields['date_of_birth'] != null
+              ? DateTime.parse(fields['date_of_birth'] as String)
+              : p.dateOfBirth,
+          updatedAt: DateTime.now(),
+        ),
+      );
     } catch (e, st) {
       debugPrint('Error updating profile: $e');
-      debugPrint('Stack trace: $st');
       state = AsyncError(e, st);
       rethrow;
     }
   }
 
-  // ─────────────────────────────────────────── Refresh
+  /// Expose refresh for UI
   Future<void> refresh() => _loadProfile();
 }
