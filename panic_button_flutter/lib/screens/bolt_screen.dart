@@ -231,7 +231,8 @@ class _BoltScreenState extends State<BoltScreen> {
               const SizedBox(height: 12),
               Text(
                 'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
-                'Es un gran indicador tu nivel de ansiedad y tu capacidad para manejar el estrés.',
+                'Es un gran indicador tu nivel de ansiedad y tu capacidad para manejar el estrés. '
+                'Mientras mayor sea tu score de BOLT, menor será tu probabilidad de tener un ataque de pánico.',
                 style: tt.bodyMedium,
                 textAlign: TextAlign.center,
               ),

@@ -4,7 +4,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
-import 'package:panic_button_flutter/theme/app_theme.dart';
+import 'package:panic_button_flutter/widgets/breathing_circle.dart';
+import 'package:panic_button_flutter/widgets/wave_animation.dart';
+import 'package:panic_button_flutter/widgets/phase_indicator.dart';
+import 'package:panic_button_flutter/widgets/remaining_time_display.dart';
+import 'package:panic_button_flutter/widgets/add_time_button.dart';
 
 class BreathworkScreen extends StatefulWidget {
   const BreathworkScreen({super.key});
@@ -194,18 +198,8 @@ class _BreathworkScreenState extends State<BreathworkScreen>
     setState(() => _remainingSeconds += 180);
   }
 
-  String _formatTime(int seconds) {
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
-    return '$m:${s.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final breathColors = Theme.of(context).extension<BreathColors>()!;
-
     return Scaffold(
       body: SafeArea(
         child: Stack(
@@ -214,85 +208,39 @@ class _BreathworkScreenState extends State<BreathworkScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('PanicButton', style: tt.displayLarge),
+                  Text('PanicButton',
+                      style: Theme.of(context).textTheme.displayLarge),
                   const SizedBox(height: 40),
 
                   // 🌬 Breathing circle
-                  GestureDetector(
+                  BreathingCircle(
+                    isBreathing: _isBreathing,
                     onTap: _isBreathing ? _stopBreathing : _startBreathing,
-                    child: Container(
-                      width: 280,
-                      height: 280,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: cs.primary, // brand green
-                        boxShadow: [
-                          BoxShadow(
-                            color: cs.primary.withOpacity(0.3),
-                            blurRadius: 20,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Fluid Wave Animation
-                          Positioned.fill(
-                            child: AnimatedBuilder(
-                              animation: _waveController,
-                              builder: (context, _) {
-                                return ClipOval(
-                                  child: CustomPaint(
-                                    painter: WavePainter(
-                                      waveAnimation: _waveController.value,
-                                      fillLevel: _fillLevel,
-                                      oceanDeep: breathColors.oceanDeep,
-                                      oceanMid: breathColors.oceanMid,
-                                      oceanSurface: breathColors.oceanSurface,
-                                    ),
-                                    size: Size(280, 280),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                          // Phase text & counter
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _phase,
-                                style: tt.headlineMedium,
-                                textAlign: TextAlign.center,
-                              ),
-                              if (_isBreathing) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  _countdownValue.toString(),
-                                  style: tt.displayLarge,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ],
-                      ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        WaveAnimation(
+                          waveAnimation: _waveController,
+                          fillLevel: _fillLevel,
+                        ),
+                        PhaseIndicator(
+                          phase: _phase,
+                          countdown: _countdownValue,
+                          isBreathing: _isBreathing,
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 40),
 
                   // Timer
-                  Text(_formatTime(_remainingSeconds), style: tt.displayLarge),
+                  RemainingTimeDisplay(totalSeconds: _remainingSeconds),
 
                   // Add time
                   if (_isBreathing) ...[
                     const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _addTime,
-                      child: const Text('+3 minutos'),
-                    ),
+                    AddTimeButton(onPressed: _addTime),
                   ],
                 ],
               ),
@@ -309,104 +257,5 @@ class _BreathworkScreenState extends State<BreathworkScreen>
         ),
       ),
     );
-  }
-}
-
-// A custom painter that creates fluid wave animation
-class WavePainter extends CustomPainter {
-  final double waveAnimation; // 0.0 to 1.0
-  final double fillLevel; // 0.0 to 1.0, where 1.0 is filled to top
-  final Color oceanDeep;
-  final Color oceanMid;
-  final Color oceanSurface;
-
-  WavePainter({
-    required this.waveAnimation,
-    required this.fillLevel,
-    required this.oceanDeep,
-    required this.oceanMid,
-    required this.oceanSurface,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Calculate wave parameters
-    final width = size.width;
-    final height = size.height;
-    final centerX = width / 2;
-    final centerY = height / 2;
-    final radius = math.min(centerX, centerY);
-
-    // Create a shader for the wave gradient
-    final rect = Rect.fromLTWH(0, 0, width, height);
-    final gradient = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        oceanSurface.withOpacity(0.9),
-        oceanMid.withOpacity(0.7),
-        oceanDeep.withOpacity(0.5),
-      ],
-      stops: const [0.0, 0.5, 1.0],
-    ).createShader(rect);
-
-    // Create paint for the wave
-    final paint = Paint()
-      ..shader = gradient
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-
-    // Area to fill (from bottom)
-    final fillHeight = height * (1.0 - fillLevel);
-
-    // Create the main path for water
-    final path = Path();
-    path.moveTo(0, height);
-
-    // Wave parameters
-    final baseWaveHeight = fillHeight;
-    final waveWidth = width;
-    final waveHeight = radius * 0.05; // amplitude
-
-    // Draw two overlapping waves for more natural effect
-    final primaryWaveSpeed = waveAnimation * math.pi * 2;
-    final secondaryWaveSpeed = waveAnimation * math.pi * 3;
-
-    // Higher resolution makes smoother curves
-    final step = 2.0; // smaller step = smoother curve
-
-    for (double x = 0; x <= width; x += step) {
-      // Calculate wave Y position with two overlapping sine waves
-      final primary =
-          math.sin((x / waveWidth * 8 * math.pi) + primaryWaveSpeed);
-      final secondary =
-          math.sin((x / waveWidth * 12 * math.pi) + secondaryWaveSpeed) * 0.3;
-
-      // Wave Y position with dynamic amplitude near the fill level
-      final dynamicAmplitude =
-          waveHeight * (1.0 - 0.3 * math.cos(primaryWaveSpeed));
-      final waveY = baseWaveHeight + (primary + secondary) * dynamicAmplitude;
-
-      // Add point to path
-      path.lineTo(x, waveY);
-    }
-
-    // Complete the path
-    path.lineTo(width, height);
-    path.lineTo(0, height);
-    path.close();
-
-    // Draw the wave, clipped to the circle
-    canvas.save();
-    final clipPath = Path()..addOval(Rect.fromLTWH(0, 0, width, height));
-    canvas.clipPath(clipPath);
-    canvas.drawPath(path, paint);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant WavePainter oldDelegate) {
-    return oldDelegate.waveAnimation != waveAnimation ||
-        oldDelegate.fillLevel != fillLevel;
   }
 }
