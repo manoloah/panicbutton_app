@@ -31,9 +31,9 @@ class _BreathworkScreenState extends State<BreathworkScreen>
 
   // Breathing pattern configuration
   final int _inhaleSeconds = 4;
-  final int _holdAfterInhaleSeconds = 2;
+  final int _holdAfterInhaleSeconds = 4;
   final int _exhaleSeconds = 4;
-  final int _holdAfterExhaleSeconds = 2; // New pause after exhale
+  final int _holdAfterExhaleSeconds = 4; // New pause after exhale
 
   int _countdownValue = 0; // Clear countdown display value
   double _fillLevel = 0.0; // Wave fill level (0.0 to 1.0)
@@ -68,6 +68,8 @@ class _BreathworkScreenState extends State<BreathworkScreen>
 
     // Listen to breath animation for smooth updates
     _breathAnimation.addListener(() {
+      if (!mounted) return;
+
       setState(() {
         // Update fill level based on current phase and animation
         if (_isBreathing) {
@@ -115,6 +117,8 @@ class _BreathworkScreenState extends State<BreathworkScreen>
     _timer?.cancel();
     // Use a 100ms timer for smooth updates
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted) return;
+
       if (_remainingSeconds <= 0) {
         _stopBreathing();
         return;
@@ -146,16 +150,16 @@ class _BreathworkScreenState extends State<BreathworkScreen>
 
         // Hold at the top - use a timer instead of animation
         Future.delayed(Duration(seconds: _holdAfterInhaleSeconds), () {
-          if (_isBreathing) {
-            setState(() {
-              _phase = 'Exhala';
-              _countdownValue = _exhaleSeconds;
-            });
+          if (!mounted || !_isBreathing) return;
 
-            // Set up animation for exhale
-            _breathController.duration = Duration(seconds: _exhaleSeconds);
-            _breathController.forward(from: 0.0);
-          }
+          setState(() {
+            _phase = 'Exhala';
+            _countdownValue = _exhaleSeconds;
+          });
+
+          // Set up animation for exhale
+          _breathController.duration = Duration(seconds: _exhaleSeconds);
+          _breathController.forward(from: 0.0);
         });
         break;
 
@@ -168,16 +172,16 @@ class _BreathworkScreenState extends State<BreathworkScreen>
 
         // Hold at the bottom - use a timer instead of animation
         Future.delayed(Duration(seconds: _holdAfterExhaleSeconds), () {
-          if (_isBreathing) {
-            setState(() {
-              _phase = 'Inhala';
-              _countdownValue = _inhaleSeconds;
-            });
+          if (!mounted || !_isBreathing) return;
 
-            // Set up animation for inhale
-            _breathController.duration = Duration(seconds: _inhaleSeconds);
-            _breathController.forward(from: 0.0);
-          }
+          setState(() {
+            _phase = 'Inhala';
+            _countdownValue = _inhaleSeconds;
+          });
+
+          // Set up animation for inhale
+          _breathController.duration = Duration(seconds: _inhaleSeconds);
+          _breathController.forward(from: 0.0);
         });
         break;
     }
