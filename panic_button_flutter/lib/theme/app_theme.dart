@@ -2,6 +2,48 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// Ocean breath colors theme extension
+@immutable
+class BreathColors extends ThemeExtension<BreathColors> {
+  final Color oceanDeep;
+  final Color oceanMid;
+  final Color oceanSurface;
+
+  const BreathColors({
+    required this.oceanDeep,
+    required this.oceanMid,
+    required this.oceanSurface,
+  });
+
+  @override
+  ThemeExtension<BreathColors> copyWith({
+    Color? oceanDeep,
+    Color? oceanMid,
+    Color? oceanSurface,
+  }) {
+    return BreathColors(
+      oceanDeep: oceanDeep ?? this.oceanDeep,
+      oceanMid: oceanMid ?? this.oceanMid,
+      oceanSurface: oceanSurface ?? this.oceanSurface,
+    );
+  }
+
+  @override
+  ThemeExtension<BreathColors> lerp(
+    covariant ThemeExtension<BreathColors>? other,
+    double t,
+  ) {
+    if (other is! BreathColors) {
+      return this;
+    }
+    return BreathColors(
+      oceanDeep: Color.lerp(oceanDeep, other.oceanDeep, t)!,
+      oceanMid: Color.lerp(oceanMid, other.oceanMid, t)!,
+      oceanSurface: Color.lerp(oceanSurface, other.oceanSurface, t)!,
+    );
+  }
+}
+
 /// ─────────────────────────────────────────────────────────────
 ///  BreathManu Brand – Dark Theme
 ///  All colour codes & font choices taken directly from the
@@ -18,6 +60,11 @@ class AppTheme {
   static const _purpleAccent = Color(0xFF9049E7); // alt accent
   static const _error = Color(0xFFFF4500); // error
   static const _errorLight = Color(0xFFEF9A9A); // error light
+
+  // Ocean breath colors
+  static const _oceanDeep = Color(0xFF1A5276); // Deep blue ocean
+  static const _oceanMid = Color(0xFF2E86C1); // Mid-level ocean blue
+  static const _oceanSurface = Color(0xFF85C1E9); // Surface/foam blue
 
   // Single dark theme
   static ThemeData dark() {
@@ -164,6 +211,15 @@ class AppTheme {
             const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         hintStyle: TextStyle(color: _altText),
       ),
+
+      // Theme extensions
+      extensions: const [
+        BreathColors(
+          oceanDeep: _oceanDeep,
+          oceanMid: _oceanMid,
+          oceanSurface: _oceanSurface,
+        ),
+      ],
     );
   }
 }
