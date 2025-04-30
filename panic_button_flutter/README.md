@@ -7,6 +7,8 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 - Beautiful and calming UI
 - Guided breathing exercises with fluid wave animations
 - Customizable breathing patterns (inhale, hold, exhale, rest)
+- BOLT score measurement for tracking anxiety levels
+- Step-by-step instruction screens with smooth transitions
 - Session tracking
 - User statistics
 - Cross-platform (iOS, Android, Web)
@@ -53,6 +55,7 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 
 ```
 lib/
+  ├── constants/        # App constants including image paths
   ├── screens/          # App screens
   ├── widgets/          # Reusable widgets
   │   ├── breathing_circle.dart     # Circular container for breathing exercise
@@ -68,6 +71,58 @@ lib/
   │   └── app_theme.dart           # Theme configuration with extensions
   └── main.dart         # App entry point
 ```
+
+## Image Asset Management
+
+The app follows a structured approach to image asset management:
+
+1. **Image Organization**
+   - All images are stored in `assets/images/`
+   - Images are named using snake_case (e.g., `pinch_nose.png`)
+   
+2. **Centralized Image References**
+   - Image paths are defined in `lib/constants/images.dart`
+   - The `Images` class uses a private constructor to prevent instantiation
+   - Static constants provide type-safe access to image paths
+
+Example:
+```dart
+class Images {
+  Images._(); // Private constructor to prevent instantiation
+  
+  // BOLT Screen Images
+  static const String pinchNose = 'assets/images/pinch_nose.png';
+  static const String breathCalm = 'assets/images/breath_calm.png';
+}
+```
+
+3. **Usage in widgets**
+```dart
+Image.asset(
+  Images.pinchNose,
+  width: 120,
+  height: 120,
+)
+```
+
+## BOLT Measurement Feature
+
+The Body Oxygen Level Test (BOLT) feature allows users to measure their CO2 tolerance:
+
+1. **Step-by-step Instructions**
+   - Clear visual guidance through multiple breathing phases
+   - Manual progression via "SIGUIENTE" button for initial breathing phase
+   - Automatic countdown timers for inhale/exhale phases
+   
+2. **Smooth Transitions**
+   - Uses the `animations` package with `PageTransitionSwitcher`
+   - Implements `FadeThroughTransition` for professional-looking screen transitions
+   - Consistent container sizes to prevent layout jumps
+
+3. **Results Tracking**
+   - Saves BOLT scores to Supabase database
+   - Displays historical data with various aggregation options (day, week, month, etc.)
+   - Visual progress chart using `fl_chart`
 
 ## Architecture
 
@@ -95,8 +150,10 @@ This approach provides:
 - go_router: Navigation
 - supabase_flutter: Backend integration
 - flutter_animate: Animations
+- animations: Page transitions
 - google_fonts: Typography
 - lottie: Animation support
+- fl_chart: Data visualization
 
 ## Contributing
 
