@@ -16,24 +16,28 @@ class WaveAnimation extends StatelessWidget {
   Widget build(BuildContext context) {
     final breathColors = Theme.of(context).extension<BreathColors>()!;
 
-    return Positioned.fill(
-      child: AnimatedBuilder(
-        animation: waveAnimation,
-        builder: (context, _) {
-          return ClipOval(
-            child: CustomPaint(
-              painter: WavePainter(
-                waveAnimation: waveAnimation.value,
-                fillLevel: fillLevel,
-                oceanDeep: breathColors.oceanDeep,
-                oceanMid: breathColors.oceanMid,
-                oceanSurface: breathColors.oceanSurface,
-              ),
-              size: const Size(280, 280),
-            ),
-          );
-        },
-      ),
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: waveAnimation,
+            builder: (context, _) {
+              return ClipOval(
+                child: CustomPaint(
+                  painter: WavePainter(
+                    waveAnimation: waveAnimation.value,
+                    fillLevel: fillLevel,
+                    oceanDeep: breathColors.oceanDeep,
+                    oceanMid: breathColors.oceanMid,
+                    oceanSurface: breathColors.oceanSurface,
+                  ),
+                  size: const Size(280, 280),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

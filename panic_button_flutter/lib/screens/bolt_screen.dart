@@ -8,6 +8,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
+import 'package:panic_button_flutter/widgets/breathing_circle.dart';
+import 'package:panic_button_flutter/widgets/phase_indicator.dart';
+import 'package:panic_button_flutter/widgets/wave_animation.dart';
+import 'package:panic_button_flutter/constants/images.dart';
 
 /// How we bucket your raw BOLT scores:
 enum Aggregation { day, week, month, quarter, year }
@@ -25,26 +29,42 @@ class BoltScreen extends StatefulWidget {
   State<BoltScreen> createState() => _BoltScreenState();
 }
 
-class _BoltScreenState extends State<BoltScreen> {
+class _BoltScreenState extends State<BoltScreen>
+    with SingleTickerProviderStateMixin {
   bool _isMeasuring = false;
   bool _isComplete = false;
   bool _isLoading = false;
+  bool _isShowingInstructions = false;
   int _seconds = 0;
   Timer? _timer;
   List<BoltScore> _scores = [];
+  int _instructionStep = 0;
+  double _instructionCountdownDouble =
+      0; // Store as double for smooth animation
+  late AnimationController _breathAnimationController;
 
   /// Currently selected aggregation mode:
   Aggregation _aggregation = Aggregation.day;
+
+  // Helper to get integer countdown
+  int get _instructionCountdown => _instructionCountdownDouble.ceil();
 
   @override
   void initState() {
     super.initState();
     _loadScores();
+    _breathAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..addListener(() {
+        if (mounted) setState(() {}); // Ensure smooth animation updates
+      });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _breathAnimationController.dispose();
     super.dispose();
   }
 
@@ -82,6 +102,63 @@ class _BoltScreenState extends State<BoltScreen> {
   }
 
   void _startMeasurement() {
+    _isShowingInstructions = true;
+    _instructionStep = 0;
+    _instructionCountdownDouble = 10; // Start with 10 seconds to calm down
+
+    _startInstructionTimer();
+  }
+
+  void _startInstructionTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (!mounted) return;
+
+      setState(() {
+        if (_instructionCountdownDouble > 0) {
+          // For inhale/exhale steps, only countdown to 1, not 0
+          if ((_instructionStep == 1 || _instructionStep == 2) &&
+              _instructionCountdownDouble <= 1.1) {
+            // Move to next step when reaching 1
+            _instructionCountdownDouble = 0;
+          } else {
+            _instructionCountdownDouble =
+                math.max(0, _instructionCountdownDouble - 0.1);
+          }
+        } else {
+          // Move to next instruction
+          _instructionStep++;
+
+          switch (_instructionStep) {
+            case 1: // Inhale instruction
+              _instructionCountdownDouble = 5;
+              _breathAnimationController.reset();
+              _breathAnimationController.forward(
+                from: 0.0,
+              );
+              break;
+            case 2: // Exhale instruction
+              _instructionCountdownDouble = 5;
+              _breathAnimationController.reset();
+              _breathAnimationController.forward(
+                from: 0.0,
+              );
+              break;
+            case 3: // Pinch nose instruction - show longer
+              _instructionCountdownDouble = 3; // Increased from 2 to 3 seconds
+              break;
+            case 4: // Start BOLT measurement
+              _isShowingInstructions = false;
+              _actuallyStartMeasurement();
+              timer.cancel();
+              break;
+          }
+        }
+      });
+    });
+  }
+
+  void _actuallyStartMeasurement() {
     setState(() {
       _isMeasuring = true;
       _isComplete = false;
@@ -200,6 +277,247 @@ class _BoltScreenState extends State<BoltScreen> {
     }
   }
 
+  Widget _buildInstructionsCard() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Instrucciones para medir tu BOLT',
+            style: tt.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Para mejores resultados, realiza esta medición al despertar por la mañana.',
+            style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+
+          // Instruction steps
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInstructionStep(1,
+                  'Cálmate y respira normal por la nariz durante 10 segundos'),
+              _buildInstructionStep(
+                  2, 'Realiza una inhalación NORMAL durante 5 segundos'),
+              _buildInstructionStep(
+                  3, 'Realiza una exhalación NORMAL durante 5 segundos'),
+              _buildInstructionStep(
+                  4, 'Pincha tu nariz o retén la respiración'),
+              _buildInstructionStep(5, 'Inicia el cronómetro'),
+              _buildInstructionStep(6,
+                  'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire (normalmente sientes como la garganta se contrae o el pecho brinca, no tiene que ser al máximo)'),
+              _buildInstructionStep(7, 'Detén el contador en ese momento'),
+              _buildInstructionStep(
+                  8, 'Recupera tu respiración normal, lenta y controlada'),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _startMeasurement,
+            child: const Text('COMIENZA LA MEDICIÓN'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionStep(int step, String text) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: cs.primary,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                step.toString(),
+                style: tt.bodySmall?.copyWith(color: cs.onPrimary),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: tt.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionAnimation() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    String phaseText;
+    bool showBreathAnimation = false;
+    String instructionImage = Images.breathCalm;
+
+    switch (_instructionStep) {
+      case 0:
+        phaseText = 'Cálmate y respira de forma normal';
+        showBreathAnimation = false;
+        break;
+      case 1:
+        phaseText = 'Inhala normal';
+        showBreathAnimation = true;
+        break;
+      case 2:
+        phaseText = 'Exhala normal';
+        showBreathAnimation = true;
+        break;
+      case 3:
+        phaseText = 'Pincha tu nariz o retén la respiración';
+        showBreathAnimation = false;
+        instructionImage = Images.pinchNose;
+        break;
+      default:
+        phaseText = '';
+        showBreathAnimation = false;
+    }
+
+    // Calculate display countdown - never show less than 1 for inhale/exhale
+    int displayCountdown = _instructionCountdown;
+    if ((_instructionStep == 1 || _instructionStep == 2) &&
+        displayCountdown < 1) {
+      displayCountdown = 1;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PhaseIndicator(
+            phase: phaseText,
+            countdown: _instructionStep == 3 ? 0 : displayCountdown,
+            isBreathing: _instructionStep != 3,
+          ),
+          const SizedBox(height: 24),
+          if (showBreathAnimation) ...[
+            BreathingCircle(
+              isBreathing: true,
+              onTap: () {},
+              child: WaveAnimation(
+                waveAnimation: _breathAnimationController,
+                fillLevel: _instructionStep == 1
+                    ? _breathAnimationController.value
+                    : 1 - _breathAnimationController.value,
+              ),
+            ),
+          ] else ...[
+            Image.asset(
+              instructionImage,
+              width: 120,
+              height: 120,
+              color: _instructionStep == 3 ? null : cs.primary,
+            ),
+          ],
+          const SizedBox(height: 24),
+          Text(
+            'Sigue las instrucciones...',
+            style: tt.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeasurementUI() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Text(
+            _isMeasuring
+                ? 'Detén al primer deseo de respirar'
+                : _isComplete
+                    ? 'Tu puntuación: $_seconds segundos'
+                    : 'Presiona para empezar',
+            style: tt.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          if (_isMeasuring) ...[
+            Text(
+              '$_seconds segundos',
+              style: tt.displayLarge,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _stopMeasurement,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF4500), // Error color
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('DETENER'),
+            ),
+          ] else if (_isComplete) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: _resetMeasurement,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.surface,
+                    foregroundColor: cs.primary,
+                    side: BorderSide(color: cs.primary),
+                  ),
+                  child: const Text('Reintentar'),
+                ),
+                ElevatedButton(
+                  onPressed: _saveMeasurement,
+                  child: const Text('Guardar'),
+                ),
+              ],
+            )
+          ] else ...[
+            ElevatedButton(
+              onPressed: _startMeasurement,
+              child: const Text('EMPEZAR'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -231,7 +549,7 @@ class _BoltScreenState extends State<BoltScreen> {
               const SizedBox(height: 12),
               Text(
                 'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
-                'Es un gran indicador tu nivel de ansiedad y tu capacidad para manejar el estrés. '
+                'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
                 'Mientras mayor sea tu score de BOLT, menor será tu probabilidad de tener un ataque de pánico.',
                 style: tt.bodyMedium,
                 textAlign: TextAlign.center,
@@ -239,46 +557,13 @@ class _BoltScreenState extends State<BoltScreen> {
               const SizedBox(height: 30),
 
               // Measurement UI
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: cs.surface,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      _isMeasuring
-                          ? '$_seconds segundos'
-                          : _isComplete
-                              ? 'Tu puntuación: $_seconds segundos'
-                              : 'Presiona para empezar',
-                      style: tt.headlineMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 20),
-                    if (_isComplete) ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          OutlinedButton(
-                              onPressed: _resetMeasurement,
-                              child: const Text('Reintentar')),
-                          ElevatedButton(
-                              onPressed: _saveMeasurement,
-                              child: const Text('Guardar')),
-                        ],
-                      )
-                    ] else ...[
-                      ElevatedButton(
-                        onPressed:
-                            _isMeasuring ? _stopMeasurement : _startMeasurement,
-                        child: Text(_isMeasuring ? 'DETENER' : 'EMPEZAR'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+              if (_isShowingInstructions)
+                _buildInstructionAnimation()
+              else if (!_isMeasuring && !_isComplete)
+                _buildInstructionsCard()
+              else
+                _buildMeasurementUI(),
+
               const SizedBox(height: 30),
 
               // Chart or loader
