@@ -7,11 +7,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
-import 'package:panic_button_flutter/widgets/breathing_circle.dart';
-import 'package:panic_button_flutter/widgets/phase_indicator.dart';
-import 'package:panic_button_flutter/widgets/wave_animation.dart';
-import 'package:panic_button_flutter/constants/images.dart';
+import '../widgets/custom_nav_bar.dart';
+import '../widgets/breathing_circle.dart';
+import '../widgets/wave_animation.dart';
+import '../constants/images.dart';
+import 'package:animations/animations.dart';
 
 /// How we bucket your raw BOLT scores:
 enum Aggregation { day, week, month, quarter, year }
@@ -102,11 +102,11 @@ class _BoltScreenState extends State<BoltScreen>
   }
 
   void _startMeasurement() {
-    _isShowingInstructions = true;
-    _instructionStep = 0;
-    _instructionCountdownDouble = 10; // Start with 10 seconds to calm down
-
-    _startInstructionTimer();
+    // Start directly with the instructions and "SIGUIENTE" button
+    setState(() {
+      _isShowingInstructions = true;
+      _instructionStep = 0;
+    });
   }
 
   void _startInstructionTimer() {
@@ -116,9 +116,10 @@ class _BoltScreenState extends State<BoltScreen>
 
       setState(() {
         if (_instructionCountdownDouble > 0) {
-          // For inhale/exhale steps, only countdown to 1, not 0
+          // For inhale/exhale steps, stop at 1 second
           if ((_instructionStep == 1 || _instructionStep == 2) &&
-              _instructionCountdownDouble <= 1.1) {
+              _instructionCountdownDouble <= 1.0 + 0.1) {
+            // Adding small buffer for float comparison
             // Move to next step when reaching 1
             _instructionCountdownDouble = 0;
           } else {
@@ -156,6 +157,22 @@ class _BoltScreenState extends State<BoltScreen>
         }
       });
     });
+  }
+
+  // Method to advance to the next instruction manually
+  void _advanceToNextInstruction() {
+    print("_advanceToNextInstruction called");
+    setState(() {
+      _instructionStep = 1;
+      _instructionCountdownDouble = 5;
+      _breathAnimationController.reset();
+      _breathAnimationController.forward(
+        from: 0.0,
+      );
+      // Start the timer for automatic progression through remaining steps
+      _startInstructionTimer();
+    });
+    print("Advanced to step: $_instructionStep");
   }
 
   void _actuallyStartMeasurement() {
@@ -373,30 +390,24 @@ class _BoltScreenState extends State<BoltScreen>
     final tt = Theme.of(context).textTheme;
 
     String phaseText;
-    bool showBreathAnimation = false;
     String instructionImage = Images.breathCalm;
 
     switch (_instructionStep) {
       case 0:
         phaseText = 'Cálmate y respira de forma normal';
-        showBreathAnimation = false;
         break;
       case 1:
         phaseText = 'Inhala normal';
-        showBreathAnimation = true;
         break;
       case 2:
         phaseText = 'Exhala normal';
-        showBreathAnimation = true;
         break;
       case 3:
         phaseText = 'Pincha tu nariz o retén la respiración';
-        showBreathAnimation = false;
         instructionImage = Images.pinchNose;
         break;
       default:
         phaseText = '';
-        showBreathAnimation = false;
     }
 
     // Calculate display countdown - never show less than 1 for inhale/exhale
@@ -406,47 +417,97 @@ class _BoltScreenState extends State<BoltScreen>
       displayCountdown = 1;
     }
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
+    return PageTransitionSwitcher(
+      duration: const Duration(milliseconds: 600),
+      transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
+        return FadeThroughTransition(
+          animation: primaryAnimation,
+          secondaryAnimation: secondaryAnimation,
+          child: child,
+        );
+      },
+      child: Card(
+        key: ValueKey<int>(_instructionStep),
+        margin: EdgeInsets.zero,
         color: cs.surface,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PhaseIndicator(
-            phase: phaseText,
-            countdown: _instructionStep == 3 ? 0 : displayCountdown,
-            isBreathing: _instructionStep != 3,
-          ),
-          const SizedBox(height: 24),
-          if (showBreathAnimation) ...[
-            BreathingCircle(
-              isBreathing: true,
-              onTap: () {},
-              child: WaveAnimation(
-                waveAnimation: _breathAnimationController,
-                fillLevel: _instructionStep == 1
-                    ? _breathAnimationController.value
-                    : 1 - _breathAnimationController.value,
-              ),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 300),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Text(
+                  phaseText,
+                  style: tt.headlineMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+
+                // Main content
+                if (_instructionStep == 0) ...[
+                  Image.asset(
+                    instructionImage,
+                    width: 120,
+                    height: 120,
+                    color: cs.primary,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Toma tu tiempo para calmarte y respirar normalmente por la nariz',
+                    style: tt.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _advanceToNextInstruction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: cs.primary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
+                    ),
+                    child: const Text('SIGUIENTE'),
+                  ),
+                ] else if (_instructionStep == 1 || _instructionStep == 2) ...[
+                  Text(
+                    displayCountdown.toString(),
+                    style: tt.displayLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  BreathingCircle(
+                    isBreathing: true,
+                    onTap: () {},
+                    child: WaveAnimation(
+                      waveAnimation: _breathAnimationController,
+                      fillLevel: _instructionStep == 1
+                          ? _breathAnimationController.value
+                          : 1 - _breathAnimationController.value,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Sigue las instrucciones...',
+                    style: tt.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ] else if (_instructionStep == 3) ...[
+                  Image.asset(
+                    instructionImage,
+                    width: 120,
+                    height: 120,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Sigue las instrucciones...',
+                    style: tt.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
             ),
-          ] else ...[
-            Image.asset(
-              instructionImage,
-              width: 120,
-              height: 120,
-              color: _instructionStep == 3 ? null : cs.primary,
-            ),
-          ],
-          const SizedBox(height: 24),
-          Text(
-            'Sigue las instrucciones...',
-            style: tt.bodyMedium,
-            textAlign: TextAlign.center,
           ),
-        ],
+        ),
       ),
     );
   }
@@ -472,6 +533,14 @@ class _BoltScreenState extends State<BoltScreen>
             style: tt.headlineMedium,
             textAlign: TextAlign.center,
           ),
+          if (_isComplete) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Lo hicistes bien si después de retener lograste respirar normal y controlado como empezaste',
+              style: tt.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
           const SizedBox(height: 20),
           if (_isMeasuring) ...[
             Text(
@@ -523,6 +592,10 @@ class _BoltScreenState extends State<BoltScreen>
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final periodScores = _periodScores;
+
+    // Debug state
+    print(
+        "Build: _isShowingInstructions=$_isShowingInstructions, _isMeasuring=$_isMeasuring, _isComplete=$_isComplete");
 
     return Scaffold(
       appBar: AppBar(
