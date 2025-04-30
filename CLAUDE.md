@@ -48,6 +48,105 @@ lib/
 
 ---
 
+### Image Asset Management
+
+- **Organization**
+  - Store all images in `assets/images/` directory
+  - Use snake_case for image filenames (e.g., `breathing_icon.png`)
+  - Group related images with common prefixes (e.g., `breathwork_inhale.png`, `breathwork_exhale.png`)
+  - Maintain separate directories for animations (`assets/animations/`) and icons (`assets/icons/`) when appropriate
+
+- **Reference System**
+  - Create a dedicated `constants/images.dart` file with an `Images` class
+  - Use a private constructor (`Images._();`) to prevent instantiation
+  - Define static constants for all image paths:
+    ```dart
+    class Images {
+      Images._();  // Private constructor to prevent instantiation
+      
+      // BOLT Screen Images
+      static const String pinchNose = 'assets/images/pinch_nose.png';
+      static const String breathCalm = 'assets/images/breath_calm.png';
+    }
+    ```
+  - Always access images through these constants, not string literals
+  - Group related images with comments
+
+- **Usage Best Practices**
+  - Specify image dimensions explicitly when possible
+  - Use standard sizes across the app for consistency
+  - Consider conditional coloring based on theme:
+    ```dart
+    Image.asset(
+      Images.someIcon,
+      width: 24,
+      height: 24,
+      color: isActive ? cs.primary : cs.onSurface.withOpacity(0.6),
+    )
+    ```
+  - Only include images that are actually being used
+  - Document image asset requirements in PR descriptions
+
+- **Asset Declaration**
+  - Register all image directories in `pubspec.yaml` under the `assets` section
+  - Use directory references for bulk imports:
+    ```yaml
+    assets:
+      - assets/images/
+      - assets/animations/
+    ```
+
+---
+
+### Screen Transitions & Animations
+
+- **Page Transitions**
+  - Use the `animations` package for standard transitions between screens and components
+  - Prefer `PageTransitionSwitcher` with `FadeThroughTransition` for multi-step UI flows:
+    ```dart
+    PageTransitionSwitcher(
+      duration: const Duration(milliseconds: 600),
+      transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
+        return FadeThroughTransition(
+          animation: primaryAnimation,
+          secondaryAnimation: secondaryAnimation,
+          child: child,
+        );
+      },
+      child: KeyedWidget(/* ... */),
+    )
+    ```
+  - Use a `ValueKey` based on step number or other unique identifier:
+    ```dart
+    key: ValueKey<int>(_currentStep)
+    ```
+  - Set appropriate durations (recommended: 300-600ms)
+
+- **Container Sizing for Smooth Transitions**
+  - Use fixed or constrained sizes for containers that will change content:
+    ```dart
+    ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 300),
+      child: Column(/* ... */),
+    )
+    ```
+  - When fixed height is needed, use relative sizing:
+    ```dart
+    SizedBox(
+      height: MediaQuery.of(context).size.height * 0.4,
+      child: /* ... */
+    )
+    ```
+  - Use Card widgets with consistent padding for content that changes size
+
+- **Component-Specific Animations**
+  - Use AnimationControllers in StatefulWidget classes
+  - Initialize controllers in initState and dispose them properly
+  - Use .forward(), .reverse(), .reset() methods to control animations
+  - Prefer explicit control over animation progress when synchronizing multiple animations
+
+---
+
 ### Naming Conventions
 
 - **Files:** snake_case (`user_profile_screen.dart`)  
@@ -55,6 +154,117 @@ lib/
 - **Variables:** camelCase (`userName`)  
 - **Constants:** SCREAMING_SNAKE_CASE (`MAX_RETRY_ATTEMPTS`)  
 - **Private members:** `_prefixUnderscore` (`_handleSubmit`)
+
+---
+
+### Component Architecture
+
+- **Component Extraction Guidelines**
+  - Extract a widget when it:
+    - Exceeds 50-75 lines of code in a build method
+    - Has a distinct visual and/or logical purpose
+    - Is reused across multiple places
+    - Manages its own animations or state
+    - Would benefit from isolated testing
+  
+  - Widget categories to consider extracting:
+    - Containers with complex decoration (e.g., `BreathingCircle`)
+    - Custom animations (e.g., `WaveAnimation`)
+    - Text displays with formatting (e.g., `RemainingTimeDisplay`)
+    - UI elements that show/hide based on state (e.g., `PhaseIndicator`)
+    - Interactive controls (e.g., `AddTimeButton`)
+
+  - Naming conventions:
+    - Widget should describe its visual or functional role
+    - Name should not include parent screen (prefer `ProfileCard` over `ProfileScreenCard`)
+    - Keep related widgets in the same file if under ~200 total lines
+    - For larger related widgets, create a subdirectory in `/widgets`
+
+  - APIs and parameters:
+    - Only pass what the widget needs to function
+    - Use callbacks for actions (e.g., `onTap`, `onPressed`)
+    - Keep constructor parameters simple and focused
+    - Document non-obvious parameters with comments
+
+---
+
+### Multi-Step UI Flows
+
+- **Define Clear Steps**
+  - Create an enum or integer constants for step states
+  - Store current step in state variable
+  - Use switch statements or if/else blocks to determine UI display
+
+- **Progress Control**
+  - Implement both automatic and manual progression options
+  - For timed progressions, show clear countdowns:
+    ```dart
+    Text(
+      displayCountdown.toString(),
+      style: tt.displayLarge,
+    )
+    ```
+  - For manual progression, use prominent buttons:
+    ```dart
+    ElevatedButton(
+      onPressed: _advanceToNextStep,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cs.primary,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      ),
+      child: const Text('SIGUIENTE'),
+    )
+    ```
+
+- **Step-Specific Behaviors**
+  - Manage state transitions in dedicated methods:
+    ```dart
+    void _advanceToNextStep() {
+      setState(() {
+        _currentStep++;
+        // Initialize phase-specific variables
+      });
+      
+      // Start timers or animations if needed
+      if (_currentStep == 1) {
+        _startSomeTimer();
+      }
+    }
+    ```
+  - Encapsulate step-specific logic in separate methods
+  - Use callbacks for completion notification
+
+---
+
+### Animation Best Practices
+
+- **Separate Animation Logic from UI**
+  - Place animation controllers and logic in the parent widget
+  - Pass animation values or animation objects to child components
+  - Use callbacks to synchronize animation phases
+
+- **Animation Safety**
+  - Always check `mounted` before calling `setState()` in animation callbacks
+  - Clean up animation controllers in `dispose()` method
+  - Use `Future.delayed` with mount checks for any delayed state updates:
+    ```dart
+    Future.delayed(duration, () {
+      if (!mounted) return;
+      setState(() { /* update state */ });
+    });
+    ```
+
+- **Custom Painting**
+  - Use `CustomPainter` for complex animations like fluid effects
+  - Break down complex paint operations into smaller methods
+  - Optimize `shouldRepaint()` to return true only when relevant properties change
+  - Consider using shaders for gradients and effects
+
+- **Performance**
+  - Prefer `AnimatedBuilder` with isolated rebuild scopes
+  - For repeated animations, use longer durations (3-5s) with repeat
+  - Use `Curves` (e.g., `Curves.easeInOut`) for natural motion
+  - Avoid animating in the build method directly
 
 ---
 
@@ -116,9 +326,9 @@ lib/
 
 ### Performance Best Practices
 
-- **Profile in release mode** using DevTools’ performance tab before each release.  
+- **Profile in release mode** using DevTools' performance tab before each release.  
 - **Debounce rapid state changes** (e.g. typing, sliders) to avoid jank.  
-- **Cache images** with `CachedNetworkImage` or via Supabase’s CDN headers.  
+- **Cache images** with `CachedNetworkImage` or via Supabase's CDN headers.  
 - **Use `RepaintBoundary`** around heavy animations or custom-paint widgets to isolate repaints.
 
 ---
@@ -135,7 +345,7 @@ lib/
 ### Accessibility & Internationalization
 
 - **Add semantic labels** (`Semantics(label: 'Cambiar avatar')`) to interactive widgets.  
-- **Ensure minimum tap target of 48×48 dp** for all buttons and icons.  
+- **Ensure minimum tap target of 48×48 dp** for all buttons and icons.  
 - **Use `flutter_localizations`** for date, number, and plural handling if expanding beyond Spanish.
 
 ---
