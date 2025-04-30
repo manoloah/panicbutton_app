@@ -5,7 +5,8 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 ## Features
 
 - Beautiful and calming UI
-- Guided breathing exercises
+- Guided breathing exercises with fluid wave animations
+- Customizable breathing patterns (inhale, hold, exhale, rest)
 - Session tracking
 - User statistics
 - Cross-platform (iOS, Android, Web)
@@ -54,11 +55,39 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 lib/
   ├── screens/          # App screens
   ├── widgets/          # Reusable widgets
+  │   ├── breathing_circle.dart     # Circular container for breathing exercise
+  │   ├── wave_animation.dart       # Fluid wave animation using CustomPainter
+  │   ├── phase_indicator.dart      # Shows breathing phase and countdown
+  │   ├── remaining_time_display.dart # Formatted time remaining display
+  │   ├── add_time_button.dart      # Button to add more time to session
+  │   └── custom_nav_bar.dart       # App navigation bar
   ├── services/         # Services (Supabase, etc.)
   ├── models/           # Data models
   ├── utils/            # Utility functions
-  └── theme/            # App theme and styling
+  ├── theme/            # App theme and styling
+  │   └── app_theme.dart           # Theme configuration with extensions
+  └── main.dart         # App entry point
 ```
+
+## Architecture
+
+The app follows a component-based architecture where UI elements are broken down into small, reusable widgets:
+
+### Breathwork Screen Components
+
+The breathing exercise screen demonstrates this approach by breaking down a complex UI into focused components:
+
+1. **BreathingCircle**: Container that handles the circle shape, styling, and tap gestures
+2. **WaveAnimation**: Manages the wave animation with CustomPainter for fluid movement
+3. **PhaseIndicator**: Displays the current breathing phase text and countdown
+4. **RemainingTimeDisplay**: Shows formatted remaining time
+5. **AddTimeButton**: Button to add more time to the session
+
+This approach provides:
+- Better separation of concerns
+- Improved testability for each component
+- Enhanced performance through optimized rebuilds
+- Greater code maintainability
 
 ## Dependencies
 

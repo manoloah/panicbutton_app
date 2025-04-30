@@ -58,6 +58,69 @@ lib/
 
 ---
 
+### Component Architecture
+
+- **Component Extraction Guidelines**
+  - Extract a widget when it:
+    - Exceeds 50-75 lines of code in a build method
+    - Has a distinct visual and/or logical purpose
+    - Is reused across multiple places
+    - Manages its own animations or state
+    - Would benefit from isolated testing
+  
+  - Widget categories to consider extracting:
+    - Containers with complex decoration (e.g., `BreathingCircle`)
+    - Custom animations (e.g., `WaveAnimation`)
+    - Text displays with formatting (e.g., `RemainingTimeDisplay`)
+    - UI elements that show/hide based on state (e.g., `PhaseIndicator`)
+    - Interactive controls (e.g., `AddTimeButton`)
+
+  - Naming conventions:
+    - Widget should describe its visual or functional role
+    - Name should not include parent screen (prefer `ProfileCard` over `ProfileScreenCard`)
+    - Keep related widgets in the same file if under ~200 total lines
+    - For larger related widgets, create a subdirectory in `/widgets`
+
+  - APIs and parameters:
+    - Only pass what the widget needs to function
+    - Use callbacks for actions (e.g., `onTap`, `onPressed`)
+    - Keep constructor parameters simple and focused
+    - Document non-obvious parameters with comments
+
+---
+
+### Animation Best Practices
+
+- **Separate Animation Logic from UI**
+  - Place animation controllers and logic in the parent widget
+  - Pass animation values or animation objects to child components
+  - Use callbacks to synchronize animation phases
+
+- **Animation Safety**
+  - Always check `mounted` before calling `setState()` in animation callbacks
+  - Clean up animation controllers in `dispose()` method
+  - Use `Future.delayed` with mount checks for any delayed state updates:
+    ```dart
+    Future.delayed(duration, () {
+      if (!mounted) return;
+      setState(() { /* update state */ });
+    });
+    ```
+
+- **Custom Painting**
+  - Use `CustomPainter` for complex animations like fluid effects
+  - Break down complex paint operations into smaller methods
+  - Optimize `shouldRepaint()` to return true only when relevant properties change
+  - Consider using shaders for gradients and effects
+
+- **Performance**
+  - Prefer `AnimatedBuilder` with isolated rebuild scopes
+  - For repeated animations, use longer durations (3-5s) with repeat
+  - Use `Curves` (e.g., `Curves.easeInOut`) for natural motion
+  - Avoid animating in the build method directly
+
+---
+
 ### Database Schema
 
 - **Table names:** snake_case, plural (`user_profiles`)  
@@ -116,9 +179,9 @@ lib/
 
 ### Performance Best Practices
 
-- **Profile in release mode** using DevTools’ performance tab before each release.  
+- **Profile in release mode** using DevTools' performance tab before each release.  
 - **Debounce rapid state changes** (e.g. typing, sliders) to avoid jank.  
-- **Cache images** with `CachedNetworkImage` or via Supabase’s CDN headers.  
+- **Cache images** with `CachedNetworkImage` or via Supabase's CDN headers.  
 - **Use `RepaintBoundary`** around heavy animations or custom-paint widgets to isolate repaints.
 
 ---
@@ -135,7 +198,7 @@ lib/
 ### Accessibility & Internationalization
 
 - **Add semantic labels** (`Semantics(label: 'Cambiar avatar')`) to interactive widgets.  
-- **Ensure minimum tap target of 48×48 dp** for all buttons and icons.  
+- **Ensure minimum tap target of 48×48 dp** for all buttons and icons.  
 - **Use `flutter_localizations`** for date, number, and plural handling if expanding beyond Spanish.
 
 ---
