@@ -42,6 +42,11 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
    ```bash
    flutter run
    ```
+   or for running on chrome
+   ```bash
+   flutter run -d chrome
+   ```
+   
 
 ## Project Structure
 
