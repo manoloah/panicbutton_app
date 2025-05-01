@@ -598,170 +598,184 @@ class _BoltScreenState extends State<BoltScreen>
         "Build: _isShowingInstructions=$_isShowingInstructions, _isMeasuring=$_isMeasuring, _isComplete=$_isComplete");
 
     return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/settings'),
+      // SliverAppBar will scroll away
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: const Color(0xFF132737),
+            foregroundColor: cs.onBackground,
+            elevation: 0,
+            // Makes it disappear when you scroll up
+            pinned: false, // not fixed
+            floating: true, // re-appears on quick swipe-down
+            snap: true,
+            // Kill the "scroll-under" tint/elevation
+            scrolledUnderElevation: 0,
+            surfaceTintColor: Colors.transparent,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () => context.go('/settings'),
+              ),
+            ],
+          ),
+
+          // Everything that used to be in your old Column
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Title & description
+                Text(
+                  'Mide tu probabilidad de tener un ataque de pánico',
+                  style: tt.displayMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
+                  'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
+                  'Mientras mayor sea tu score de BOLT, menor será tu probabilidad de tener un ataque de pánico.',
+                  style: tt.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 30),
+
+                // Measurement UI
+                if (_isShowingInstructions)
+                  _buildInstructionAnimation()
+                else if (!_isMeasuring && !_isComplete)
+                  _buildInstructionsCard()
+                else
+                  _buildMeasurementUI(),
+
+                const SizedBox(height: 30),
+
+                // Chart or loader
+                if (_isLoading)
+                  const Center(child: CircularProgressIndicator())
+                else if (periodScores.isNotEmpty) ...[
+                  Text('Tu progreso', style: tt.headlineMedium),
+                  const SizedBox(height: 16),
+
+                  // Aggregation selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: Aggregation.values.map((a) {
+                      final sel = a == _aggregation;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _aggregation = a),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: sel ? cs.primary : cs.surface,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              _aggLabel(a),
+                              style: tt.bodyMedium?.copyWith(
+                                color: sel ? cs.onPrimary : cs.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Responsive chart
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 1.7,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(
+                            show: true,
+                            drawVerticalLine: false,
+                            horizontalInterval: 10,
+                            getDrawingHorizontalLine: (_) => FlLine(
+                              color: cs.onSurface.withOpacity(0.1),
+                              strokeWidth: 1,
+                            ),
+                          ),
+                          borderData: FlBorderData(show: false),
+                          titlesData: FlTitlesData(
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: 10,
+                                reservedSize: 40,
+                                getTitlesWidget: (v, _) => Text(
+                                    v.toInt().toString(),
+                                    style: tt.bodyMedium),
+                              ),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: 1,
+                                reservedSize:
+                                    30, // plenty of room for rotated labels
+                                getTitlesWidget: (value, meta) {
+                                  final i = value.toInt();
+                                  if (i < 0 || i >= periodScores.length) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  final label =
+                                      _formatBottom(periodScores[i].period);
+                                  return Transform.rotate(
+                                    angle: -math.pi / 4,
+                                    alignment: Alignment.topLeft,
+                                    child: Text(label, style: tt.bodyMedium),
+                                  );
+                                },
+                              ),
+                            ),
+                            topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false)),
+                          ),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: periodScores
+                                  .asMap()
+                                  .entries
+                                  .map((e) => FlSpot(
+                                      e.key.toDouble(), e.value.averageScore))
+                                  .toList(),
+                              isCurved: true,
+                              color: cs.primary,
+                              barWidth: 3,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: true),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: cs.primary.withOpacity(0.1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
           ),
         ],
       ),
       bottomNavigationBar: const CustomNavBar(currentIndex: 2),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            children: [
-              // Title & description
-              Text(
-                'Mide tu probabilidad de tener un ataque de pánico',
-                style: tt.displayMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
-                'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
-                'Mientras mayor sea tu score de BOLT, menor será tu probabilidad de tener un ataque de pánico.',
-                style: tt.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 30),
-
-              // Measurement UI
-              if (_isShowingInstructions)
-                _buildInstructionAnimation()
-              else if (!_isMeasuring && !_isComplete)
-                _buildInstructionsCard()
-              else
-                _buildMeasurementUI(),
-
-              const SizedBox(height: 30),
-
-              // Chart or loader
-              if (_isLoading)
-                const Center(child: CircularProgressIndicator())
-              else if (periodScores.isNotEmpty) ...[
-                Text('Tu progreso', style: tt.headlineMedium),
-                const SizedBox(height: 16),
-
-                // Aggregation selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: Aggregation.values.map((a) {
-                    final sel = a == _aggregation;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _aggregation = a),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: sel ? cs.primary : cs.surface,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _aggLabel(a),
-                            style: tt.bodyMedium?.copyWith(
-                              color: sel ? cs.onPrimary : cs.onSurface,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Responsive chart
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: cs.surface,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: AspectRatio(
-                    aspectRatio: 1.7,
-                    child: LineChart(
-                      LineChartData(
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: false,
-                          horizontalInterval: 10,
-                          getDrawingHorizontalLine: (_) => FlLine(
-                            color: cs.onSurface.withOpacity(0.1),
-                            strokeWidth: 1,
-                          ),
-                        ),
-                        borderData: FlBorderData(show: false),
-                        titlesData: FlTitlesData(
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 10,
-                              reservedSize: 40,
-                              getTitlesWidget: (v, _) => Text(
-                                  v.toInt().toString(),
-                                  style: tt.bodyMedium),
-                            ),
-                          ),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 1,
-                              reservedSize:
-                                  30, // plenty of room for rotated labels
-                              getTitlesWidget: (value, meta) {
-                                final i = value.toInt();
-                                if (i < 0 || i >= periodScores.length) {
-                                  return const SizedBox.shrink();
-                                }
-                                final label =
-                                    _formatBottom(periodScores[i].period);
-                                return Transform.rotate(
-                                  angle: -math.pi / 4,
-                                  alignment: Alignment.topLeft,
-                                  child: Text(label, style: tt.bodyMedium),
-                                );
-                              },
-                            ),
-                          ),
-                          topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                          rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false)),
-                        ),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: periodScores
-                                .asMap()
-                                .entries
-                                .map((e) => FlSpot(
-                                    e.key.toDouble(), e.value.averageScore))
-                                .toList(),
-                            isCurved: true,
-                            color: cs.primary,
-                            barWidth: 3,
-                            isStrokeCapRound: true,
-                            dotData: const FlDotData(show: true),
-                            belowBarData: BarAreaData(
-                              show: true,
-                              color: cs.primary.withOpacity(0.1),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
