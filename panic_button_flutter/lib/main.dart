@@ -53,13 +53,20 @@ class MyApp extends StatelessWidget {
       title: 'Tu botón de pánico',
       theme: AppTheme.dark(),
       routerConfig: _router,
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
 final _router = GoRouter(
-  initialLocation: '/',
+  initialLocation:
+      '/breathwork', // Set the initial route to breathwork for testing
   redirect: (context, state) {
+    // Temporarily disable authentication for testing
+    if (state.matchedLocation == '/breathwork') {
+      return null; // Don't redirect, go directly to breathwork
+    }
+
     final isAuth = Supabase.instance.client.auth.currentUser != null;
     final isAuthRoute = state.matchedLocation == '/auth';
 
