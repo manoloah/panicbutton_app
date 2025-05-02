@@ -594,8 +594,8 @@ class _BoltScreenState extends State<BoltScreen>
     final periodScores = _periodScores;
 
     // Debug state
-    print(
-        "Build: _isShowingInstructions=$_isShowingInstructions, _isMeasuring=$_isMeasuring, _isComplete=$_isComplete");
+    // print(
+    //     "Build: _isShowingInstructions=[4m_isShowingInstructions, _isMeasuring=[4m_isMeasuring, _isComplete=[4m_isComplete");
 
     return Scaffold(
       // SliverAppBar will scroll away
