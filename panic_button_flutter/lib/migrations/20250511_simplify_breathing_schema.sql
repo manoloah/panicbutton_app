@@ -1,49 +1,40 @@
 BEGIN;
 
--- 1️⃣ Rename core tables
-ALTER TABLE goals            RENAME TO breathing_goals;
-ALTER TABLE steps            RENAME TO breathing_steps;
-ALTER TABLE patterns         RENAME TO breathing_patterns;
-ALTER TABLE pattern_steps    RENAME TO breathing_pattern_steps;
+-- 1) Rename your core tables
+ALTER TABLE goals         RENAME TO breathing_goals;
+ALTER TABLE steps         RENAME TO breathing_steps;
+ALTER TABLE patterns      RENAME TO breathing_patterns;
+ALTER TABLE pattern_steps RENAME TO breathing_pattern_steps;
 
--- 2️⃣ Prefix FK constraints manually if needed
--- (Supabase auto-renames indexes but NOT fkeys; safest is drop/re-add)
-DO $$
-DECLARE
-  r RECORD;
-BEGIN
-  FOR r IN
-    SELECT conname
-    FROM pg_constraint
-    WHERE conname LIKE '%patterns%'   -- old name fragment
-  LOOP
-    EXECUTE format('ALTER TABLE %I RENAME CONSTRAINT %I TO %s',
-                   r.conname::regclass,
-                   r.conname,
-                   replace(r.conname,'patterns','breathing_patterns'));
-  END LOOP;
-END$$;
+-- 2) Rename each primary‐key constraint explicitly
+ALTER TABLE breathing_goals         RENAME CONSTRAINT goals_pkey          TO breathing_goals_pkey;
+ALTER TABLE breathing_steps         RENAME CONSTRAINT steps_pkey          TO breathing_steps_pkey;
+ALTER TABLE breathing_patterns      RENAME CONSTRAINT patterns_pkey       TO breathing_patterns_pkey;
+ALTER TABLE breathing_pattern_steps RENAME CONSTRAINT pattern_steps_pkey  TO breathing_pattern_steps_pkey;
 
--- 3️⃣ Add helper columns to patterns (now songs)
+-- 3) Add the helper columns
 ALTER TABLE breathing_patterns
   ADD COLUMN IF NOT EXISTS recommended_minutes INT,
-  ADD COLUMN IF NOT EXISTS cycle_secs INT;
+  ADD COLUMN IF NOT EXISTS cycle_secs           INT;
 
--- 3a.  Back-fill cycle_secs for existing rows
+-- 3a) Back‑fill cycle_secs for existing patterns
 UPDATE breathing_patterns bp
 SET cycle_secs = sub.total
 FROM (
-  SELECT pattern_id,
-         SUM((s.inhale_secs + s.hold_in_secs +
-              s.exhale_secs + s.hold_out_secs) * ps.repetitions) AS total
+  SELECT
+    ps.pattern_id,
+    SUM(
+      (s.inhale_secs + s.hold_in_secs +
+       s.exhale_secs + s.hold_out_secs) * ps.repetitions
+    ) AS total
   FROM breathing_pattern_steps ps
   JOIN breathing_steps s ON s.id = ps.step_id
-  GROUP BY pattern_id
+  GROUP BY ps.pattern_id
 ) AS sub
-WHERE sub.pattern_id = bp.id
+WHERE bp.id = sub.pattern_id
   AND bp.cycle_secs IS NULL;
 
--- 4️⃣ Drop playlist layer (cascade removes routine_items too)
+-- 4) Drop the old routines/playlist tables
 DROP TABLE IF EXISTS routines      CASCADE;
 DROP TABLE IF EXISTS routine_items CASCADE;
 
