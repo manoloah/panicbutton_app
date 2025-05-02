@@ -1,0 +1,124 @@
+You are an expert Flutter / Dart / Supabase engineer.
+
+###############################################################
+#       PROJECT CONTEXT  (panic_button_flutter repo)
+###############################################################
+• Flutter app → Riverpod, Freezed, GoRouter, null-safety.
+• Supabase backend already has all breathing tables **plus** this new field:
+
+```sql
+ALTER TABLE routines
+ADD COLUMN IF NOT EXISTS recommended_minutes int;
+```
+
+Existing rows were back-filled (`recommended_minutes = total_minutes`).
+
+• UX change: user must choose 1–10 min session length.  
+  Default = routine.recommended_minutes (fallback 4).
+
+Layout reference:
+```
+PanicButton
+   🔵  animated circle  (“Presiona para comenzar” when idle)
+      03:00
+[Duración: 4 min]   [Otros Ejercicios]
+```
+
+When clicking the [Otros Ejercicios] it opens a menu with the following layout: 
+────────────────────────────────────────────────────────────
+#  UI SPEC ▸ “Otros ejercicios” bottom-sheet
+────────────────────────────────────────────────────────────
+Trigger:
+• Three-dot button on Breath Screen opens `showModalBottomSheet` with
+  `useSafeArea: true` and `shape: RoundedRectangleBorder(
+     borderRadius: BorderRadius.vertical(top: Radius.circular(20)))`.
+
+Header:
+• Slim drag-handle (`Container(height:4, width:40, …)`).
+• Title **“Set the pace”** – `TextStyle(fontSize:22, fontWeight:w600)`.
+
+Goal tabs:
+• Horizontally scrollable `ChoiceChip` (Kids, Resonance, Focusing,
+  Energizing, Calming, Grounding).  
+• Use `selectedColor` = theme.primary, `backgroundColor` = Colors.grey.shade800.
+• Selecting a chip reloads `routinesForGoalProvider`.
+
+Pattern picker:
+• Below chips, list of routines for the selected goal.
+  `ListTile` layout:  
+
+Animations:
+• Use `FadeTransition` when overlaying lock.
+• Sheet pops up with `animationDuration: 300 ms, curve: Curves.easeOut`.
+
+State changes on “Save”:
+1. `selectedRoutineProvider ← routine`
+2. `selectedDurationProvider ← routine.recommendedMinutes`
+3. `Navigator.pop(context)`
+
+###############################################################
+#       DELIVERABLES  – generate **exactly 9 files** in order
+###############################################################
+1. **lib/models/breath_models.dart**  
+   • Freezed + json_serializable for: StepModel, PatternModel,
+     PatternStepModel, RoutineItemModel, RoutineModel (add
+     `recommendedMinutes`), GoalModel, ExpandedStep (plain).
+
+2. **lib/data/breath_repository.dart**  
+   • Supabase helpers:  
+     – `getRoutinesByGoal(String slug)`  
+     – `expandRoutine(String id,{required int targetMinutes})`
+       (scales repetitions client-side).  
+     – `logRoutineRun(String routineId,int targetMinutes)`
+       (upsert user_routine_status, set total_minutes = targetMinutes).
+
+3. **lib/providers/breath_providers.dart**  
+   • Providers: supabase, goals, selectedRoutine, selectedDuration (int),
+     expandedSteps.
+
+4. **lib/providers/playback_controller.dart**  
+   • Notifier with currentStep, secondsRemaining, start/pause/reset.
+     Stops when elapsed ≥ selectedDuration × 60.
+
+5. **lib/widgets/breath_circle.dart**  
+   • Animated scale / opacity widget driven by playback_controller.
+
+6. **lib/widgets/duration_selector_button.dart**  
+   • Pill button → bottom-sheet with `CupertinoSlider` (1-10 min);
+     updates selectedDurationProvider.
+
+7. **lib/widgets/goal_routine_sheet.dart**  
+   • Bottom-sheet with Goal chips + routines list.
+     On tap ➜ set selectedRoutine & selectedDuration, pop.
+
+8. **lib/screens/breath_screen.dart**  
+   • Composes circle, countdown text, buttons.
+
+9. **supabase/migrations/{{timestamp}}_add_recommended_minutes.sql**  
+   ```sql
+   BEGIN;
+   ALTER TABLE routines
+   ADD COLUMN IF NOT EXISTS recommended_minutes int;
+   UPDATE routines
+   SET recommended_minutes = total_minutes
+   WHERE recommended_minutes IS NULL;
+   COMMIT;
+   ```
+
+###############################################################
+#       CODING RULES
+###############################################################
+• Use null-safety, ES imports, proper file headers.  
+• Read Supabase creds via  
+  `const supabaseUrl  = String.fromEnvironment('SUPABASE_URL');`  
+  `const supabaseKey  = String.fromEnvironment('SUPABASE_ANON_KEY');`  
+  (already passed via –dart-define).  
+• No tests or mocks required.  
+• Each file must be compilable.  
+• Output **exactly nine fenced code blocks in the order above** –  
+  no commentary before, between, or after.
+
+###############################################################
+#       LET’S BUILD! 🚀
+###############################################################
+```
