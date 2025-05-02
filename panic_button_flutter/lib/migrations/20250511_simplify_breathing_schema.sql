@@ -38,4 +38,16 @@ WHERE bp.id = sub.pattern_id
 DROP TABLE IF EXISTS routines      CASCADE;
 DROP TABLE IF EXISTS routine_items CASCADE;
 
+-- 🚨 Remove the old, now‑orphaned status table
+DROP TABLE IF EXISTS user_routine_status CASCADE;
+
+-- 🎯 New per‑pattern run tracker
+CREATE TABLE IF NOT EXISTS breathing_pattern_status (
+  user_id      uuid REFERENCES auth.users(id),
+  pattern_id   uuid REFERENCES breathing_patterns(id),
+  last_run     timestamptz,
+  total_runs   int DEFAULT 0,
+  PRIMARY KEY (user_id, pattern_id)
+);
+
 COMMIT;
