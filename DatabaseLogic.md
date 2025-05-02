@@ -1,67 +1,124 @@
-# Breath-work Database Reference
+# Breathing Database Reference (v2)
 
-This document explains what each table in the Supabase schema does and gives a step-by-step guide for adding new breathing exercises.  
-Copy–paste or append it to your project **README.md**.
+This document explains the simplified Supabase schema for breath-work and shows how to add new exercises and integrate them into the UI.
 
 ---
 
 ## Table Glossary
 
-| Table | Purpose | Example Row |
-|-------|---------|-------------|
-| **goals** | Master tags like *Calming*, *Energizing*. Powers filter chips. | `{ slug: "calming", display_name: "Calming" }` |
-| **steps** | **Smallest unit**: one inhale/hold/exhale cycle + breathing method. | `4 s inhale nose → 0 s hold → 6 s exhale nose` |
-| **patterns** | Named bundle of one or more *steps* (e.g. “4-7-8”). | `"Box 4-4-4-4"` |
-| **pattern_steps** | Orders steps inside a pattern and sets **repetitions**. | pattern = *Box*, step = *boxStep*, position 1, reps 1 |
-| **routines** | Playlist the user runs. Mixes patterns and/or single steps. | `"Morning Quick Calm (4 min)"` |
-| **routine_items** | Ordered items inside a routine (pattern **or** step). | position 1 → pattern “Box”; position 2 → step “Long Hold” |
-| **user_routine_status** | Per-user log: last run & total runs of a routine. | `{ user_id, routine_id, total_runs: 4 }` |
+| Table                         | Purpose                                                                            | Example Row                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **breathing\_goals**          | Master tags like Calming, Energizing, Grounding—used to filter available patterns. | `{ slug: 'calming', display_name: 'Calming' }`                                             |
+| **breathing\_steps**          | Atomic unit: one inhale/hold/exhale cycle with a breathing method (nose or mouth). | `inhale_secs:4, inhale_method:'nose', hold_in_secs:0, exhale_secs:6, exhale_method:'nose'` |
+| **breathing\_patterns**       | Song: ordered collection of steps that defines a full cycle (eg 4-6 Resonance).    | `name:'4-6 Resonance', goal_id:<uuid>, recommended_minutes:4, cycle_secs:10`               |
+| **breathing\_pattern\_steps** | Orders steps inside a pattern and sets repetitions of each step.                   | `pattern_id:<id>, step_id:<id>, position:1, repetitions:1`                                 |
+
+Note: We have removed the previous 'routines' layer—UI will loop a single pattern to fill the user-selected minutes (1-10).
 
 ---
 
-## Adding a New Breathing Exercise
+## Adding a New Breathing Pattern
 
-### 1 — Plan
+Follow these steps in the Supabase Dashboard or via SQL:
 
-1. **Just a timing variant?** → add a **pattern** row that reuses existing *steps*.  
-2. **Needs brand-new timing?** → add new *step* rows first, then create the pattern.  
-3. **Standalone or part of a longer flow?** → create/modify a **routine** accordingly.
+### 1. Create the basic step(s)
 
-### 2 — Two Ways to Insert Data
+| Column          | Value                                       |
+| --------------- | ------------------------------------------- |
+| inhale\_secs    | seconds (eg 4)                              |
+| inhale\_method  | 'nose' or 'mouth'                           |
+| hold\_in\_secs  | seconds (eg 0)                              |
+| exhale\_secs    | seconds (eg 6)                              |
+| exhale\_method  | 'nose' or 'mouth'                           |
+| hold\_out\_secs | seconds (eg 0)                              |
+| cue\_text       | Optional label (eg '4s inhale / 6s exhale') |
 
-#### A. Supabase Dashboard (no SQL)
-
-1. **Insert Step** in **steps** table.  
-2. **Insert Pattern** in **patterns** table (link to a goal).  
-3. **Insert Row** in **pattern_steps** to connect step + pattern.  
-4. *(Optional)* Create **routine** and link via **routine_items**.
-
-#### B. SQL Example
+SQL example:
 
 ```sql
--- 1️⃣ Step
-INSERT INTO steps (inhale_secs, inhale_method, hold_in_secs,
-                   exhale_secs, exhale_method, hold_out_secs, cue_text)
-VALUES (2,'nose',0,2,'nose',0,'Quick 2-2 cycle')
-RETURNING id;  -- save uuid
+INSERT INTO breathing_steps (inhale_secs, inhale_method, hold_in_secs,
+  exhale_secs, exhale_method, hold_out_secs, cue_text)
+VALUES (4,'nose',0,6,'nose',0,'4s inhale / 6s exhale');
+```
 
--- 2️⃣ Pattern with that step
-WITH goal_row AS (
-  SELECT id FROM goals WHERE slug = 'energizing'
-), new_pattern AS (
-  INSERT INTO patterns (name, description, goal_id)
-  VALUES ('2-2 Sprint','Fast biphasic breath',(SELECT id FROM goal_row))
-  RETURNING id
-)
-INSERT INTO pattern_steps (pattern_id, step_id, position, repetitions)
-VALUES ((SELECT id FROM new_pattern),
-        (SELECT id FROM steps WHERE cue_text = 'Quick 2-2 cycle'),
-        1, 1);
+### 2. Create the pattern (song)
 
--- 3️⃣ 60-second routine (30 cycles)
-INSERT INTO routines (name, goal_id, total_minutes)
-VALUES ('60-s Sprint',(SELECT id FROM goals WHERE slug='energizing'),1)
-RETURNING id \gset
+| Column               | Value                             |
+| -------------------- | --------------------------------- |
+| name                 | Pattern name (eg '4-6 Resonance') |
+| goal\_id             | UUID from breathing\_goals        |
+| recommended\_minutes | Default UI session length (eg 4)  |
 
-INSERT INTO routine_items (routine_id, position, pattern_id, repetitions)
-VALUES (:'id',1,(SELECT id FROM patterns WHERE name='2-2 Sprint'),30);
+SQL example:
+
+```sql
+INSERT INTO breathing_patterns (name, goal_id, recommended_minutes)
+VALUES ('4-6 Resonance',
+        (SELECT id FROM breathing_goals WHERE slug='calming'),
+        4)
+RETURNING id;
+```
+
+### 3. Link steps to the pattern
+
+| Column      | Value                        |
+| ----------- | ---------------------------- |
+| pattern\_id | UUID returned above          |
+| step\_id    | UUID of created step         |
+| position    | Order in the cycle (1,2,3,…) |
+| repetitions | How many times to repeat     |
+
+SQL example:
+
+```sql
+INSERT INTO breathing_pattern_steps (pattern_id, step_id, position, repetitions)
+VALUES (<pattern_id>, <step_id>, 1, 1),
+       (<pattern_id>, <other_step_id>, 2, 1);
+```
+
+After this, your new pattern will appear in the UI when a user selects that goal.
+
+---
+
+## UI Integration Recipe
+
+1. **Fetch available goals:**
+
+```dart
+final goals = await supabase.from('breathing_goals').select().execute();
+```
+
+2. **Fetch patterns for a goal:**
+
+```dart
+final patterns = await supabase
+  .from('breathing_patterns')
+  .select()
+  .eq('goal_id', selectedGoal.id)
+  .execute();
+```
+
+3. **On pattern selection:** read `recommended_minutes` and `cycle_secs`.
+4. **User picks minutes (slider 1–10)** defaulting to `recommended_minutes`.
+5. **Compute loops:**
+
+```dart
+final loops = (selectedMinutes * 60 / pattern.cycleSecs).ceil();
+```
+
+6. **Expand to step list:**
+
+```dart
+final list = <StepModel>[];
+for (var i = 0; i < loops; i++) {
+  for (final ps in pattern.steps) {
+    for (var r = 0; r < ps.repetitions; r++) {
+      list.add(ps.step);
+    }
+  }
+}
+```
+
+7. **Pass `list` to your animation widget**—it drives inhale/hold/exhale timing.
+
+---
