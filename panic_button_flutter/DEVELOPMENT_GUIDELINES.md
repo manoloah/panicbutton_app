@@ -43,8 +43,61 @@ lib/
 ├── services/         # Business logic and API calls
 ├── utils/            # Helper functions and utilities
 ├── constants/        # App-wide constants
+├── providers/        # State management providers
+├── data/             # Data repositories
 └── config/           # Configuration files
 ```
+
+---
+
+### Breathing Feature Structure
+
+The breathing feature follows a modular architecture with the following components:
+
+```
+lib/
+├── screens/
+│   └── breath_screen.dart           # Main breathing exercise screen
+├── widgets/
+│   ├── breath_circle.dart           # Animated breathing circle
+│   ├── wave_animation.dart          # Wave animation inside circle
+│   ├── duration_selector_button.dart # Duration selection widget
+│   └── goal_pattern_sheet.dart      # Pattern selection sheet
+├── models/
+│   └── breath_models.dart           # Models for patterns, steps, etc.
+├── providers/
+│   ├── breathing_providers.dart     # State management for breathing
+│   └── breathing_playback_controller.dart # Animation controller
+└── data/
+    └── breath_repository.dart       # Data access for breathing patterns
+```
+
+**Component Responsibilities:**
+
+1. **Models**: Define data structures for breathing patterns
+   - `PatternModel`: Core pattern data with name, goal, etc.
+   - `StepModel`: Individual breathing step configuration
+   - `ExpandedStep`: Runtime step model with all breathing parameters
+
+2. **Repository**: Handle data access to Supabase
+   - Get patterns by goal
+   - Expand patterns into concrete steps
+   - Log pattern usage
+
+3. **Providers**: Manage application state
+   - Selected pattern and duration
+   - Expanded steps for the current pattern
+   - Default pattern loading
+
+4. **Playback Controller**: Control breathing animations
+   - Track current phase (inhale, hold, exhale, relax)
+   - Manage timers and phase transitions
+   - Handle play/pause/reset
+
+5. **UI Components**: Present interactive interface
+   - Animated breathing circle with wave animation
+   - Pattern and duration selection
+   - Phase indicators with countdown
 
 ---
 
@@ -147,6 +200,34 @@ lib/
 
 ---
 
+### Breathing Animation Guidelines
+
+- **Circle Animation**
+  - Use `AnimatedScale` for smooth size transitions during breathing phases
+  - Apply easing curves for natural movement: `Curves.easeInOutCubic`
+  - Scale values: 1.0 (base) to 1.3 (fully inhaled)
+  - Add subtle oscillation during hold phases for organic feeling
+
+- **Wave Animation**
+  - Use `CustomPainter` with wave equations for fluid motion
+  - Control fill level based on breathing phase (0.0 to 1.0)
+  - Use slow animation controller (10-12 seconds per cycle)
+  - Set wave parameters for natural movement:
+    ```dart
+    // Wave configuration example
+    final amplitude = size.width * 0.05;
+    final frequency = 0.5;
+    final horizontalShift = animation.value * 2 * math.pi;
+    ```
+
+- **Phase Transitions**
+  - Make phase text changes with fade transitions
+  - Use countdown timer with whole number display
+  - Ensure transitions between phases feel smooth and natural
+  - Don't rush transitions; allow slight overlap (100-200ms)
+
+---
+
 ### Naming Conventions
 
 - **Files:** snake_case (`user_profile_screen.dart`)  
@@ -172,7 +253,7 @@ lib/
     - Custom animations (e.g., `WaveAnimation`)
     - Text displays with formatting (e.g., `RemainingTimeDisplay`)
     - UI elements that show/hide based on state (e.g., `PhaseIndicator`)
-    - Interactive controls (e.g., `AddTimeButton`)
+    - Interactive controls (e.g., `DurationSelectorButton`)
 
   - Naming conventions:
     - Widget should describe its visual or functional role
@@ -270,10 +351,57 @@ lib/
 
 ### Database Schema
 
-- **Table names:** snake_case, plural (`user_profiles`)  
-- **Column names:** snake_case (`first_name`)  
-- **Foreign keys:** singular_table_name_id (`user_id`)  
-- **Timestamps:** `created_at`, `updated_at`
+The breathing feature uses the following database structure:
+
+```sql
+-- Breathing patterns database schema
+CREATE TABLE breathing_goals (
+  id UUID PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  display_name TEXT NOT NULL,
+  description TEXT
+);
+
+CREATE TABLE breathing_patterns (
+  id UUID PRIMARY KEY,
+  name TEXT NOT NULL,
+  goal_id UUID REFERENCES breathing_goals(id),
+  recommended_minutes INT DEFAULT 3,
+  cycle_secs INT
+);
+
+CREATE TABLE breathing_steps (
+  id UUID PRIMARY KEY,
+  cue_text TEXT,
+  inhale_secs INT NOT NULL,
+  hold_in_secs INT DEFAULT 0,
+  exhale_secs INT NOT NULL,
+  hold_out_secs INT DEFAULT 0,
+  inhale_method TEXT DEFAULT 'nose',
+  exhale_method TEXT DEFAULT 'mouth'
+);
+
+CREATE TABLE breathing_pattern_steps (
+  pattern_id UUID REFERENCES breathing_patterns(id),
+  step_id UUID REFERENCES breathing_steps(id),
+  sort_order INT NOT NULL,
+  repetitions INT DEFAULT 1,
+  PRIMARY KEY (pattern_id, step_id)
+);
+
+CREATE TABLE breathing_pattern_status (
+  user_id UUID REFERENCES auth.users(id),
+  pattern_id UUID REFERENCES breathing_patterns(id),
+  last_run TIMESTAMPTZ,
+  total_runs INT DEFAULT 0,
+  PRIMARY KEY (user_id, pattern_id)
+);
+```
+
+Notes:
+- The schema directly links patterns to steps, without the routine layer
+- Patterns include metadata like recommended_minutes and cycle_secs
+- Pattern usage is tracked in breathing_pattern_status
 
 ---
 

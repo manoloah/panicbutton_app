@@ -7,10 +7,11 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 - Beautiful and calming UI
 - Guided breathing exercises with fluid wave animations
 - Customizable breathing patterns (inhale, hold, exhale, rest)
+- Pattern selection by breathing goals (calming, energizing, etc.)
+- Animated breathing circle with wave visualization
+- Session tracking and statistics
 - BOLT score measurement for tracking anxiety levels
 - Step-by-step instruction screens with smooth transitions
-- Session tracking
-- User statistics
 - Cross-platform (iOS, Android, Web)
 
 ## Setup
@@ -56,21 +57,53 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 ```
 lib/
   ├── constants/        # App constants including image paths
+  ├── data/             # Data repositories and API classes
+  │   └── breath_repository.dart  # Repository for breathing patterns
+  ├── models/           # Data models
+  │   └── breath_models.dart      # Models for breathing patterns and steps
+  ├── providers/        # State management 
+  │   ├── breathing_providers.dart        # Providers for breath state
+  │   └── breathing_playback_controller.dart  # Controller for animations
   ├── screens/          # App screens
+  │   └── breath_screen.dart      # Main breathing exercise screen
   ├── widgets/          # Reusable widgets
-  │   ├── breathing_circle.dart     # Circular container for breathing exercise
+  │   ├── breath_circle.dart        # Circular breathing animation container
+  │   ├── duration_selector_button.dart  # Duration selection UI
+  │   ├── goal_pattern_sheet.dart   # Pattern selection bottom sheet
   │   ├── wave_animation.dart       # Fluid wave animation using CustomPainter
   │   ├── phase_indicator.dart      # Shows breathing phase and countdown
   │   ├── remaining_time_display.dart # Formatted time remaining display
-  │   ├── add_time_button.dart      # Button to add more time to session
   │   └── custom_nav_bar.dart       # App navigation bar
+  ├── migrations/       # Database migrations
+  │   └── 20250511_simplify_breathing_schema.sql  # Breathing schema
   ├── services/         # Services (Supabase, etc.)
-  ├── models/           # Data models
   ├── utils/            # Utility functions
   ├── theme/            # App theme and styling
   │   └── app_theme.dart           # Theme configuration with extensions
   └── main.dart         # App entry point
 ```
+
+## Breathing Exercise Feature
+
+The app's breathing exercise feature provides a guided breathing experience with:
+
+1. **Pattern Selection**: 
+   - Choose from various breathing patterns based on goals (calming, focus, energy)
+   - Each pattern has specific inhale, hold, exhale, and relax timings
+
+2. **Duration Selection**:
+   - Choose from 3, 5, or 10 minutes (or pattern-recommended duration)
+   - Sessions automatically calculate required breathing cycles
+
+3. **Visual Guidance**:
+   - Animated circle expands and contracts with your breath
+   - Beautiful wave animation represents lung capacity
+   - Clear phase indicators (Inhale, Hold, Exhale, Relax)
+   - Countdown timers for each phase
+
+4. **Session Tracking**:
+   - Records completed patterns
+   - Tracks usage statistics over time
 
 ## Image Asset Management
 
@@ -132,11 +165,11 @@ The app follows a component-based architecture where UI elements are broken down
 
 The breathing exercise screen demonstrates this approach by breaking down a complex UI into focused components:
 
-1. **BreathCircle**: Container that handles the circle shape, styling, and tap gestures
+1. **BreathCircle**: Container that handles animated circle shape, sizing, and tap gestures
 2. **WaveAnimation**: Manages the wave animation with CustomPainter for fluid movement
-3. **PhaseIndicator**: Displays the current breathing phase text and countdown
-4. **RemainingTimeDisplay**: Shows formatted remaining time
-5. **AddTimeButton**: Button to add more time to the session
+3. **PhaseCountdownDisplay**: Shows current phase text and countdown timer
+4. **DurationSelectorButton**: Toggle between different session durations
+5. **GoalPatternSheet**: Bottom sheet for selecting breathing patterns by goal
 
 This approach provides:
 - Better separation of concerns
