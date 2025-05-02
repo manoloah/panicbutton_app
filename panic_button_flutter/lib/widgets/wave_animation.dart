@@ -50,6 +50,12 @@ class WavePainter extends CustomPainter {
   final Color oceanMid;
   final Color oceanSurface;
 
+  // Cache values for smooth transitions
+  static double _lastFillLevel = 0.5;
+  // Reduce calculation frequency with step size
+  static const double _stepSize =
+      1.5; // Increase step size for better performance
+
   WavePainter({
     required this.waveAnimation,
     required this.fillLevel,
@@ -67,15 +73,20 @@ class WavePainter extends CustomPainter {
     final centerY = height / 2;
     final radius = math.min(centerX, centerY);
 
-    // Create a shader for the wave gradient
+    // Smooth transition between fill levels (interpolation to avoid jerky movement)
+    // Using a stronger interpolation factor for smoother changes
+    _lastFillLevel = _lastFillLevel * 0.9 + fillLevel * 0.1;
+    final smoothFillLevel = _lastFillLevel;
+
+    // Create a shader for the wave gradient with fewer colors for better performance
     final rect = Rect.fromLTWH(0, 0, width, height);
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        oceanSurface.withOpacity(0.9),
-        oceanMid.withOpacity(0.7),
-        oceanDeep.withOpacity(0.5),
+        oceanSurface.withOpacity(0.95),
+        oceanMid.withOpacity(0.75),
+        oceanDeep.withOpacity(0.55),
       ],
       stops: const [0.0, 0.5, 1.0],
     ).createShader(rect);
@@ -86,39 +97,51 @@ class WavePainter extends CustomPainter {
       ..style = PaintingStyle.fill
       ..isAntiAlias = true;
 
-    // Area to fill (from bottom)
-    final fillHeight = height * (1.0 - fillLevel);
+    // When fillLevel is near 0, place the wave below the visible area
+    final fillHeight = smoothFillLevel <= 0.05
+        ? height * 1.1 // Just below the visible area for smoother transition
+        : height * (1.0 - smoothFillLevel);
 
     // Create the main path for water
     final path = Path();
     path.moveTo(0, height);
 
-    // Wave parameters
-    final baseWaveHeight = fillHeight;
-    final waveWidth = width;
-    final waveHeight = radius * 0.05; // amplitude
+    // Wave parameters - more simplified for better performance
+    // Dynamic wave height based on the fill level - smaller waves at extreme fill levels
+    final fillFactor = 4.0 * smoothFillLevel * (1.0 - smoothFillLevel);
+    final waveHeight = radius * 0.06 * math.max(0.4, fillFactor);
 
-    // Draw two overlapping waves for more natural effect
+    // Create simpler wave pattern with fewer components
     final primaryWaveSpeed = waveAnimation * math.pi * 2;
-    final secondaryWaveSpeed = waveAnimation * math.pi * 3;
+    final secondaryWaveSpeed = waveAnimation * math.pi * 1.3;
 
-    // Higher resolution makes smoother curves
-    final step = 2.0; // smaller step = smoother curve
+    // Pre-calculate wave frequencies for performance
+    final baseWaveFreq = 3.5 * math.pi;
+    final secondWaveFreq = 5.5 * math.pi;
 
-    for (double x = 0; x <= width; x += step) {
-      // Calculate wave Y position with two overlapping sine waves
-      final primary =
-          math.sin((x / waveWidth * 8 * math.pi) + primaryWaveSpeed);
+    // Use larger step size for better performance
+    for (double x = 0; x <= width; x += _stepSize) {
+      // Calculate wave Y position with simplified wave pattern (fewer components)
+      final primary = math.sin((x / width * baseWaveFreq) + primaryWaveSpeed);
       final secondary =
-          math.sin((x / waveWidth * 12 * math.pi) + secondaryWaveSpeed) * 0.3;
+          math.sin((x / width * secondWaveFreq) + secondaryWaveSpeed) * 0.3;
 
-      // Wave Y position with dynamic amplitude near the fill level
+      // Combine waves with minimal randomness
+      final combinedWave = primary + secondary;
+
+      // Dynamic amplitude that changes less frequently
       final dynamicAmplitude =
-          waveHeight * (1.0 - 0.3 * math.cos(primaryWaveSpeed));
-      final waveY = baseWaveHeight + (primary + secondary) * dynamicAmplitude;
+          waveHeight * (1.0 + 0.1 * math.sin(primaryWaveSpeed));
 
-      // Add point to path
-      path.lineTo(x, waveY);
+      // Final wave Y position with simplified calculations
+      final waveY = fillHeight + combinedWave * dynamicAmplitude;
+
+      // Add point to path (simplified)
+      if (x == 0) {
+        path.moveTo(x, waveY);
+      } else {
+        path.lineTo(x, waveY);
+      }
     }
 
     // Complete the path
@@ -137,6 +160,7 @@ class WavePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant WavePainter oldDelegate) {
     return oldDelegate.waveAnimation != waveAnimation ||
-        oldDelegate.fillLevel != fillLevel;
+        (oldDelegate.fillLevel - fillLevel).abs() >
+            0.005; // Less sensitive repainting
   }
 }

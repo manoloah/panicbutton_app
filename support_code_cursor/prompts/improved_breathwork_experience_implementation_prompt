@@ -6,14 +6,10 @@ You are an expert Flutter / Dart / Supabase engineer.
 • Flutter app → Riverpod, Freezed, GoRouter, null-safety.
 • Supabase backend already has all breathing tables **plus** this new field:
 
-```sql
-ALTER TABLE routines
-ADD COLUMN IF NOT EXISTS recommended_minutes int;
-```
 
 Existing rows were back-filled (`recommended_minutes = total_minutes`).
 
-• UX change: user must choose 1–10 min session length.  
+• UX change: user must choose 1–30 min session length.  
   Default = routine.recommended_minutes (fallback 4).
 
 Layout reference:
@@ -72,11 +68,11 @@ State changes on “Save”:
      – `logRoutineRun(String routineId,int targetMinutes)`
        (upsert user_routine_status, set total_minutes = targetMinutes).
 
-3. **lib/providers/breath_providers.dart**  
+3. **lib/providers/breathing_providers.dart**  
    • Providers: supabase, goals, selectedRoutine, selectedDuration (int),
      expandedSteps.
 
-4. **lib/providers/playback_controller.dart**  
+4. **lib/providers/breathing_playback_controller.dart**  
    • Notifier with currentStep, secondsRemaining, start/pause/reset.
      Stops when elapsed ≥ selectedDuration × 60.
 
@@ -92,7 +88,12 @@ State changes on “Save”:
      On tap ➜ set selectedRoutine & selectedDuration, pop.
 
 8. **lib/screens/breath_screen.dart**  
-   • Composes circle, countdown text, buttons.
+   – Compose:
+   - AppBar title
+   - BreathCircle
+   - Countdown Text('${minutesRemaining}:${secRemaining}')
+   - Row: [MinutesSliderButton] [OpenGoalPatternSheetButton]
+   - Play/Pause FAB
 
 9. **supabase/migrations/{{timestamp}}_add_recommended_minutes.sql**  
    ```sql

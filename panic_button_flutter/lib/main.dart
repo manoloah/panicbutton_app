@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:panic_button_flutter/screens/home_screen.dart';
-import 'package:panic_button_flutter/screens/breathwork_screen.dart';
+import 'package:panic_button_flutter/screens/breath_screen.dart';
 import 'package:panic_button_flutter/screens/settings_screen.dart';
 import 'package:panic_button_flutter/screens/profile_settings_screen.dart';
 import 'package:panic_button_flutter/screens/notifications_settings_screen.dart';
@@ -82,7 +82,11 @@ final _router = GoRouter(
     ),
     GoRoute(
       path: '/breathwork',
-      builder: (context, state) => const BreathworkScreen(),
+      builder: (context, state) => const BreathScreen(),
+    ),
+    GoRoute(
+      path: '/breath',
+      builder: (context, state) => const BreathScreen(),
     ),
     GoRoute(
       path: '/settings',

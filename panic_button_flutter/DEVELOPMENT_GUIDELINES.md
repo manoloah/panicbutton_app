@@ -168,7 +168,7 @@ lib/
     - Would benefit from isolated testing
   
   - Widget categories to consider extracting:
-    - Containers with complex decoration (e.g., `BreathingCircle`)
+    - Containers with complex decoration (e.g., `BreathCircle`)
     - Custom animations (e.g., `WaveAnimation`)
     - Text displays with formatting (e.g., `RemainingTimeDisplay`)
     - UI elements that show/hide based on state (e.g., `PhaseIndicator`)

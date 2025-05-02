@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/custom_nav_bar.dart';
-import '../widgets/breathing_circle.dart';
+import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
 import '../constants/images.dart';
 import 'package:animations/animations.dart';
@@ -132,21 +132,21 @@ class _BoltScreenState extends State<BoltScreen>
 
           switch (_instructionStep) {
             case 1: // Inhale instruction
-              _instructionCountdownDouble = 5;
+              _instructionCountdownDouble = 5; // Changed from 4 to 5 seconds
               _breathAnimationController.reset();
               _breathAnimationController.forward(
                 from: 0.0,
               );
               break;
             case 2: // Exhale instruction
-              _instructionCountdownDouble = 5;
+              _instructionCountdownDouble = 5; // Changed from 4 to 5 seconds
               _breathAnimationController.reset();
               _breathAnimationController.forward(
                 from: 0.0,
               );
               break;
             case 3: // Pinch nose instruction - show longer
-              _instructionCountdownDouble = 3; // Increased from 2 to 3 seconds
+              _instructionCountdownDouble = 3; // Unchanged
               break;
             case 4: // Start BOLT measurement
               _isShowingInstructions = false;
@@ -164,7 +164,7 @@ class _BoltScreenState extends State<BoltScreen>
     print("_advanceToNextInstruction called");
     setState(() {
       _instructionStep = 1;
-      _instructionCountdownDouble = 5;
+      _instructionCountdownDouble = 5; // Changed from 4 to 5 seconds
       _breathAnimationController.reset();
       _breathAnimationController.forward(
         from: 0.0,
@@ -433,7 +433,7 @@ class _BoltScreenState extends State<BoltScreen>
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 300),
+            constraints: const BoxConstraints(minHeight: 360),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -443,7 +443,7 @@ class _BoltScreenState extends State<BoltScreen>
                   style: tt.headlineMedium,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Main content
                 if (_instructionStep == 0) ...[
@@ -470,19 +470,44 @@ class _BoltScreenState extends State<BoltScreen>
                     child: const Text('SIGUIENTE'),
                   ),
                 ] else if (_instructionStep == 1 || _instructionStep == 2) ...[
-                  Text(
-                    displayCountdown.toString(),
-                    style: tt.displayLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  BreathingCircle(
-                    isBreathing: true,
-                    onTap: () {},
-                    child: WaveAnimation(
-                      waveAnimation: _breathAnimationController,
-                      fillLevel: _instructionStep == 1
-                          ? _breathAnimationController.value
-                          : 1 - _breathAnimationController.value,
+                  // Add a properly sized container for the breathing animation sequence
+                  SizedBox(
+                    height: 320, // Increased height for better spacing
+                    child: Column(
+                      children: [
+                        // Display the countdown above the circle in its own container
+                        Container(
+                          margin: const EdgeInsets.only(
+                              bottom:
+                                  16), // Add space between countdown and circle
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            displayCountdown.toString(),
+                            style: tt.displayLarge?.copyWith(
+                              color: cs.primary,
+                              fontSize: 48,
+                            ),
+                          ),
+                        ),
+
+                        // Circle with reduced size, in its own container
+                        BreathCircle(
+                          isBreathing: true,
+                          onTap: () {},
+                          size: 200, // Maintained smaller size
+                          phaseIndicator: WaveAnimation(
+                            waveAnimation: _breathAnimationController,
+                            fillLevel: _instructionStep == 1
+                                ? _breathAnimationController.value
+                                : 1 - _breathAnimationController.value,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),

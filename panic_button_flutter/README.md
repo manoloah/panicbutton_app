@@ -132,7 +132,7 @@ The app follows a component-based architecture where UI elements are broken down
 
 The breathing exercise screen demonstrates this approach by breaking down a complex UI into focused components:
 
-1. **BreathingCircle**: Container that handles the circle shape, styling, and tap gestures
+1. **BreathCircle**: Container that handles the circle shape, styling, and tap gestures
 2. **WaveAnimation**: Manages the wave animation with CustomPainter for fluid movement
 3. **PhaseIndicator**: Displays the current breathing phase text and countdown
 4. **RemainingTimeDisplay**: Shows formatted remaining time

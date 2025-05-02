@@ -16,7 +16,7 @@ class CustomNavBar extends StatelessWidget {
       child: Stack(
         children: [
           //  ───────────────────────────────────
-          //  the “tray” behind your buttons
+          //  the "tray" behind your buttons
           Positioned(
             left: 0,
             right: 0,
@@ -58,13 +58,13 @@ class CustomNavBar extends StatelessWidget {
           ),
 
           //  ───────────────────────────────────
-          //  centre “Calma” pill — untouched layout, but theme‑driven colors
+          //  centre "Calma" pill — untouched layout, but theme‑driven colors
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: GestureDetector(
-              onTap: () => context.go('/'),
+              onTap: () => context.go('/breath'),
               child: Center(
                 child: Container(
                   width: 88,
