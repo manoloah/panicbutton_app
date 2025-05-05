@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:panic_button_flutter/screens/home_screen.dart';
 import 'package:panic_button_flutter/screens/breath_screen.dart';
 import 'package:panic_button_flutter/screens/settings_screen.dart';
@@ -41,7 +41,11 @@ void main() async {
     debugPrint('Error initializing Supabase: $e');
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(
+    const ProviderScope(
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
