@@ -106,6 +106,7 @@ class _BoltScreenState extends State<BoltScreen>
     setState(() {
       _isShowingInstructions = true;
       _instructionStep = 0;
+      // Do not start any timers here - wait for user to click "SIGUIENTE"
     });
   }
 
@@ -163,13 +164,13 @@ class _BoltScreenState extends State<BoltScreen>
   void _advanceToNextInstruction() {
     print("_advanceToNextInstruction called");
     setState(() {
-      _instructionStep = 1;
+      _instructionStep = 1; // Explicitly set to step 1 (inhale)
       _instructionCountdownDouble = 5; // Changed from 4 to 5 seconds
       _breathAnimationController.reset();
       _breathAnimationController.forward(
         from: 0.0,
       );
-      // Start the timer for automatic progression through remaining steps
+      // Now start the timer for automatic progression through remaining steps
       _startInstructionTimer();
     });
     print("Advanced to step: $_instructionStep");
@@ -216,10 +217,15 @@ class _BoltScreenState extends State<BoltScreen>
     }
   }
 
-  void _resetMeasurement() {
+  // Added a new method to fully restart the BOLT measurement flow
+  void _restartMeasurement() {
     setState(() {
       _isComplete = false;
       _seconds = 0;
+      _isShowingInstructions = true;
+      _instructionStep = 0;
+      _instructionCountdownDouble = 0;
+      _timer?.cancel();
     });
   }
 
@@ -333,8 +339,8 @@ class _BoltScreenState extends State<BoltScreen>
                   4, 'Pincha tu nariz o retén la respiración'),
               _buildInstructionStep(5, 'Inicia el cronómetro'),
               _buildInstructionStep(6,
-                  'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire (normalmente sientes como la garganta se contrae o el pecho brinca, no tiene que ser al máximo)'),
-              _buildInstructionStep(7, 'Detén el contador en ese momento'),
+                  'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire'),
+              _buildInstructionStep(7, 'Detén el cronometro en ese momento'),
               _buildInstructionStep(
                   8, 'Recupera tu respiración normal, lenta y controlada'),
             ],
@@ -343,7 +349,7 @@ class _BoltScreenState extends State<BoltScreen>
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _startMeasurement,
-            child: const Text('COMIENZA LA MEDICIÓN'),
+            child: const Text('COMENZAR'),
           ),
         ],
       ),
@@ -426,112 +432,119 @@ class _BoltScreenState extends State<BoltScreen>
           child: child,
         );
       },
-      child: Card(
+      child: Container(
         key: ValueKey<int>(_instructionStep),
-        margin: EdgeInsets.zero,
-        color: cs.surface,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 360),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Text(
-                  phaseText,
-                  style: tt.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-
-                // Main content
-                if (_instructionStep == 0) ...[
-                  Image.asset(
-                    instructionImage,
-                    width: 120,
-                    height: 120,
-                    color: cs.primary,
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Toma tu tiempo para calmarte y respirar normalmente por la nariz',
-                    style: tt.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: _advanceToNextInstruction,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: cs.primary,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 12),
-                    ),
-                    child: const Text('SIGUIENTE'),
-                  ),
-                ] else if (_instructionStep == 1 || _instructionStep == 2) ...[
-                  // Add a properly sized container for the breathing animation sequence
-                  SizedBox(
-                    height: 320, // Increased height for better spacing
-                    child: Column(
-                      children: [
-                        // Display the countdown above the circle in its own container
-                        Container(
-                          margin: const EdgeInsets.only(
-                              bottom:
-                                  16), // Add space between countdown and circle
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: cs.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            displayCountdown.toString(),
-                            style: tt.displayLarge?.copyWith(
-                              color: cs.primary,
-                              fontSize: 48,
-                            ),
-                          ),
-                        ),
-
-                        // Circle with reduced size, in its own container
-                        BreathCircle(
-                          isBreathing: true,
-                          onTap: () {},
-                          size: 200, // Maintained smaller size
-                          phaseIndicator: WaveAnimation(
-                            waveAnimation: _breathAnimationController,
-                            fillLevel: _instructionStep == 1
-                                ? _breathAnimationController.value
-                                : 1 - _breathAnimationController.value,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Sigue las instrucciones...',
-                    style: tt.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ] else if (_instructionStep == 3) ...[
-                  Image.asset(
-                    instructionImage,
-                    width: 120,
-                    height: 120,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Sigue las instrucciones...',
-                    style: tt.bodyMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ],
+        width: double.infinity,
+        height: 480, // Fixed height for all instruction steps
+        padding: const EdgeInsets.all(24.0),
+        color: cs.surface, // Match parent container color
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Text(
+              phaseText,
+              style: tt.headlineMedium,
+              textAlign: TextAlign.center,
             ),
-          ),
+            const SizedBox(height: 20),
+
+            // Main content - same height for all steps
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_instructionStep == 0) ...[
+                    Image.asset(
+                      instructionImage,
+                      width: 120,
+                      height: 120,
+                      color: cs.primary,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Preparate para hacer una inhalación normal',
+                      style: tt.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _advanceToNextInstruction,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 12),
+                      ),
+                      child: const Text('SIGUIENTE'),
+                    ),
+                  ] else if (_instructionStep == 1 ||
+                      _instructionStep == 2) ...[
+                    // Display the countdown above the circle in its own container
+                    Container(
+                      margin: const EdgeInsets.only(
+                          bottom: 16), // Add space between countdown and circle
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: cs.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        displayCountdown.toString(),
+                        style: tt.displayLarge?.copyWith(
+                          color: cs.primary,
+                          fontSize: 48,
+                        ),
+                      ),
+                    ),
+
+                    // Circle
+                    BreathCircle(
+                      isBreathing: true,
+                      onTap: () {},
+                      size: 200,
+                      phaseIndicator: WaveAnimation(
+                        waveAnimation: _breathAnimationController,
+                        fillLevel: _instructionStep == 1
+                            ? _breathAnimationController.value
+                            : 1 - _breathAnimationController.value,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _instructionStep == 1
+                          ? 'Preparate para exhalar...'
+                          : 'Preparate para retener...',
+                      style: tt.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                  ] else if (_instructionStep == 3) ...[
+                    Image.asset(
+                      instructionImage,
+                      width: 120,
+                      height: 120,
+                    ),
+                    const SizedBox(height: 30),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _instructionStep = 4; // Move to next step
+                          _isShowingInstructions = false;
+                          _actuallyStartMeasurement();
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: cs.primary,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 12),
+                      ),
+                      child: const Text('EMPEZAR RETENCIÓN'),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -587,7 +600,7 @@ class _BoltScreenState extends State<BoltScreen>
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: _resetMeasurement,
+                  onPressed: _restartMeasurement, // Use new restart method
                   style: ElevatedButton.styleFrom(
                     backgroundColor: cs.surface,
                     foregroundColor: cs.primary,
@@ -620,7 +633,7 @@ class _BoltScreenState extends State<BoltScreen>
 
     // Debug state
     // print(
-    //     "Build: _isShowingInstructions=[4m_isShowingInstructions, _isMeasuring=[4m_isMeasuring, _isComplete=[4m_isComplete");
+    //     "Build: _isShowingInstructions=[4m_isShowingInstructions, _isMeasuring=[4m_isMeasuring, _isComplete=[4m_isComplete");
 
     return Scaffold(
       // SliverAppBar will scroll away
@@ -668,7 +681,15 @@ class _BoltScreenState extends State<BoltScreen>
 
                 // Measurement UI
                 if (_isShowingInstructions)
-                  _buildInstructionAnimation()
+                  Material(
+                    elevation: 0,
+                    color: cs.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: _buildInstructionAnimation(),
+                    ),
+                  )
                 else if (!_isMeasuring && !_isComplete)
                   _buildInstructionsCard()
                 else
