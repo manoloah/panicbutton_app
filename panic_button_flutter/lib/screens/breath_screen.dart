@@ -152,53 +152,77 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
       );
     }
 
+    // Get device dimensions
+    final bottomNavHeight = 56.0; // Standard navbar height
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final viewPadding = MediaQuery.of(context).padding;
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: Stack(
+        // Completely restructured layout for better centering
+        child: Column(
           children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Title
-                  Text(
-                    'PanicButton',
-                    style: tt.displayLarge,
+            // This is the scrollable main content area
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height -
+                        bottomNavHeight -
+                        viewPadding.top -
+                        viewPadding.bottom,
                   ),
-                  const SizedBox(height: 40),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Title
+                          Text(
+                            'PanicButton',
+                            style: tt.displayLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 40),
 
-                  // Breathing circle
-                  BreathCircle(
-                    onTap: _toggleBreathing,
-                    phaseIndicator: const Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleWaveOverlay(),
-                        PhaseCountdownDisplay(),
-                      ],
+                          // Breathing circle
+                          BreathCircle(
+                            onTap: _toggleBreathing,
+                            phaseIndicator: const Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CircleWaveOverlay(),
+                                PhaseCountdownDisplay(),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // Timer display
+                          _buildTimerDisplay(playbackState),
+
+                          const SizedBox(height: 20),
+
+                          // Control buttons row
+                          _buildControlsRow(),
+                        ],
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 40),
-
-                  // Timer display
-                  _buildTimerDisplay(playbackState),
-
-                  const SizedBox(height: 20),
-
-                  // Control buttons row
-                  _buildControlsRow(),
-                ],
+                ),
               ),
             ),
 
-            // Bottom navigation
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: CustomNavBar(currentIndex: 1),
+            // Fixed navbar at the bottom spanning full width
+            Container(
+              width: double.infinity,
+              child: const CustomNavBar(currentIndex: 1),
             ),
           ],
         ),
