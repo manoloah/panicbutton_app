@@ -266,59 +266,126 @@ class BreathRepository {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
+        debugPrint('⚠️ Cannot log pattern run: User not authenticated');
         return; // Silently return if user is not authenticated
       }
 
-      // Use a single try-catch for the database operations
-      try {
-        // First try to insert directly, which is more efficient when RLS is set up properly
-        await _supabase.from('breathing_pattern_status').upsert(
-          {
-            'user_id': userId,
-            'pattern_id': patternId,
-            'last_run': DateTime.now().toIso8601String(),
-            'total_runs': 1,
-          },
-          onConflict: 'user_id, pattern_id',
-        );
-      } catch (sqlError) {
-        // Fallback approach if direct upsert fails
-        try {
-          // Check if record exists
-          final existingRec = await _supabase
-              .from('breathing_pattern_status')
-              .select('total_runs')
-              .eq('user_id', userId)
-              .eq('pattern_id', patternId)
-              .maybeSingle();
+      // Record the start of the breathing activity with explicit values
+      final expectedDurationSeconds = targetMinutes * 60;
+      final activityData = {
+        'user_id': userId,
+        'pattern_id': patternId,
+        'expected_duration_seconds': expectedDurationSeconds,
+        'completed': false,
+        'duration_seconds': 0, // Initial duration is always 0
+      };
 
-          if (existingRec != null) {
-            // If exists, update with total_runs incremented
-            await _supabase
-                .from('breathing_pattern_status')
-                .update({
-                  'last_run': DateTime.now().toIso8601String(),
-                  'total_runs': (existingRec['total_runs'] as int) + 1,
-                })
-                .eq('user_id', userId)
-                .eq('pattern_id', patternId);
-          } else {
-            // If new, insert
-            await _supabase.from('breathing_pattern_status').insert({
-              'user_id': userId,
-              'pattern_id': patternId,
-              'last_run': DateTime.now().toIso8601String(),
-              'total_runs': 1,
-            });
-          }
-        } catch (e) {
-          // Log and continue - this is non-critical
-          debugPrint('⚠️ Could not log pattern run to database (fallback): $e');
+      debugPrint(
+          '🔄 Creating breathing activity for pattern: $patternId, expected duration: $expectedDurationSeconds seconds');
+
+      try {
+        final activityResult = await _supabase
+            .from('breathing_activity')
+            .insert(activityData)
+            .select('id')
+            .single();
+
+        // Store the activity ID for later update
+        final activityId = activityResult['id'] as String;
+        debugPrint(
+            '✅ Created breathing activity record: $activityId for pattern: $patternId');
+
+        // Verify the record was created
+        final checkResult = await _supabase
+            .from('breathing_activity')
+            .select('id, pattern_id, expected_duration_seconds')
+            .eq('id', activityId)
+            .single();
+
+        debugPrint(
+            '✓ Verified activity creation: ${checkResult['id']} - Pattern: ${checkResult['pattern_id']}, Expected duration: ${checkResult['expected_duration_seconds']}s');
+      } catch (insertError) {
+        debugPrint('⚠️ Error inserting breathing activity: $insertError');
+        // Log full error details to help debug RLS issues
+        if (insertError is PostgrestException) {
+          final pgError = insertError as PostgrestException;
+          debugPrint('  - Message: ${pgError.message}');
+          debugPrint('  - Code: ${pgError.code}');
+          debugPrint('  - Details: ${pgError.details}');
+          debugPrint('  - Hint: ${pgError.hint}');
         }
+        rethrow; // Re-throw so the caller can handle the error
       }
     } catch (e) {
       // Just silently log but don't rethrow - pattern logging is not essential
       debugPrint('⚠️ Error in logPatternRun: $e');
+    }
+  }
+
+  // Add a new method to complete a breathing activity
+  Future<void> completeBreathingActivity(
+      String activityId, int durationSeconds, bool completed) async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        debugPrint(
+            '⚠️ Cannot complete breathing activity: User not authenticated');
+        return;
+      }
+
+      // Get existing record to log details
+      final existingRecord = await _supabase
+          .from('breathing_activity')
+          .select('pattern_id, expected_duration_seconds')
+          .eq('id', activityId)
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (existingRecord != null) {
+        final patternId = existingRecord['pattern_id'] as String;
+        debugPrint(
+            '🔄 Updating breathing activity: $activityId for pattern: $patternId, duration: $durationSeconds seconds, completed: $completed');
+      }
+
+      // Update the breathing activity with the actual duration
+      await _supabase
+          .from('breathing_activity')
+          .update({
+            'duration_seconds': durationSeconds,
+            'completed': completed,
+          })
+          .eq('id', activityId)
+          .eq('user_id', userId); // Additional safety check
+
+      debugPrint(
+          '✅ Updated breathing activity: $activityId with duration: $durationSeconds seconds');
+    } catch (e) {
+      debugPrint('⚠️ Error completing breathing activity: $e');
+    }
+  }
+
+  // Add a method to get the current breathing activity
+  Future<String?> getCurrentBreathingActivity() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        return null;
+      }
+
+      // Get the most recent incomplete activity
+      final result = await _supabase
+          .from('breathing_activity')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('completed', false)
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      return result != null ? result['id'] as String : null;
+    } catch (e) {
+      debugPrint('⚠️ Error getting current breathing activity: $e');
+      return null;
     }
   }
 }

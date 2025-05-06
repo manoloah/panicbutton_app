@@ -297,11 +297,17 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         return;
       }
 
-      // Get current duration
-      final duration = ref.read(selectedDurationProvider);
+      // Check if we're resuming an existing session or starting a new one
+      final playbackState = ref.read(breathingPlaybackControllerProvider);
+      final hasExistingSession = playbackState.currentActivityId != null;
 
-      // Initialize with current steps and duration
-      controller.initialize(expandedSteps, duration);
+      if (!hasExistingSession) {
+        // Only initialize when starting a new session, not when resuming
+        final duration = ref.read(selectedDurationProvider);
+        controller.initialize(expandedSteps, duration);
+      }
+
+      // Always call play
       controller.play();
     }
   }
