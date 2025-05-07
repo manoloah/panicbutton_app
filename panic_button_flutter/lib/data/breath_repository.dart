@@ -49,6 +49,7 @@ class BreathRepository {
               recommendedMinutes: item['recommended_minutes'] as int? ?? 5,
               cycleSecs: item['cycle_secs'] as int? ?? 8,
               slug: item['slug'] as String? ?? '',
+              description: item['description'] as String?,
               createdAt: item['created_at'] != null
                   ? DateTime.parse(item['created_at'] as String)
                   : null,
@@ -411,6 +412,7 @@ class BreathRepository {
         recommendedMinutes: patternData['recommended_minutes'] as int? ?? 5,
         cycleSecs: patternData['cycle_secs'] as int? ?? 8,
         slug: patternData['slug'] as String? ?? '',
+        description: patternData['description'] as String?,
         createdAt: patternData['created_at'] != null
             ? DateTime.parse(patternData['created_at'] as String)
             : null,

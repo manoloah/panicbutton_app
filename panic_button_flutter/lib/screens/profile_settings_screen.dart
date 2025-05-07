@@ -349,6 +349,31 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                   onPressed: _isLoading || !_hasUnsavedChanges
                       ? null
                       : _showConfirmationDialog,
+                  style: _isLoading || !_hasUnsavedChanges
+                      ? null
+                      : ElevatedButton.styleFrom(
+                          backgroundColor:
+                              Theme.of(context).colorScheme.primaryContainer,
+                          foregroundColor:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          elevation: 4,
+                          shadowColor: Theme.of(context)
+                              .colorScheme
+                              .shadow
+                              .withOpacity(0.5),
+                          side: BorderSide(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.4),
+                            width: 1.5,
+                          ),
+                        ),
                   child: _isLoading
                       ? const SizedBox(
                           width: 24,

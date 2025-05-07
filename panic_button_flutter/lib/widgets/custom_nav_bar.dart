@@ -87,21 +87,40 @@ class CustomNavBar extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                                 colors: [
+                                  cs.primary.withOpacity(0.9),
                                   cs.primary,
-                                  cs.primary.withOpacity(0.8),
                                 ],
                               ),
                               boxShadow: [
+                                // Outer glow
                                 BoxShadow(
-                                  color: cs.primary.withOpacity(0.3),
-                                  blurRadius: 15,
-                                  spreadRadius: 2,
+                                  color: cs.primary.withOpacity(0.5),
+                                  blurRadius: 20,
+                                  spreadRadius: 4,
                                   offset: const Offset(0, 4),
                                 ),
+                                // Deeper shadow for 3D effect
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.4),
+                                  blurRadius: 12,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 8),
+                                ),
+                                // Top highlight for 3D effect
+                                BoxShadow(
+                                  color: Colors.white.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, -2),
+                                ),
                               ],
+                              border: Border.all(
+                                color: cs.primaryContainer,
+                                width: 3,
+                              ),
                             ),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,

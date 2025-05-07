@@ -370,14 +370,13 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      '${pattern.recommendedMinutes} minutos recomendados',
-                      style: tt.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant.withOpacity(0.8),
+                    if (pattern.description != null)
+                      Text(
+                        pattern.description!,
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant.withOpacity(0.6),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    _buildCycleInfo(pattern),
                   ],
                 ),
               ),
@@ -409,44 +408,6 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
     } else {
       return Icons.air;
     }
-  }
-
-  Widget _buildCycleInfo(PatternModel pattern) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    final totalSteps = pattern.steps.length;
-    final totalSecs = pattern.cycleSecs;
-
-    return Row(
-      children: [
-        Icon(
-          Icons.timer_outlined,
-          size: 14,
-          color: cs.onSurfaceVariant.withOpacity(0.6),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$totalSecs segundos por ciclo',
-          style: tt.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant.withOpacity(0.6),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Icon(
-          Icons.repeat,
-          size: 14,
-          color: cs.onSurfaceVariant.withOpacity(0.6),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$totalSteps ${totalSteps == 1 ? 'paso' : 'pasos'}',
-          style: tt.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant.withOpacity(0.6),
-          ),
-        ),
-      ],
-    );
   }
 }
 

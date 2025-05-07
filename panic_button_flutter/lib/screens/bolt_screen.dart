@@ -349,6 +349,20 @@ class _BoltScreenState extends State<BoltScreen>
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: _startMeasurement,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              elevation: 4,
+              shadowColor: cs.shadow.withOpacity(0.5),
+              side: BorderSide(
+                color: cs.primary.withOpacity(0.4),
+                width: 1.5,
+              ),
+            ),
             child: const Text('COMENZAR'),
           ),
         ],
@@ -471,9 +485,19 @@ class _BoltScreenState extends State<BoltScreen>
                     ElevatedButton(
                       onPressed: _advanceToNextInstruction,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
+                        backgroundColor: cs.primaryContainer,
+                        foregroundColor: cs.onPrimaryContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 32, vertical: 12),
+                        elevation: 4,
+                        shadowColor: cs.shadow.withOpacity(0.5),
+                        side: BorderSide(
+                          color: cs.primary.withOpacity(0.4),
+                          width: 1.5,
+                        ),
                       ),
                       child: const Text('SIGUIENTE'),
                     ),
@@ -534,9 +558,19 @@ class _BoltScreenState extends State<BoltScreen>
                         });
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primary,
+                        backgroundColor: cs.primaryContainer,
+                        foregroundColor: cs.onPrimaryContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                         padding: const EdgeInsets.symmetric(
                             horizontal: 32, vertical: 12),
+                        elevation: 4,
+                        shadowColor: cs.shadow.withOpacity(0.5),
+                        side: BorderSide(
+                          color: cs.primary.withOpacity(0.4),
+                          width: 1.5,
+                        ),
                       ),
                       child: const Text('EMPEZAR RETENCIÓN'),
                     ),
@@ -592,6 +626,17 @@ class _BoltScreenState extends State<BoltScreen>
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF4500), // Error color
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                elevation: 4,
+                shadowColor: Colors.red.withOpacity(0.5),
+                side: BorderSide(
+                  color: Colors.red.withOpacity(0.4),
+                  width: 1.5,
+                ),
               ),
               child: const Text('DETENER'),
             ),
@@ -604,12 +649,37 @@ class _BoltScreenState extends State<BoltScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: cs.surface,
                     foregroundColor: cs.primary,
-                    side: BorderSide(color: cs.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    elevation: 4,
+                    shadowColor: cs.shadow.withOpacity(0.5),
+                    side: BorderSide(
+                      color: cs.primary.withOpacity(0.4),
+                      width: 1.5,
+                    ),
                   ),
                   child: const Text('Reintentar'),
                 ),
                 ElevatedButton(
                   onPressed: _saveMeasurement,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.primaryContainer,
+                    foregroundColor: cs.onPrimaryContainer,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    elevation: 4,
+                    shadowColor: cs.shadow.withOpacity(0.5),
+                    side: BorderSide(
+                      color: cs.primary.withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                  ),
                   child: const Text('Guardar'),
                 ),
               ],
@@ -617,6 +687,21 @@ class _BoltScreenState extends State<BoltScreen>
           ] else ...[
             ElevatedButton(
               onPressed: _startMeasurement,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                elevation: 4,
+                shadowColor: cs.shadow.withOpacity(0.5),
+                side: BorderSide(
+                  color: cs.primary.withOpacity(0.4),
+                  width: 1.5,
+                ),
+              ),
               child: const Text('EMPEZAR'),
             ),
           ],

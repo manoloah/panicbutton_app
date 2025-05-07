@@ -176,6 +176,23 @@ class _AuthScreenState extends State<AuthScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _handleSubmit,
+                  style: _isLoading
+                      ? null
+                      : ElevatedButton.styleFrom(
+                          backgroundColor: cs.primaryContainer,
+                          foregroundColor: cs.onPrimaryContainer,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          elevation: 4,
+                          shadowColor: cs.shadow.withOpacity(0.5),
+                          side: BorderSide(
+                            color: cs.primary.withOpacity(0.4),
+                            width: 1.5,
+                          ),
+                        ),
                   child: _isLoading
                       ? SizedBox(
                           height: 20,

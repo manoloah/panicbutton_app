@@ -89,6 +89,21 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: ElevatedButton(
               onPressed: () => _handleLogout(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                elevation: 4,
+                shadowColor: cs.shadow.withOpacity(0.5),
+                side: BorderSide(
+                  color: cs.primary.withOpacity(0.4),
+                  width: 1.5,
+                ),
+              ),
               child: const Text('Cerrar Sesión'),
             ),
           ),

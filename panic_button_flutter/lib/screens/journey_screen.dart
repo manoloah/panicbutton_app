@@ -192,7 +192,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Nivel ${currentLevel.id}: ${currentLevel.nameEs}',
+            'Nivel Actual ${currentLevel.id}: ${currentLevel.nameEs}',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,

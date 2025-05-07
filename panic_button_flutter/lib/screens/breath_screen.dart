@@ -317,17 +317,27 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           TextButton.icon(
             onPressed: () => showGoalPatternSheet(context),
             style: TextButton.styleFrom(
-              backgroundColor: cs.surfaceContainerHighest,
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              elevation: 4,
+              shadowColor: cs.shadow.withOpacity(0.5),
+              side: BorderSide(
+                color: cs.primary.withOpacity(0.4),
+                width: 1.5,
+              ),
             ),
-            icon: const Icon(Icons.air, size: 20),
+            icon: Icon(Icons.air, size: 30, color: cs.onPrimaryContainer),
             label: Text(
               patternName,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: cs.onPrimaryContainer,
+                  ),
               maxLines: 1,
             ),
           ),
