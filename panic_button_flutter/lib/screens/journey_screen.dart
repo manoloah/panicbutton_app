@@ -18,6 +18,20 @@ class _JourneyScreenState extends State<JourneyScreen> {
   // Map to store pattern names locally
   final Map<String, String> _patternNames = {};
 
+  // Map level IDs to themed icons
+  final Map<int, IconData> _levelIcons = {
+    1: Icons.local_florist, // Beginner level - plant/seed/growth
+    2: Icons.air, // Basic breathing
+    3: Icons.waves, // Steady breathing waves
+    4: Icons.health_and_safety, // Health focus
+    5: Icons.self_improvement, // Meditation/improvement
+    6: Icons.psychology, // Mental clarity
+    7: Icons.landscape, // Nature connection
+    8: Icons.spa, // Relaxation mastery
+    9: Icons.emoji_emotions, // Emotional balance
+    10: Icons.star, // Master level achievement
+  };
+
   void _toggleExpandLevel(int id) {
     setState(() {
       expandedLevelId = expandedLevelId == id ? null : id;
@@ -30,6 +44,10 @@ class _JourneyScreenState extends State<JourneyScreen> {
       // Explicitly set autoStart to false
       context.go('/breath/${level.patternSlugs.first}');
     }
+  }
+
+  void _navigateToBoltScreen() {
+    context.go('/bolt');
   }
 
   // Load pattern name and cache it
@@ -265,12 +283,32 @@ class _JourneyScreenState extends State<JourneyScreen> {
       children: [
         Expanded(
           flex: 3,
-          child: Text(
-            '$title: $target$unit',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
+          child: isBolt
+              ? GestureDetector(
+                  onTap: _navigateToBoltScreen,
+                  child: Row(
+                    children: [
+                      Text(
+                        '$title: $target$unit',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                            ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.info_outline,
+                        color: Color(0xFF336699),
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                )
+              : Text(
+                  '$title: $target$unit',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                      ),
                 ),
-          ),
         ),
         Expanded(
           flex: 4,
@@ -426,14 +464,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                                 ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        _getUnlockRequirementsText(level, provider),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isUnlocked
-                                  ? const Color(0xFFB0B0B0)
-                                  : const Color(0xFF666666),
-                            ),
-                      ),
+                      _buildUnlockRequirements(context, level, provider),
                     ],
                   ),
                 ),
@@ -491,19 +522,28 @@ class _JourneyScreenState extends State<JourneyScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                       ),
+                      const SizedBox(height: 12),
+                      // Benefits text moved inside the container
+                      Text(
+                        'Beneficios:',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        level.benefitEs,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFFB0B0B0),
+                              fontStyle: FontStyle.italic,
+                            ),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
               ],
-              Text(
-                level.benefitEs,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFB0B0B0),
-                      fontStyle: FontStyle.italic,
-                    ),
-              ),
-              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => _startExercise(level),
                 style: ElevatedButton.styleFrom(
@@ -529,18 +569,77 @@ class _JourneyScreenState extends State<JourneyScreen> {
     );
   }
 
-  String _getUnlockRequirementsText(
-      JourneyLevel level, JourneyProvider provider) {
-    final List<String> requirements = [];
-    requirements.add('BOLT mayor a: ${level.boltMin}s');
-    requirements.add('Respirar más de ${level.minutesWeek} min/semana');
-    return 'Requisitos para desbloquear nivel: ${requirements.join(' | ')}';
+  Widget _buildUnlockRequirements(
+      BuildContext context, JourneyLevel level, JourneyProvider provider) {
+    final List<Widget> requirements = [];
+
+    // Add BOLT requirement with clickable link
+    requirements.add(
+      GestureDetector(
+        onTap: _navigateToBoltScreen,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'BOLT mayor a: ${level.boltMin}s',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: provider.isLevelUnlocked(level.id)
+                        ? const Color(0xFFB0B0B0)
+                        : const Color(0xFF666666),
+                  ),
+            ),
+            const SizedBox(width: 2),
+            Icon(
+              Icons.info_outline,
+              size: 12,
+              color: provider.isLevelUnlocked(level.id)
+                  ? const Color(0xFF336699)
+                  : const Color(0xFF666666),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Add minutes requirement
+    requirements.add(
+      Text(
+        'Respirar más de ${level.minutesWeek} min/semana',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: provider.isLevelUnlocked(level.id)
+                  ? const Color(0xFFB0B0B0)
+                  : const Color(0xFF666666),
+            ),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Requisitos para desbloquear nivel:',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: provider.isLevelUnlocked(level.id)
+                    ? const Color(0xFFB0B0B0)
+                    : const Color(0xFF666666),
+              ),
+        ),
+        const SizedBox(height: 2),
+        ...requirements.map((widget) => Padding(
+              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
+              child: widget,
+            )),
+      ],
+    );
   }
 
   Widget _buildLevelIndicator(int levelId, bool isUnlocked) {
+    // Use the icon from the map, or a default trophy icon if not found
+    final IconData icon = _levelIcons[levelId] ?? Icons.emoji_events;
+
     return Container(
-      width: 32,
-      height: 32,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isUnlocked ? const Color(0xFF00B383) : const Color(0xFF444444),
@@ -548,14 +647,21 @@ class _JourneyScreenState extends State<JourneyScreen> {
           color: isUnlocked ? const Color(0xFF00B383) : const Color(0xFF444444),
           width: 2,
         ),
+        boxShadow: isUnlocked
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF00B383).withOpacity(0.3),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                )
+              ]
+            : null,
       ),
       child: Center(
-        child: Text(
-          levelId.toString(),
-          style: TextStyle(
-            color: isUnlocked ? Colors.white : const Color(0xFF777777),
-            fontWeight: FontWeight.bold,
-          ),
+        child: Icon(
+          icon,
+          color: isUnlocked ? Colors.white : const Color(0xFF777777),
+          size: 20,
         ),
       ),
     );
