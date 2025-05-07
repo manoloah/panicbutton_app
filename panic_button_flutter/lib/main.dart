@@ -101,7 +101,9 @@ final _router = GoRouter(
       path: '/breath/:patternSlug',
       builder: (context, state) {
         final patternSlug = state.pathParameters['patternSlug'];
-        return BreathScreen(patternSlug: patternSlug);
+        // Auto-start if it's the coherent_4_6 pattern
+        final bool autoStart = patternSlug == 'coherent_4_6';
+        return BreathScreen(patternSlug: patternSlug, autoStart: autoStart);
       },
     ),
     GoRoute(

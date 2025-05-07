@@ -10,7 +10,13 @@ import 'package:panic_button_flutter/providers/breathing_playback_controller.dar
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
-  const BreathScreen({super.key, this.patternSlug});
+  final bool autoStart;
+
+  const BreathScreen({
+    super.key,
+    this.patternSlug,
+    this.autoStart = false,
+  });
 
   @override
   ConsumerState<BreathScreen> createState() => _BreathScreenState();
@@ -46,6 +52,13 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           ref
               .read(breathingPlaybackControllerProvider.notifier)
               .initialize(expandedSteps, duration);
+
+          // Auto-start if requested or if the pattern is 'coherent_4_6'
+          if (widget.autoStart || widget.patternSlug == 'coherent_4_6') {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(breathingPlaybackControllerProvider.notifier).play();
+            });
+          }
 
           setState(() {
             _isInitialized = true;
@@ -177,8 +190,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
 
     // Get device dimensions
-    final bottomNavHeight = 56.0; // Standard navbar height
-    final viewInsets = MediaQuery.of(context).viewInsets;
+    const bottomNavHeight = 56.0; // Standard navbar height
     final viewPadding = MediaQuery.of(context).padding;
 
     return Scaffold(
@@ -259,9 +271,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
             ),
 
             // Fixed navbar at the bottom spanning full width
-            Container(
+            const SizedBox(
               width: double.infinity,
-              child: const CustomNavBar(currentIndex: 1),
+              child: CustomNavBar(currentIndex: 1),
             ),
           ],
         ),

@@ -43,7 +43,7 @@ class HomeScreen extends StatelessWidget {
               top: 16,
               right: 16,
               child: IconButton(
-                icon: Icon(Icons.settings, color: cs.onBackground),
+                icon: Icon(Icons.settings, color: cs.onSurface),
                 onPressed: () => context.push('/settings'),
               ),
             ),

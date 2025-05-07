@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 
 class PanicButton extends StatefulWidget {
@@ -12,15 +11,34 @@ class PanicButton extends StatefulWidget {
 class _PanicButtonState extends State<PanicButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  late Animation<double> _heartbeatAnimation;
   bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
+    // Initialize controller with a longer duration for the heartbeat
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
+
+    // Create a heartbeat animation sequence
+    _heartbeatAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 1.08)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.08, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 60,
+      ),
+    ]).animate(_controller);
+
+    // Start the heartbeat animation and repeat it
+    _controller.repeat();
   }
 
   @override
@@ -33,35 +51,44 @@ class _PanicButtonState extends State<PanicButton>
     setState(() {
       _isPressed = true;
     });
-    _controller.forward().then((_) {
-      context.push('/breathwork');
-      Future.delayed(const Duration(milliseconds: 300), () {
+
+    // Navigate directly to the coherent_4_6 pattern
+    context.go('/breath/coherent_4_6');
+
+    // Reset the button state after a short delay
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
         setState(() {
           _isPressed = false;
         });
-        _controller.reverse();
-      });
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return GestureDetector(
       onTapDown: (_) => _handlePress(),
       child: AnimatedBuilder(
-        animation: _controller,
+        animation: _heartbeatAnimation,
         builder: (context, child) {
+          // Scale based on both the heartbeat animation and the press state
+          final pressScale = _isPressed ? 0.9 : 1.0;
+          final finalScale = _heartbeatAnimation.value * pressScale;
+
           return Transform.scale(
-            scale: 1.0 - (_controller.value * 0.1),
+            scale: finalScale,
             child: Container(
               width: 250,
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Theme.of(context).colorScheme.primary,
+                color: cs.primary,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withAlpha(51),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
@@ -79,13 +106,6 @@ class _PanicButtonState extends State<PanicButton>
           );
         },
       ),
-    )
-        .animate(
-          onPlay: (controller) => controller.repeat(),
-        )
-        .shimmer(
-          duration: const Duration(seconds: 3),
-          color: Colors.white,
-        );
+    );
   }
 }
