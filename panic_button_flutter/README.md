@@ -10,7 +10,7 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 - Pattern selection by breathing goals (calming, energizing, etc.)
 - Progressive breathing journey with level unlocking based on BOLT scores
 - Animated breathing circle with wave visualization
-- Session tracking and statistics
+- Session tracking and detailed breathing activity statistics
 - BOLT score measurement for tracking anxiety levels
 - Step-by-step instruction screens with smooth transitions
 - Cross-platform (iOS, Android, Web)
@@ -79,7 +79,9 @@ lib/
   │   ├── remaining_time_display.dart # Formatted time remaining display
   │   └── custom_nav_bar.dart       # App navigation bar
   ├── migrations/       # Database migrations
-  │   └── 20250511_simplify_breathing_schema.sql  # Breathing schema
+  │   ├── 20250511_simplify_breathing_schema.sql  # Breathing schema
+  │   ├── 20240701_create_breathing_activity_table.sql  # Activity tracking
+  │   └── 20240702_add_cumulative_seconds.sql  # Activity stats enhancements
   ├── services/         # Services (Supabase, etc.)
   ├── utils/            # Utility functions
   ├── theme/            # App theme and styling
@@ -106,8 +108,36 @@ The app's breathing exercise feature provides a guided breathing experience with
    - Countdown timers for each phase
 
 4. **Session Tracking**:
-   - Records completed patterns
-   - Tracks usage statistics over time
+   - Records completed patterns with accurate duration tracking
+   - Supports pause and resume functionality
+   - Maintains detailed statistics including total breathing time
+   - Tracks cumulative practice across patterns
+
+## Breathing Activity Tracking
+
+The app includes a comprehensive system for tracking breathing activities:
+
+1. **Detailed Session Records**:
+   - Start and end times of each breathing session
+   - Actual duration of practice (in seconds)
+   - Which pattern was used
+   - Completion status
+
+2. **Aggregated Statistics**:
+   - Total number of sessions per pattern
+   - Cumulative breathing time per pattern
+   - Overall breathing minutes
+
+3. **Database Integration**:
+   - Records stored in Supabase
+   - Automatic sync with user accounts
+   - Row-level security for data protection
+   - Only sessions longer than 10 seconds are counted toward stats
+
+4. **Pause/Resume Support**:
+   - Users can pause and resume sessions
+   - Time tracking continues accurately across pauses
+   - Single activity record maintained per complete session
 
 ## Breathing Journey Feature
 
@@ -144,6 +174,7 @@ The app uses Go Router for navigation, with these key features:
 2. **Deep Linking Support**:
    - Direct navigation to specific breathing patterns
    - Preserved navigation state during app lifecycle
+   - Direct linking from Journey levels to specific patterns
 
 3. **Authentication Protection**:
    - Routes protected based on authentication state

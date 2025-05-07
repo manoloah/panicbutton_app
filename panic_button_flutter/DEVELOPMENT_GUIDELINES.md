@@ -367,7 +367,8 @@ CREATE TABLE breathing_patterns (
   name TEXT NOT NULL,
   goal_id UUID REFERENCES breathing_goals(id),
   recommended_minutes INT DEFAULT 3,
-  cycle_secs INT
+  cycle_secs INT,
+  slug TEXT UNIQUE  -- Added for journey integration
 );
 
 CREATE TABLE breathing_steps (
@@ -394,14 +395,57 @@ CREATE TABLE breathing_pattern_status (
   pattern_id UUID REFERENCES breathing_patterns(id),
   last_run TIMESTAMPTZ,
   total_runs INT DEFAULT 0,
+  total_seconds INT DEFAULT 0,  -- Tracks cumulative breathing time
   PRIMARY KEY (user_id, pattern_id)
+);
+
+CREATE TABLE breathing_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  pattern_id UUID REFERENCES breathing_patterns(id) NOT NULL,
+  started_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+  duration_seconds INTEGER NOT NULL,
+  completed BOOLEAN DEFAULT false,
+  expected_duration_seconds INTEGER,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
 );
 ```
 
 Notes:
 - The schema directly links patterns to steps, without the routine layer
-- Patterns include metadata like recommended_minutes and cycle_secs
+- Patterns include metadata like recommended_minutes, cycle_secs, and slug
 - Pattern usage is tracked in breathing_pattern_status
+- Detailed activity tracking in breathing_activity
+
+### Breathing Activity Tracking Guidelines
+
+1. **When to Create Activity Records**
+   - Create a new activity record when a user starts a breathing session
+   - Initial record should have duration_seconds=0 and completed=false
+   - Update the record when the session ends or is abandoned
+
+2. **Session Duration Requirements**
+   - Only count sessions longer than 10 seconds toward user statistics
+   - For very short sessions, don't update the breathing_pattern_status table
+   - Enforce minimum duration via triggers and application logic
+
+3. **Pause/Resume Handling**
+   - When a user pauses, keep the same activity record
+   - Track accumulated time even across multiple pauses
+   - Don't reinitialize the controller when resuming
+   - Ensure that the play/pause button doesn't create new records
+
+4. **Database Updates**
+   - Update breathing_pattern_status automatically via triggers
+   - Use total_seconds for cumulative statistics
+   - Store expected_duration_seconds to track intended vs. actual practice time
+   - Always include user_id for row-level security
+
+5. **Journey Integration**
+   - Use pattern slugs to connect breathing patterns to journey levels
+   - Allow direct navigation from journey to specific patterns via slugs
+   - Ensure slugs are unique and follow consistent naming (snake_case)
 
 ---
 
