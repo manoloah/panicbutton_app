@@ -205,7 +205,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         title: Text(
           ref.watch(selectedPatternProvider)?.name ??
               'Ejercicio de Respiración',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.headlineMedium,
         ),
         actions: [
           IconButton(
