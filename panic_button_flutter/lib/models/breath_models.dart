@@ -264,6 +264,7 @@ class GoalModel {
   final String displayName;
   final String? description;
   final DateTime? createdAt;
+  final int sortOrder;
 
   const GoalModel({
     this.id = '',
@@ -271,6 +272,7 @@ class GoalModel {
     this.displayName = '',
     this.description,
     this.createdAt,
+    this.sortOrder = 999,
   });
 
   factory GoalModel.fromJson(Map<String, dynamic> json) {
@@ -282,6 +284,7 @@ class GoalModel {
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
+      sortOrder: json['sort_order'] as int? ?? 999,
     );
   }
 
@@ -292,6 +295,7 @@ class GoalModel {
       'display_name': displayName,
       'description': description,
       'created_at': createdAt?.toIso8601String(),
+      'sort_order': sortOrder,
     };
   }
 
@@ -302,7 +306,8 @@ class GoalModel {
         other.id == id &&
         other.slug == slug &&
         other.displayName == displayName &&
-        other.description == description;
+        other.description == description &&
+        other.sortOrder == sortOrder;
   }
 
   @override
@@ -311,6 +316,7 @@ class GoalModel {
         slug,
         displayName,
         description,
+        sortOrder,
       );
 }
 

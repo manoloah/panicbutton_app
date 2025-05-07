@@ -101,9 +101,10 @@ final _router = GoRouter(
       path: '/breath/:patternSlug',
       builder: (context, state) {
         final patternSlug = state.pathParameters['patternSlug'];
-        // Auto-start if it's the coherent_4_6 pattern
-        final bool autoStart = patternSlug == 'coherent_4_6';
-        return BreathScreen(patternSlug: patternSlug, autoStart: autoStart);
+        // Get the previous route to determine if we came from the home screen
+        final fromHomePage =
+            state.extra is Map && (state.extra as Map)['fromHome'] == true;
+        return BreathScreen(patternSlug: patternSlug, autoStart: fromHomePage);
       },
     ),
     GoRoute(

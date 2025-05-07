@@ -53,8 +53,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
               .read(breathingPlaybackControllerProvider.notifier)
               .initialize(expandedSteps, duration);
 
-          // Auto-start if requested or if the pattern is 'coherent_4_6'
-          if (widget.autoStart || widget.patternSlug == 'coherent_4_6') {
+          // Auto-start only if explicitly requested (coming from home screen)
+          if (widget.autoStart) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(breathingPlaybackControllerProvider.notifier).play();
             });

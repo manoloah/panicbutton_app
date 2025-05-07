@@ -53,7 +53,8 @@ class _PanicButtonState extends State<PanicButton>
     });
 
     // Navigate directly to the coherent_4_6 pattern
-    context.go('/breath/coherent_4_6');
+    // Pass fromHome flag to indicate we're coming from the home screen
+    context.go('/breath/coherent_4_6', extra: {'fromHome': true});
 
     // Reset the button state after a short delay
     Future.delayed(const Duration(milliseconds: 300), () {

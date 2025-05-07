@@ -96,6 +96,7 @@ The app's breathing exercise feature provides a guided breathing experience with
 1. **Pattern Selection**: 
    - Choose from various breathing patterns based on goals (calming, focus, energy)
    - Each pattern has specific inhale, hold, exhale, and relax timings
+   - The coherent_4_6 pattern is set as the default pattern
 
 2. **Duration Selection**:
    - Choose from 3, 5, or 10 minutes (or pattern-recommended duration)
@@ -112,6 +113,11 @@ The app's breathing exercise feature provides a guided breathing experience with
    - Supports pause and resume functionality
    - Maintains detailed statistics including total breathing time
    - Tracks cumulative practice across patterns
+
+5. **Auto-Start Behavior**:
+   - Breathing exercise auto-starts ONLY when initiated from the home screen panic button
+   - When accessed from other parts of the app (journey, navbar), manual start is required
+   - This prevents accidental exercise starts when navigating the app
 
 ## Breathing Activity Tracking
 
@@ -179,6 +185,84 @@ The app uses Go Router for navigation, with these key features:
 3. **Authentication Protection**:
    - Routes protected based on authentication state
    - Automatic redirects to login when needed
+
+4. **Context-Aware Navigation**:
+   - Routes pass context information via the `extra` parameter
+   - The home screen panic button passes `fromHome: true` to trigger auto-start
+   - Other navigation paths maintain appropriate behavior for their context
+   - Example:
+     ```dart
+     // Auto-start when coming from home screen
+     context.go('/breath/coherent_4_6', extra: {'fromHome': true});
+     
+     // Regular navigation without auto-start
+     context.go('/breath/coherent_4_6');
+     ```
+
+## Router and Auto-Start Configuration
+
+The app employs a targeted auto-start feature for breathing exercises, carefully controlling when exercises begin automatically:
+
+### Router Configuration
+
+```dart
+final _router = GoRouter(
+  // ... other routes ...
+  GoRoute(
+    path: '/breath/:patternSlug',
+    builder: (context, state) {
+      final patternSlug = state.pathParameters['patternSlug'];
+      // Only auto-start if we came from the home screen
+      final fromHomePage = state.extra is Map && 
+          (state.extra as Map)['fromHome'] == true;
+      return BreathScreen(
+        patternSlug: patternSlug, 
+        autoStart: fromHomePage
+      );
+    },
+  ),
+  // ... other routes ...
+);
+```
+
+### Navigation Context Passing
+
+When navigating from the panic button on the home screen:
+
+```dart
+void _handlePress() {
+  // ... handle press state ...
+  
+  // Pass fromHome flag to indicate we're coming from home
+  context.go('/breath/coherent_4_6', extra: {'fromHome': true});
+  
+  // ... cleanup ...
+}
+```
+
+### Behavior in BreathScreen
+
+The BreathScreen respects the autoStart parameter:
+
+```dart
+Future<void> _initializePattern() async {
+  // ... initialization code ...
+  
+  // Auto-start only if explicitly requested (coming from home screen)
+  if (widget.autoStart) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(breathingPlaybackControllerProvider.notifier).play();
+    });
+  }
+  
+  // ... more code ...
+}
+```
+
+This implementation ensures:
+1. The panic button works as expected - immediately starting a calming exercise
+2. Other navigation paths (journey, navbar) don't unexpectedly start exercises
+3. The context of navigation is properly maintained between screens
 
 ## Image Asset Management
 
@@ -274,3 +358,33 @@ This approach provides:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Applying Database Migrations
+
+### Setting Default Breathing Pattern and Goal Order
+
+We've implemented a database migration that:
+1. Adds a `sort_order` column to the `breathing_goals` table
+2. Sets goal order to: 1. Calma, 2. Equilibrio, 3. Enfoque, 4. Energía
+3. Adds an `is_default` column to `breathing_patterns` 
+4. Makes 'coherent_4_6' the default breathing pattern
+
+This migration has been applied to the production database and no additional action is needed for these specific changes.
+
+For future migrations, you can:
+
+1. Create a `.env` file in the project root with:
+   ```
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_SERVICE_KEY=your_service_role_key
+   ```
+
+2. Use the Supabase MCP tools to apply migrations:
+   ```
+   MIGRATION_NAME="your_migration_name"
+   SQL_QUERY="-- Your SQL query here"
+   npx supabase functions invoke mcp_supabase_apply_migration \
+     --body '{"project_id":"your_project_id","name":"$MIGRATION_NAME","query":"$SQL_QUERY"}'
+   ```
+
+3. Or use direct SQL in the Supabase dashboard's SQL Editor to make changes.

@@ -455,6 +455,39 @@ Notes:
 - Use hyphens for readability  
 - Examples: `/user-profile`, `/breathing-exercise`
 
+### Route Parameters and Navigation Context
+
+- Use route parameters for specific screens (e.g., `/breath/:patternSlug`)
+- Pass contextual information via the `extra` parameter in Go Router:
+  ```dart
+  context.go('/breath/coherent_4_6', extra: {'fromHome': true});
+  ```
+- Document route parameters and expected `extra` values in comments
+- Use consistent parameter names across the codebase
+
+### Breathing Exercise Auto-Start Behavior
+
+- **Auto-Start Rules**:
+  - The breathing exercise should ONLY auto-start when navigating from the home screen
+  - All other navigation paths should require manual start by the user
+  - The `fromHome` flag in the route's `extra` parameter controls this behavior:
+    ```dart
+    // In PanicButton widget
+    context.go('/breath/coherent_4_6', extra: {'fromHome': true});
+    
+    // In router configuration
+    GoRoute(
+      path: '/breath/:patternSlug',
+      builder: (context, state) {
+        final patternSlug = state.pathParameters['patternSlug'];
+        final fromHomePage = state.extra is Map && 
+            (state.extra as Map)['fromHome'] == true;
+        return BreathScreen(patternSlug: patternSlug, autoStart: fromHomePage);
+      },
+    ),
+    ```
+  - Verify this behavior when modifying navigation code
+
 ---
 
 ### Error Handling

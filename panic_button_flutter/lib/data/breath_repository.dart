@@ -9,10 +9,8 @@ class BreathRepository {
 
   Future<List<GoalModel>> getGoals() async {
     try {
-      final response = await _supabase
-          .from('breathing_goals')
-          .select()
-          .order('display_name');
+      final response =
+          await _supabase.from('breathing_goals').select().order('sort_order');
 
       final goals =
           (response as List).map((json) => GoalModel.fromJson(json)).toList();

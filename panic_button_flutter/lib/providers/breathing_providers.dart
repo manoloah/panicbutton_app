@@ -71,6 +71,7 @@ class SelectedPatternNotifier extends StateNotifier<PatternModel?> {
   SelectedPatternNotifier(this.ref) : super(null);
 
   // Set pattern directly (for compatibility)
+  @override
   set state(PatternModel? pattern) => super.state = pattern;
 
   // Select a pattern by slug
@@ -173,12 +174,26 @@ final expandedStepsProvider = FutureProvider<List<ExpandedStep>>((ref) async {
 // Add a default pattern provider to initialize with a valid pattern
 final defaultPatternProvider = FutureProvider<PatternModel?>((ref) async {
   try {
-    // Only log once at beginning
-    debugPrint('Attempting to get default pattern');
+    // First try to get the coherent_4_6 pattern directly
+    final repository = ref.watch(breathRepositoryProvider);
+    final coherentPattern = await repository.getPatternBySlug('coherent_4_6');
 
+    if (coherentPattern != null) {
+      debugPrint('✅ Found coherent_4_6 pattern as default');
+      return coherentPattern;
+    }
+
+    // If coherent_4_6 not found, fall back to the first pattern from 'calming' goal
+    debugPrint(
+        '⚠️ coherent_4_6 pattern not found, falling back to first pattern');
+
+    // Set selected goal to 'calming'
+    ref.read(selectedGoalProvider.notifier).state = 'calming';
+
+    // Get patterns for calming goal
     final patterns = await ref.watch(patternsForGoalProvider.future);
     if (patterns.isNotEmpty) {
-      debugPrint('✅ Found default pattern: ${patterns.first.name}');
+      debugPrint('✅ Found fallback default pattern: ${patterns.first.name}');
       return patterns.first;
     }
 

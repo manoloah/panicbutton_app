@@ -76,6 +76,7 @@ class CustomNavBar extends StatelessWidget {
                         customBorder: const CircleBorder(),
                         splashColor: cs.primary.withOpacity(0.3),
                         onTap: () {
+                          // Navigate without autoStart flag
                           context.go('/breath');
                         },
                         child: Padding(

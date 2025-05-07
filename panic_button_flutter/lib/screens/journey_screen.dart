@@ -27,6 +27,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
   void _startExercise(JourneyLevel level) {
     if (level.patternSlugs.isNotEmpty) {
       // Use Go Router for navigation to ensure the URL path is updated correctly
+      // Explicitly set autoStart to false
       context.go('/breath/${level.patternSlugs.first}');
     }
   }
