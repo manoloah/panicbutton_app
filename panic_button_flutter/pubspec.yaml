@@ -43,6 +43,7 @@ dependencies:
 
   # Navigation
   go_router: ^13.0.0
+  app_links: ^3.4.5  # Deep linking support
 
   # UI Components
   flutter_animate: ^4.5.0

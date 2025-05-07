@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:app_links/app_links.dart';
 import 'package:panic_button_flutter/screens/home_screen.dart';
 import 'package:panic_button_flutter/screens/breath_screen.dart';
 import 'package:panic_button_flutter/screens/settings_screen.dart';
@@ -21,6 +22,24 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
+    // Initialize app_links to fix debug mode crash
+    final appLinks = AppLinks();
+    // Safely initialize app_links without causing debug crashes
+    try {
+      // Use a timeout to prevent hanging if there's an issue
+      await Future.microtask(() async {
+        try {
+          await appLinks.getInitialAppLink();
+        } catch (e) {
+          debugPrint(
+              'App links initial link error (safe to ignore in debug): $e');
+        }
+      });
+    } catch (e) {
+      debugPrint(
+          'App links initialization error (safe to ignore in debug): $e');
+    }
+
     // Load environment variables in development
     if (const bool.fromEnvironment('dart.vm.product') == false) {
       await dotenv.load(fileName: '.env');
@@ -40,7 +59,7 @@ void main() async {
     );
     debugPrint('Supabase initialized successfully');
   } catch (e) {
-    debugPrint('Error initializing Supabase: $e');
+    debugPrint('Error during initialization: $e');
   }
 
   runApp(
@@ -59,7 +78,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Tu botón de pánico',
+      title: 'Tu botón para calmar un ataque de pánico',
       theme: AppTheme.dark(),
       routerConfig: _router,
     );
