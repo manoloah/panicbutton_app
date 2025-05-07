@@ -195,6 +195,12 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
               'Ejercicio de Respiración',
           style: Theme.of(context).textTheme.titleLarge,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.go('/settings'),
+          ),
+        ],
       ),
       body: SafeArea(
         // Completely restructured layout for better centering
