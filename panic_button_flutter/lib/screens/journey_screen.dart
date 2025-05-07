@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart' as provider_pkg;
+import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
+import 'package:panic_button_flutter/providers/journey_provider.dart';
+import 'package:panic_button_flutter/models/journey_level.dart';
+import 'package:panic_button_flutter/screens/breath_screen.dart';
 
 class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
@@ -9,61 +14,34 @@ class JourneyScreen extends StatefulWidget {
 }
 
 class _JourneyScreenState extends State<JourneyScreen> {
-  final journeySteps = const [
-    {
-      'id': 1,
-      'title': 'Respiración Consciente',
-      'description':
-          'Aprende los fundamentos de la respiración consciente con este ejercicio de 2 minutos.',
-      'isCompleted': true,
-      'isLocked': false,
-    },
-    {
-      'id': 2,
-      'title': 'Respiración 4-7-8',
-      'description':
-          'Domina la técnica de respiración 4-7-8 para calmar tu sistema nervioso.',
-      'isCompleted': false,
-      'isLocked': false,
-    },
-    {
-      'id': 3,
-      'title': 'Respiración Alterna',
-      'description':
-          'Aprende a equilibrar tu energía con la respiración alterna por la nariz.',
-      'isCompleted': false,
-      'isLocked': true,
-    },
-    {
-      'id': 4,
-      'title': 'Respiración de Fuego',
-      'description':
-          'Aumenta tu energía y vitalidad con la poderosa técnica de respiración de fuego.',
-      'isCompleted': false,
-      'isLocked': true,
-    },
-    {
-      'id': 5,
-      'title': 'Retención Avanzada',
-      'description':
-          'Desbloquea el siguiente nivel de calma con técnicas avanzadas de retención de respiración.',
-      'isCompleted': false,
-      'isLocked': true,
-    },
-  ];
+  int? expandedLevelId;
+  // Map to store pattern names locally
+  final Map<String, String> _patternNames = {};
 
-  int? expandedStepId;
-
-  void _toggleExpandStep(int id) {
+  void _toggleExpandLevel(int id) {
     setState(() {
-      expandedStepId = expandedStepId == id ? null : id;
+      expandedLevelId = expandedLevelId == id ? null : id;
     });
   }
 
-  void _startExercise(Map<String, dynamic> step) {
-    // Here we would navigate to the relevant breathing exercise
-    // For now, just print to console
-    print('Starting exercise: ${step['title']}');
+  void _startExercise(JourneyLevel level) {
+    if (level.patternSlugs.isNotEmpty) {
+      // Use Go Router for navigation to ensure the URL path is updated correctly
+      context.go('/breath/${level.patternSlugs.first}');
+    }
+  }
+
+  // Load pattern name and cache it
+  Future<String> _getPatternName(String slug, JourneyProvider provider) async {
+    if (_patternNames.containsKey(slug)) {
+      return _patternNames[slug]!;
+    }
+
+    final name = await provider.getPatternName(slug);
+    setState(() {
+      _patternNames[slug] = name;
+    });
+    return name;
   }
 
   @override
@@ -72,58 +50,100 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      // Explicitly set no resizeToAvoidBottomInset to prevent keyboard issues
       resizeToAvoidBottomInset: false,
-      // Use a Column to ensure proper layout
       body: Column(
         children: [
-          // Main content area - takes most of the screen
           Expanded(
             child: SafeArea(
-              bottom: false, // Don't add safe area at bottom
-              child: Stack(
-                children: [
-                  // Scrollable content
-                  SingleChildScrollView(
-                    padding: EdgeInsets.only(
-                        bottom: 80 +
-                            bottomPadding), // Adjust padding for nav bar height
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              bottom: false,
+              child: provider_pkg.Consumer<JourneyProvider>(
+                builder: (context, journeyProvider, child) {
+                  if (journeyProvider.isLoading) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  if (journeyProvider.errorMessage != null) {
+                    return Center(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(height: 32),
-                          Text(
-                            'Tu Camino',
-                            style: Theme.of(context)
-                                .textTheme
-                                .displayLarge
-                                ?.copyWith(
-                                  fontSize: 32,
-                                ),
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: Colors.red,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 16),
                           Text(
-                            'Construye tu resiliencia día a día con estos ejercicios progresivos',
-                            style:
-                                Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                      color: const Color(0xFFB0B0B0),
-                                    ),
+                            'Error: ${journeyProvider.errorMessage}',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyLarge,
                           ),
-                          const SizedBox(height: 32),
-                          // Journey path with timeline
-                          _buildJourneyPath(context),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => journeyProvider.init(),
+                            child: const Text('Reintentar'),
+                          ),
                         ],
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  }
+
+                  final allLevels = journeyProvider.allLevels;
+
+                  // Preload all pattern names for a smoother UI
+                  for (final level in allLevels) {
+                    if (level.patternSlugs.isNotEmpty) {
+                      _getPatternName(
+                          level.patternSlugs.first, journeyProvider);
+                    }
+                  }
+
+                  return Stack(
+                    children: [
+                      SingleChildScrollView(
+                        padding: EdgeInsets.only(bottom: 80 + bottomPadding),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 32),
+                              Text(
+                                'Camino Respiratorio',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .displayLarge
+                                    ?.copyWith(
+                                      fontSize: 32,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Desbloquea nuevas técnicas y mejora tu respiración día a día',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: const Color(0xFFB0B0B0),
+                                    ),
+                              ),
+                              const SizedBox(height: 32),
+                              _buildProgressSection(context, journeyProvider),
+                              const SizedBox(height: 32),
+                              _buildJourneyPath(
+                                  context, allLevels, journeyProvider),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
-
-          // Bottom navigation - fixed at the bottom with no extra space
           const CustomNavBar(
             currentIndex: 0,
           ),
@@ -132,74 +152,229 @@ class _JourneyScreenState extends State<JourneyScreen> {
     );
   }
 
-  Widget _buildJourneyPath(BuildContext context) {
-    return Column(
-      children: List.generate(journeySteps.length, (index) {
-        final step = journeySteps[index];
-        final isLastStep = index == journeySteps.length - 1;
-        final isExpanded = expandedStepId == step['id'];
+  Widget _buildProgressSection(BuildContext context, JourneyProvider provider) {
+    final currentLevel = provider.currentLevel;
+    final nextLevel = provider.nextLevel;
 
-        return Column(
-          children: [
-            _buildJourneyStep(context, step, isExpanded),
-            // Don't add the connector after the last step
-            if (!isLastStep)
-              _buildConnector(step['isCompleted'] == true, index),
-          ],
-        );
-      }),
-    );
-  }
+    if (currentLevel == null) return const SizedBox.shrink();
 
-  Widget _buildConnector(bool isCompleted, int index) {
-    // Calculate how many steps are locked before this one
-    int lockedStepsBeforeThis = 0;
-    for (int i = 0; i <= index; i++) {
-      if (journeySteps[i]['isLocked'] == true) {
-        lockedStepsBeforeThis++;
+    String patternName = 'Cargando...';
+    if (currentLevel.patternSlugs.isNotEmpty) {
+      final slug = currentLevel.patternSlugs.first;
+      if (_patternNames.containsKey(slug)) {
+        patternName = _patternNames[slug]!;
+      } else {
+        // Trigger loading
+        _getPatternName(slug, provider);
       }
     }
 
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A2A3C),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF336699)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Nivel ${currentLevel.id}: ${currentLevel.nameEs}',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ejercicio: $patternName',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white.withOpacity(0.8),
+                ),
+          ),
+          const SizedBox(height: 16),
+          LinearProgressIndicator(
+            value: provider.progressPercent,
+            backgroundColor: const Color(0xFF243649),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00B383)),
+            minHeight: 10,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          const SizedBox(height: 16),
+          if (nextLevel != null) ...{
+            Text(
+              'Próximo nivel: ${nextLevel.nameEs}',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFFB0B0B0),
+                  ),
+            ),
+            const SizedBox(height: 8),
+            _buildRequirementItem(
+              context,
+              'BOLT mayor a',
+              provider.averageBolt.toStringAsFixed(1),
+              nextLevel.boltMin.toString(),
+              provider.averageBolt / nextLevel.boltMin,
+              isBolt: true,
+            ),
+            const SizedBox(height: 8),
+            _buildRequirementItem(
+              context,
+              'Respirar más de',
+              provider.weeklyMinutes.toString(),
+              nextLevel.minutesWeek.toString(),
+              provider.weeklyMinutes / nextLevel.minutesWeek,
+              isBolt: false,
+            ),
+          } else ...{
+            Text(
+              '¡Felicidades! Has alcanzado el nivel máximo.',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF00B383),
+                  ),
+            ),
+          },
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequirementItem(
+    BuildContext context,
+    String title,
+    String current,
+    String target,
+    double progress, {
+    required bool isBolt,
+  }) {
+    String unit = isBolt ? 's' : 'min/semana';
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            '$title: $target$unit',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white,
+                ),
+          ),
+        ),
+        Expanded(
+          flex: 4,
+          child: LinearProgressIndicator(
+            value: progress.clamp(0.0, 1.0),
+            backgroundColor: const Color(0xFF243649),
+            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF336699)),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '$current/$target$unit',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFB0B0B0),
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJourneyPath(
+    BuildContext context,
+    List<JourneyLevel> levels,
+    JourneyProvider provider,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Niveles de Respiración',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(levels.length, (index) {
+          final level = levels[index];
+          final isLastLevel = index == levels.length - 1;
+          final isExpanded = expandedLevelId == level.id;
+          final isUnlocked = provider.isLevelUnlocked(level.id);
+
+          return Column(
+            children: [
+              _buildJourneyLevel(
+                context,
+                level,
+                isExpanded,
+                isUnlocked,
+                provider,
+              ),
+              if (!isLastLevel)
+                _buildConnector(
+                    provider.isLevelUnlocked(level.id + 1), level.id),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildConnector(bool isUnlocked, int levelId) {
     return Container(
       margin: const EdgeInsets.only(left: 16),
       height: 30,
       width: 2,
       decoration: BoxDecoration(
-        gradient: lockedStepsBeforeThis > 0
-            ? null
-            : LinearGradient(
+        gradient: isUnlocked
+            ? const LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  isCompleted
-                      ? const Color(0xFF00B383)
-                      : const Color(0xFF336699),
-                  const Color(0xFF444444),
+                  Color(0xFF00B383),
+                  Color(0xFF336699),
                 ],
-              ),
-        color: lockedStepsBeforeThis > 0 ? const Color(0xFF444444) : null,
+              )
+            : null,
+        color: isUnlocked ? null : const Color(0xFF444444),
       ),
     );
   }
 
-  Widget _buildJourneyStep(
-      BuildContext context, Map<String, dynamic> step, bool isExpanded) {
-    final Color backgroundColor = step['isCompleted'] == true
-        ? const Color(0xFF1A392A)
-        : step['isLocked'] == true
-            ? const Color(0xFF1A1F2C)
-            : const Color(0xFF1A2A3C);
+  Widget _buildJourneyLevel(
+    BuildContext context,
+    JourneyLevel level,
+    bool isExpanded,
+    bool isUnlocked,
+    JourneyProvider provider,
+  ) {
+    final Color backgroundColor = isUnlocked
+        ? (level.id == provider.currentLevel?.id
+            ? const Color(0xFF1A392A)
+            : const Color(0xFF1A2A3C))
+        : const Color(0xFF1A1F2C);
 
-    final Color borderColor = step['isCompleted'] == true
-        ? const Color(0xFF00B383)
-        : step['isLocked'] == true
-            ? const Color(0xFF444444)
-            : const Color(0xFF336699);
+    final Color borderColor = isUnlocked
+        ? (level.id == provider.currentLevel?.id
+            ? const Color(0xFF00B383)
+            : const Color(0xFF336699))
+        : const Color(0xFF444444);
+
+    String patternName = 'Cargando...';
+    if (level.patternSlugs.isNotEmpty) {
+      final slug = level.patternSlugs.first;
+      if (_patternNames.containsKey(slug)) {
+        patternName = _patternNames[slug]!;
+      } else {
+        // Trigger loading
+        _getPatternName(slug, provider);
+      }
+    }
 
     return GestureDetector(
-      onTap: step['isLocked'] == true
-          ? null
-          : () => _toggleExpandStep(step['id'] as int),
+      onTap: isUnlocked ? () => _toggleExpandLevel(level.id) : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         margin: const EdgeInsets.only(bottom: 8),
@@ -222,222 +397,155 @@ class _JourneyScreenState extends State<JourneyScreen> {
           children: [
             Row(
               children: [
-                _buildStepIndicator(step),
+                _buildLevelIndicator(level.id, isUnlocked),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        step['title'] as String,
+                        "${level.id}. ${level.nameEs}",
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: step['isLocked'] == true
-                                      ? const Color(0xFF777777)
-                                      : Colors.white,
+                                  color: isUnlocked
+                                      ? Colors.white
+                                      : const Color(0xFF777777),
                                   fontWeight: FontWeight.bold,
                                 ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        step['description'] as String,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: step['isLocked'] == true
-                                  ? const Color(0xFF666666)
-                                  : const Color(0xFFB0B0B0),
+                        _getUnlockRequirementsText(level, provider),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isUnlocked
+                                  ? const Color(0xFFB0B0B0)
+                                  : const Color(0xFF666666),
                             ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
-                _buildActionButton(context, step),
+                if (isUnlocked)
+                  Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: const Color(0xFFB0B0B0),
+                  ),
               ],
             ),
-
-            // Expanded content
-            if (isExpanded && step['isLocked'] != true)
-              _buildExpandedContent(context, step),
+            if (isExpanded && isUnlocked) ...[
+              const SizedBox(height: 16),
+              const Divider(color: Color(0xFF444444)),
+              const SizedBox(height: 16),
+              if (level.patternSlugs.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF22463A),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: const Color(0xFF00B383), width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFF00B383),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Ejercicio desbloqueado:',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        patternName,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: const Color(0xFF00B383),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                level.benefitEs,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: const Color(0xFFB0B0B0),
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _startExercise(level),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00B383),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Iniciar Ejercicio',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildExpandedContent(
-      BuildContext context, Map<String, dynamic> step) {
-    final Color textColor = step['isCompleted'] == true
-        ? const Color(0xFFBBFFE7)
-        : const Color(0xFFB0D0FF);
+  String _getUnlockRequirementsText(
+      JourneyLevel level, JourneyProvider provider) {
+    final List<String> requirements = [];
+    requirements.add('BOLT mayor a: ${level.boltMin}s');
+    requirements.add('Respirar más de ${level.minutesWeek} min/semana');
+    return 'Requisitos para desbloquear nivel: ${requirements.join(' | ')}';
+  }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(16),
+  Widget _buildLevelIndicator(int levelId, bool isUnlocked) {
+    return Container(
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
-        color: Colors.black12,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Exercise details
-          Row(
-            children: [
-              Icon(
-                step['isCompleted'] == true
-                    ? Icons.timer_outlined
-                    : Icons.directions_run,
-                color: textColor,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Duración: 2-5 minutos',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Benefits
-          Row(
-            children: [
-              Icon(
-                Icons.favorite_outline,
-                color: textColor,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Beneficios:',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.only(left: 26),
-            child: Text(
-              _getBenefitsText(step['id'] as int),
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-          // Start button
-          if (step['isCompleted'] != true)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _startExercise(step),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B383),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Comenzar Ejercicio'),
-              ),
-            ),
-          if (step['isCompleted'] == true)
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () => _startExercise(step),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF00B383),
-                  side: const BorderSide(color: Color(0xFF00B383)),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('Repetir Ejercicio'),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  String _getBenefitsText(int stepId) {
-    switch (stepId) {
-      case 1:
-        return 'Reduce el estrés, mejora la concentración y disminuye la ansiedad en momentos difíciles.';
-      case 2:
-        return 'Calma el sistema nervioso, reduce la frecuencia cardíaca y ayuda a manejar episodios de pánico.';
-      case 3:
-        return 'Equilibra los hemisferios cerebrales, promueve la claridad mental y el equilibrio emocional.';
-      case 4:
-        return 'Energiza rápidamente, aumenta la vitalidad y activa el metabolismo.';
-      case 5:
-        return 'Mejora la resistencia al estrés, aumenta la capacidad pulmonar y fortalece el sistema inmunológico.';
-      default:
-        return 'Mejora tu bienestar general con esta práctica.';
-    }
-  }
-
-  Widget _buildStepIndicator(Map<String, dynamic> step) {
-    if (step['isCompleted'] == true) {
-      return const Icon(Icons.check_circle, color: Color(0xFF00B383), size: 32);
-    } else if (step['isLocked'] == true) {
-      return const Icon(Icons.lock, color: Color(0xFF777777), size: 32);
-    } else {
-      return Container(
-        width: 32,
-        height: 32,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: Color(0xFF336699),
+        shape: BoxShape.circle,
+        color: isUnlocked ? const Color(0xFF00B383) : const Color(0xFF444444),
+        border: Border.all(
+          color: isUnlocked ? const Color(0xFF00B383) : const Color(0xFF444444),
+          width: 2,
         ),
-        child: Center(
-          child: Text(
-            '${step['id']}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+      ),
+      child: Center(
+        child: Text(
+          levelId.toString(),
+          style: TextStyle(
+            color: isUnlocked ? Colors.white : const Color(0xFF777777),
+            fontWeight: FontWeight.bold,
           ),
         ),
-      );
-    }
-  }
-
-  Widget _buildActionButton(BuildContext context, Map<String, dynamic> step) {
-    if (step['isCompleted'] == true) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.emoji_events, color: Color(0xFF00B383), size: 20),
-          const SizedBox(width: 8),
-          Text(
-            'Completado',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF00B383),
-                ),
-          ),
-        ],
-      );
-    }
-
-    return ElevatedButton(
-      onPressed: step['isLocked'] == true ? null : () => _startExercise(step),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: step['isLocked'] == true
-            ? const Color(0xFF444444)
-            : const Color(0xFF00B383),
-        disabledBackgroundColor: const Color(0xFF444444),
-        foregroundColor: Colors.white,
-        disabledForegroundColor: const Color(0xFF777777),
       ),
-      child: Text(step['isLocked'] == true ? 'Bloqueado' : 'Comenzar'),
     );
   }
 }

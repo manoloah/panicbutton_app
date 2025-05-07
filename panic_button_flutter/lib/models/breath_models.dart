@@ -164,6 +164,7 @@ class PatternModel {
   final int cycleSecs;
   final DateTime? createdAt;
   final List<PatternStepModel> steps;
+  final String slug;
 
   const PatternModel({
     this.id = '',
@@ -173,6 +174,7 @@ class PatternModel {
     this.cycleSecs = 8,
     this.createdAt,
     this.steps = const [],
+    this.slug = '',
   });
 
   PatternModel copyWith({
@@ -183,6 +185,7 @@ class PatternModel {
     int? cycleSecs,
     DateTime? createdAt,
     List<PatternStepModel>? steps,
+    String? slug,
   }) {
     return PatternModel(
       id: id ?? this.id,
@@ -192,6 +195,7 @@ class PatternModel {
       cycleSecs: cycleSecs ?? this.cycleSecs,
       createdAt: createdAt ?? this.createdAt,
       steps: steps ?? this.steps,
+      slug: slug ?? this.slug,
     );
   }
 
@@ -211,6 +215,7 @@ class PatternModel {
                   PatternStepModel.fromJson(step as Map<String, dynamic>))
               .toList()
           : [],
+      slug: json['slug'] as String? ?? '',
     );
   }
 
@@ -223,6 +228,7 @@ class PatternModel {
       'cycle_secs': cycleSecs,
       'created_at': createdAt?.toIso8601String(),
       'steps': steps.map((step) => step.toJson()).toList(),
+      'slug': slug,
     };
   }
 
@@ -235,6 +241,7 @@ class PatternModel {
         other.goalId == goalId &&
         other.recommendedMinutes == recommendedMinutes &&
         other.cycleSecs == cycleSecs &&
+        other.slug == slug &&
         listEquals(other.steps, steps);
   }
 
@@ -245,6 +252,7 @@ class PatternModel {
         goalId,
         recommendedMinutes,
         cycleSecs,
+        slug,
         Object.hashAll(steps),
       );
 }

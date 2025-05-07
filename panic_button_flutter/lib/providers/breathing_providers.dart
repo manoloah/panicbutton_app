@@ -66,8 +66,64 @@ final patternsForGoalProvider = FutureProvider<List<PatternModel>>((ref) async {
   }
 });
 
-// Selected pattern provider with a proper default constructor
-final selectedPatternProvider = StateProvider<PatternModel?>((ref) => null);
+class SelectedPatternNotifier extends StateNotifier<PatternModel?> {
+  final Ref ref;
+  SelectedPatternNotifier(this.ref) : super(null);
+
+  // Set pattern directly (for compatibility)
+  set state(PatternModel? pattern) => super.state = pattern;
+
+  // Select a pattern by slug
+  Future<void> selectPatternBySlug(String slug) async {
+    try {
+      // First, try to get all patterns for the current goal
+      final patternsAsync = ref.read(patternsForGoalProvider);
+      List<PatternModel> patterns = [];
+
+      if (patternsAsync is AsyncData<List<PatternModel>>) {
+        patterns = patternsAsync.value;
+      } else {
+        // If patterns are still loading, wait for them
+        patterns = await ref.read(patternsForGoalProvider.future);
+      }
+
+      // Look for the pattern with matching slug
+      PatternModel? matchingPattern;
+      for (final pattern in patterns) {
+        if (pattern.id == slug || pattern.slug == slug) {
+          matchingPattern = pattern;
+          break;
+        }
+      }
+
+      // If we found a match, set it
+      if (matchingPattern != null && matchingPattern.id.isNotEmpty) {
+        super.state = matchingPattern;
+        debugPrint('✅ Successfully selected pattern by slug: $slug');
+        return;
+      }
+
+      // If we didn't find a match through the goal patterns, we need to query directly
+      final repository = ref.read(breathRepositoryProvider);
+      final patternFromSlug = await repository.getPatternBySlug(slug);
+
+      if (patternFromSlug != null) {
+        super.state = patternFromSlug;
+        debugPrint('✅ Successfully fetched pattern directly by slug: $slug');
+        return;
+      }
+
+      debugPrint('⚠️ Could not find pattern with slug: $slug');
+    } catch (e) {
+      debugPrint('❌ Error selecting pattern by slug: $e');
+    }
+  }
+}
+
+final selectedPatternProvider =
+    StateNotifierProvider<SelectedPatternNotifier, PatternModel?>((ref) {
+  return SelectedPatternNotifier(ref);
+});
 
 // Selected duration in minutes provider
 final selectedDurationProvider = StateProvider<int>((ref) {

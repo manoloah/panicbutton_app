@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart' as provider_pkg;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:panic_button_flutter/screens/home_screen.dart';
 import 'package:panic_button_flutter/screens/breath_screen.dart';
@@ -14,6 +15,7 @@ import 'package:panic_button_flutter/screens/auth_screen.dart';
 import 'package:panic_button_flutter/screens/bolt_screen.dart';
 import 'package:panic_button_flutter/theme/app_theme.dart';
 import 'package:panic_button_flutter/config/supabase_config.dart';
+import 'package:panic_button_flutter/providers/journey_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +44,11 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: MyApp(),
+    provider_pkg.ChangeNotifierProvider(
+      create: (_) => JourneyProvider(),
+      child: const ProviderScope(
+        child: MyApp(),
+      ),
     ),
   );
 }
@@ -91,6 +96,13 @@ final _router = GoRouter(
     GoRoute(
       path: '/breath',
       builder: (context, state) => const BreathScreen(),
+    ),
+    GoRoute(
+      path: '/breath/:patternSlug',
+      builder: (context, state) {
+        final patternSlug = state.pathParameters['patternSlug'];
+        return BreathScreen(patternSlug: patternSlug);
+      },
     ),
     GoRoute(
       path: '/settings',

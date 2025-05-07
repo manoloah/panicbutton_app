@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/breath_circle.dart';
 import 'package:panic_button_flutter/widgets/duration_selector_button.dart';
 import 'package:panic_button_flutter/widgets/goal_pattern_sheet.dart';
@@ -8,7 +9,8 @@ import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/providers/breathing_playback_controller.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
-  const BreathScreen({super.key});
+  final String? patternSlug;
+  const BreathScreen({super.key, this.patternSlug});
 
   @override
   ConsumerState<BreathScreen> createState() => _BreathScreenState();
@@ -23,13 +25,36 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     super.initState();
     // Delay initialization to allow proper provider setup
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeDefaultPattern();
+      _initializePattern();
     });
   }
 
-  Future<void> _initializeDefaultPattern() async {
+  Future<void> _initializePattern() async {
     try {
-      // First, get and select a default pattern
+      if (widget.patternSlug != null) {
+        // If a patternSlug is provided, select the pattern by slug first
+        await ref
+            .read(selectedPatternProvider.notifier)
+            .selectPatternBySlug(widget.patternSlug!);
+
+        // Get expanded steps for the selected pattern
+        final expandedSteps = await ref.read(expandedStepsProvider.future);
+        final duration = ref.read(selectedDurationProvider);
+
+        if (expandedSteps.isNotEmpty) {
+          // Initialize the playback controller with the steps
+          ref
+              .read(breathingPlaybackControllerProvider.notifier)
+              .initialize(expandedSteps, duration);
+
+          setState(() {
+            _isInitialized = true;
+          });
+          return;
+        }
+      }
+
+      // Fallback to default pattern if slug not provided or pattern not found
       final defaultPattern = await ref.read(defaultPatternProvider.future);
       if (defaultPattern != null) {
         // Set this as the selected pattern
@@ -44,21 +69,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           ref
               .read(breathingPlaybackControllerProvider.notifier)
               .initialize(expandedSteps, duration);
-
-          setState(() {
-            _isInitialized = true;
-          });
-        } else {
-          setState(() {
-            _isInitialized = true; // Still mark as initialized to show UI
-          });
         }
-      } else {
-        setState(() {
-          _isInitialized = true; // Still mark as initialized to show UI
-        });
       }
+
+      setState(() {
+        _isInitialized = true; // Still mark as initialized to show UI
+      });
     } catch (e) {
+      debugPrint('Error initializing pattern: $e');
       setState(() {
         _isInitialized = true; // Still mark as initialized to show UI
       });
@@ -102,6 +120,12 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
       // We need to update the controller to use the newly selected pattern
       _updateBreathingController();
     });
+  }
+
+  // Navigate back to the journey screen
+  void _navigateToJourney() {
+    // Use Go Router to navigate back to the journey screen
+    context.go('/journey');
   }
 
   @override
@@ -159,6 +183,19 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _navigateToJourney,
+        ),
+        title: Text(
+          ref.watch(selectedPatternProvider)?.name ??
+              'Ejercicio de Respiración',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+      ),
       body: SafeArea(
         // Completely restructured layout for better centering
         child: Column(
@@ -172,7 +209,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                     minHeight: MediaQuery.of(context).size.height -
                         bottomNavHeight -
                         viewPadding.top -
-                        viewPadding.bottom,
+                        viewPadding.bottom -
+                        kToolbarHeight, // Account for AppBar height
                   ),
                   child: Center(
                     child: Padding(
@@ -182,13 +220,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Title
-                          Text(
-                            'PanicButton',
-                            style: tt.displayLarge,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 40),
+                          // Removed title as it's now in the AppBar
+                          // The rest is the same
 
                           // Breathing circle
                           BreathCircle(

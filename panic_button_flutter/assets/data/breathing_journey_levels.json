@@ -1,0 +1,110 @@
+[
+  {
+    "id": 1,
+    "name_es": "Botón de Alivio",
+    "bolt_min": 0,
+    "minutes_week": 10,
+    "pattern_slugs": ["conscious_4_4"],
+    "description_es": "Inhala 4 s – exhala 4 s por la nariz. Primer ancla rápida ante la ansiedad.",
+    "benefit_es": "Ayuda a que tu corazón lata más lento y te sientas más seguro."
+  },
+  {
+    "id": 2,
+    "name_es": "Refugio de Calma",
+    "bolt_min": 5,
+    "minutes_week": 15,
+    "pattern_slugs": ["conscious_5_5"],
+    "description_es": "Amplía tu \"habitación segura\" al alargar el ritmo a 5 s.",
+    "benefit_es": "Relaja tu cuerpo y a que pienses con más claridad."
+  },
+  {
+    "id": 3,
+    "name_es": "Brisa de Confianza",
+    "bolt_min": 10,
+    "minutes_week": 20,
+    "pattern_slugs": ["coherent_4_6"],
+    "description_es": "4 s in / 6 s out. Sincroniza corazón-respiración y silencia la mente rumiativa.",
+    "benefit_es": "Sincroniza tu corazón con tu respiración y a calmar tu mente."
+  },
+  {
+    "id": 4,
+    "name_es": "Ola Serena",
+    "bolt_min": 12,
+    "minutes_week": 25,
+    "pattern_slugs": ["coherent_3_7"],
+    "description_es": "Exhalación de 7 s para \"pisar el freno\" del sistema nervioso.",
+    "benefit_es": "Libera el estrés para que te relajes y descanses mejor."
+  },
+  {
+    "id": 5,
+    "name_es": "Caja de Control",
+    "bolt_min": 15,
+    "minutes_week": 30,
+    "pattern_slugs": ["box_4_4_4_4"],
+    "description_es": "Dibuja una caja con tu aire; control diafragmático total.",
+    "benefit_es": "Ayuda a concentrarte mejor y a fortalecer tu diafragma."
+  },
+  {
+    "id": 6,
+    "name_es": "Escudo Antipánico",
+    "bolt_min": 17,
+    "minutes_week": 35,
+    "pattern_slugs": ["triangle_inv_in_hold_out"],
+    "description_es": "Inhala, pausa progresiva, exhala. Mantén la calma con pulmones medio llenos.",
+    "benefit_es": "Te ayuda a mantener la calma cuando estás nervioso y a respirar con más control."
+  },
+  {
+    "id": 7,
+    "name_es": "Umbral de Resiliencia",
+    "bolt_min": 20,
+    "minutes_week": 40,
+    "pattern_slugs": ["pause10_every5"],
+    "description_es": "Cada 5 ciclos 4-4 inserta pausa vacía de 10 s. Comodidad sin aire.",
+    "benefit_es": "Te ayuda a tolerar la falta de aire sin asustarte y a sentirte más fuerte."
+  },
+  {
+    "id": 8,
+    "name_es": "Corriente Valiente",
+    "bolt_min": 25,
+    "minutes_week": 50,
+    "pattern_slugs": ["triangle_norm_out_hold"],
+    "description_es": "Triángulo Normal: inhala-exhala-pausa creciente con pulmones vacíos.",
+    "benefit_es": "Aumenta tu capacidad pulmonar y a expulsar el aire que ya no necesitas."
+  },
+  {
+    "id": 9,
+    "name_es": "Muralla Tranquila",
+    "bolt_min": 30,
+    "minutes_week": 70,
+    "pattern_slugs": ["pause15_every4"],
+    "description_es": "Pausa vacía de 15 s cada 4 respiraciones. Desafío intermedio de CO₂.",
+    "benefit_es": "Te ayuda a calmar la sensación de falta de aire y a mantener tu mente tranquila durante un ataque de pánico o asma."
+  },
+  {
+    "id": 10,
+    "name_es": "Zen Respiratorio",
+    "bolt_min": 32,
+    "minutes_week": 80,
+    "pattern_slugs": ["box_6_6_6_6"],
+    "description_es": "Caja 6-6-6-6: siente cómo el tiempo se expande al dominar tu aire.",
+    "benefit_es": "Controla tu ritmo de respiración para que te sientas estable y confiado."
+  },
+  {
+    "id": 11,
+    "name_es": "Chispa Controlada",
+    "bolt_min": 35,
+    "minutes_week": 90,
+    "pattern_slugs": ["bhastrika_lite"],
+    "description_es": "Inspiraciones potentes / exhalaciones al doble. Energía sin disparar ansiedad.",
+    "benefit_es": "Aumenta tu energía de forma segura, sin disparar tu ansiedad."
+  },
+  {
+    "id": 12,
+    "name_es": "Balance Supremo",
+    "bolt_min": 40,
+    "minutes_week": 100,
+    "pattern_slugs": ["catana_hormetic"],
+    "description_es": "Secuencia hipo/hiperventilación + retenciones (hormesis). Desafía tu homeostasis y vuelve más fuerte.",
+    "benefit_es": "Fortalece tu cuerpo y a calmar tu mente al mismo tiempo."
+  }
+] 

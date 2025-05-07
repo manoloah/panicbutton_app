@@ -50,6 +50,7 @@ class BreathRepository {
               goalId: item['goal_id'] as String? ?? '',
               recommendedMinutes: item['recommended_minutes'] as int? ?? 5,
               cycleSecs: item['cycle_secs'] as int? ?? 8,
+              slug: item['slug'] as String? ?? '',
               createdAt: item['created_at'] != null
                   ? DateTime.parse(item['created_at'] as String)
                   : null,
@@ -385,6 +386,83 @@ class BreathRepository {
       return result != null ? result['id'] as String : null;
     } catch (e) {
       debugPrint('⚠️ Error getting current breathing activity: $e');
+      return null;
+    }
+  }
+
+  Future<PatternModel?> getPatternBySlug(String slug) async {
+    try {
+      final response = await _supabase
+          .from('breathing_patterns')
+          .select('*, breathing_pattern_steps!inner(*, breathing_steps(*))')
+          .eq('slug', slug)
+          .limit(1);
+
+      if (response == null || (response as List).isEmpty) {
+        return null;
+      }
+
+      final patternData = response[0];
+      final patternSteps = patternData['breathing_pattern_steps'] as List;
+
+      // Create the pattern
+      final pattern = PatternModel(
+        id: patternData['id'] as String? ?? '',
+        name: patternData['name'] as String? ?? '',
+        goalId: patternData['goal_id'] as String? ?? '',
+        recommendedMinutes: patternData['recommended_minutes'] as int? ?? 5,
+        cycleSecs: patternData['cycle_secs'] as int? ?? 8,
+        slug: patternData['slug'] as String? ?? '',
+        createdAt: patternData['created_at'] != null
+            ? DateTime.parse(patternData['created_at'] as String)
+            : null,
+      );
+
+      // Process steps
+      final steps = <PatternStepModel>[];
+
+      for (final stepData in patternSteps) {
+        if (stepData != null && stepData['breathing_steps'] != null) {
+          final stepsData = stepData['breathing_steps'] as Map<String, dynamic>;
+
+          try {
+            // Create the step with safe defaults
+            final step = StepModel(
+              id: stepsData['id'] as String? ?? '',
+              inhaleSecs: stepsData['inhale_secs'] as int? ?? 4,
+              inhaleMethod: stepsData['inhale_method'] as String? ?? 'nose',
+              holdInSecs: stepsData['hold_in_secs'] as int? ?? 0,
+              exhaleSecs: stepsData['exhale_secs'] as int? ?? 4,
+              exhaleMethod: stepsData['exhale_method'] as String? ?? 'nose',
+              holdOutSecs: stepsData['hold_out_secs'] as int? ?? 0,
+              cueText: stepsData['cue_text'] as String? ?? 'Respira',
+            );
+
+            // Create the pattern step
+            final patternStep = PatternStepModel(
+              id: stepData['id'] as String? ?? '',
+              patternId: stepData['pattern_id'] as String? ?? '',
+              stepId: stepData['step_id'] as String? ?? '',
+              position: stepData['position'] as int? ?? 0,
+              repetitions: stepData['repetitions'] as int? ?? 1,
+              step: step,
+            );
+
+            steps.add(patternStep);
+          } catch (e) {
+            debugPrint('❌ Error creating step: $e');
+            continue;
+          }
+        }
+      }
+
+      // Sort steps by position
+      steps.sort((a, b) => a.position.compareTo(b.position));
+
+      // Return the pattern with its steps
+      return pattern.copyWith(steps: steps);
+    } catch (e) {
+      debugPrint('❌ Error fetching pattern by slug: $e');
       return null;
     }
   }

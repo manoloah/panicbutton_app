@@ -8,6 +8,7 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 - Guided breathing exercises with fluid wave animations
 - Customizable breathing patterns (inhale, hold, exhale, rest)
 - Pattern selection by breathing goals (calming, energizing, etc.)
+- Progressive breathing journey with level unlocking based on BOLT scores
 - Animated breathing circle with wave visualization
 - Session tracking and statistics
 - BOLT score measurement for tracking anxiety levels
@@ -61,11 +62,14 @@ lib/
   │   └── breath_repository.dart  # Repository for breathing patterns
   ├── models/           # Data models
   │   └── breath_models.dart      # Models for breathing patterns and steps
+  │   └── journey_level.dart      # Models for breathing journey levels
   ├── providers/        # State management 
   │   ├── breathing_providers.dart        # Providers for breath state
-  │   └── breathing_playback_controller.dart  # Controller for animations
+  │   ├── breathing_playback_controller.dart  # Controller for animations
+  │   └── journey_provider.dart   # Provider for journey progress and unlocking
   ├── screens/          # App screens
-  │   └── breath_screen.dart      # Main breathing exercise screen
+  │   ├── breath_screen.dart      # Main breathing exercise screen
+  │   └── journey_screen.dart     # Breathing journey progression screen
   ├── widgets/          # Reusable widgets
   │   ├── breath_circle.dart        # Circular breathing animation container
   │   ├── duration_selector_button.dart  # Duration selection UI
@@ -80,7 +84,7 @@ lib/
   ├── utils/            # Utility functions
   ├── theme/            # App theme and styling
   │   └── app_theme.dart           # Theme configuration with extensions
-  └── main.dart         # App entry point
+  └── main.dart         # App entry point with Go Router configuration
 ```
 
 ## Breathing Exercise Feature
@@ -104,6 +108,46 @@ The app's breathing exercise feature provides a guided breathing experience with
 4. **Session Tracking**:
    - Records completed patterns
    - Tracks usage statistics over time
+
+## Breathing Journey Feature
+
+The app includes a progressive breathing journey that allows users to unlock new breathing techniques as they improve:
+
+1. **Level-Based Progression**:
+   - 12 levels with increasingly advanced breathing techniques
+   - Each level unlocks new breathing patterns
+
+2. **Unlock Requirements**:
+   - Based on BOLT score achievements
+   - Weekly breathing practice minutes
+   - Visual progress indicators
+
+3. **Pattern Integration**:
+   - Each level links to specific breathing patterns by slug
+   - Seamless navigation to breathing exercises
+   - Progress tracking across sessions
+
+4. **Database Integration**:
+   - Journey levels stored in JSON configuration
+   - Progress tracked in Supabase
+   - Pattern slugs connect journey levels to breathing patterns
+
+## Navigation
+
+The app uses Go Router for navigation, with these key features:
+
+1. **URL-Based Routing**:
+   - Clean URLs reflect current screen (/journey, /breath, etc.)
+   - Pattern-specific routes with parameters (/breath/:patternSlug)
+   - Consistent back navigation
+
+2. **Deep Linking Support**:
+   - Direct navigation to specific breathing patterns
+   - Preserved navigation state during app lifecycle
+
+3. **Authentication Protection**:
+   - Routes protected based on authentication state
+   - Automatic redirects to login when needed
 
 ## Image Asset Management
 
@@ -180,7 +224,7 @@ This approach provides:
 ## Dependencies
 
 - flutter_riverpod: State management
-- go_router: Navigation
+- go_router: Navigation and deep linking
 - supabase_flutter: Backend integration
 - flutter_animate: Animations
 - animations: Page transitions

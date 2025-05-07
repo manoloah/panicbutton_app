@@ -39,6 +39,7 @@ dependencies:
   flutter_riverpod: ^2.4.9
   riverpod_annotation: ^2.3.5
   riverpod_generator: ^2.3.11
+  provider: ^6.1.1
 
   # Navigation
   go_router: ^13.0.0
@@ -102,6 +103,7 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/data/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
