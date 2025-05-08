@@ -17,26 +17,34 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Encuetra la calma',
-                    style: tt.displayLarge,
-                  ),
-                  const SizedBox(height: 48),
-                  const PanicButton(),
-                  const SizedBox(height: 48),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Text(
-                      'Cuando sientas un ataque de pánico, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
-                      style: tt.bodyLarge,
-                      textAlign: TextAlign.center,
+            Padding(
+              padding:
+                  const EdgeInsets.only(bottom: 70), // Add padding for navbar
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'Encuentra la calma',
+                        style: tt.displayMedium,
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 36), // Reduced from 48
+                    const PanicButton(),
+                    const SizedBox(height: 24), // Reduced from 32
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        'Cuando sientas un ataque de pánico, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
+                        style: tt.bodyLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Positioned(

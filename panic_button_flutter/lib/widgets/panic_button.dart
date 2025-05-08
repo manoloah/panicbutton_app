@@ -69,6 +69,15 @@ class _PanicButtonState extends State<PanicButton>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    // Adapt button size based on screen size
+    final screenSize = MediaQuery.of(context).size;
+    // Calculate button size based on screen width (smaller on smaller screens)
+    // Make button smaller on iPhone SE and other small devices
+    final buttonSize = screenSize.width < 360
+        ? 160.0
+        : screenSize.width < 400
+            ? 180.0
+            : 200.0;
 
     return GestureDetector(
       onTapDown: (_) => _handlePress(),
@@ -82,8 +91,8 @@ class _PanicButtonState extends State<PanicButton>
           return Transform.scale(
             scale: finalScale,
             child: Container(
-              width: 250,
-              height: 250,
+              width: buttonSize,
+              height: buttonSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: cs.primary,
@@ -99,7 +108,7 @@ class _PanicButtonState extends State<PanicButton>
                 child: Text(
                   'EMPEZAR',
                   style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 32,
+                        fontSize: screenSize.width < 360 ? 24 : 28,
                       ),
                 ),
               ),
