@@ -44,11 +44,8 @@ void main() async {
     if (const bool.fromEnvironment('dart.vm.product') == false) {
       await dotenv.load(fileName: '.env');
       SupabaseConfig.initializeForDev();
-      debugPrint('Environment variables loaded:');
-      debugPrint('SUPABASE_URL: ${SupabaseConfig.supabaseUrl}');
-      // Print only the first few characters of the key for security
-      debugPrint(
-          'SUPABASE_ANON_KEY: ${SupabaseConfig.supabaseAnonKey.substring(0, 10)}...');
+      debugPrint('Environment variables loaded successfully');
+      // Debug print statements that exposed credentials have been removed
     }
 
     // Initialize Supabase

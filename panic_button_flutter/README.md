@@ -14,6 +14,8 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
 - BOLT score measurement for tracking anxiety levels
 - Step-by-step instruction screens with smooth transitions
 - Cross-platform (iOS, Android, Web)
+- Secure credential storage with keychain integration
+- iOS App Store compliant implementation
 
 ## Setup
 
@@ -34,16 +36,16 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
    flutter pub get
    ```
 
-4. Configure Supabase:
-   - Create a new project in Supabase
-   - Copy your Supabase URL and anon key
-   - Create a `.env` file in the root directory with:
+4. Configure Environment Variables:
+   - Create a `.env` file in the root directory with your Supabase credentials:
      ```
      SUPABASE_URL=your_supabase_url
      SUPABASE_ANON_KEY=your_supabase_anon_key
      ```
+   - IMPORTANT: Never commit this file to version control
+   - For CI/CD environments, set these variables in your build system
 
-5. Run the app:
+5. Run the app in debug mode:
    ```bash
    flutter run
    ```
@@ -51,7 +53,45 @@ A calming app for anxiety relief with breathing exercises, built with Flutter.
    ```bash
    flutter run -d chrome
    ```
+
+6. For iOS development and testing:
+   ```bash
+   # Open iOS simulator
+   open -a Simulator
    
+   # Run on iOS simulator
+   flutter run -d ios
+   ```
+
+## Secure Setup for Production
+
+For production deployments, follow these additional security steps:
+
+1. **Secure Environment Variables**:
+   - Development: Use `.env` file (git-ignored)
+   - CI/CD: Use secrets management in your build system
+   - Production: Use build-time environment configuration
+
+2. **Secure Storage**:
+   - The app uses `flutter_secure_storage` for sensitive data
+   - iOS: Credentials stored in Keychain
+   - Android: Credentials stored in KeyStore
+   - Implementation in `lib/services/secure_storage_service.dart`
+
+3. **iOS Deployment Preparation**:
+   - Update Info.plist with required privacy descriptions
+   - Configure Runner.entitlements for keychain access
+   - Set minimum iOS version to 14.0
+   - Disable Bitcode (Apple removed support)
+   - Enable code obfuscation for release builds:
+     ```bash
+     flutter build ios --release --obfuscate --split-debug-info=build/ios/obfuscation
+     ```
+
+4. **Debugging Securely**:
+   - Sensitive data is not logged in production builds
+   - User IDs are truncated in debug logs
+   - App uses conditional logging based on build mode (`kDebugMode`)
 
 ## Project Structure
 
@@ -83,9 +123,12 @@ lib/
   │   ├── 20240701_create_breathing_activity_table.sql  # Activity tracking
   │   └── 20240702_add_cumulative_seconds.sql  # Activity stats enhancements
   ├── services/         # Services (Supabase, etc.)
+  │   └── secure_storage_service.dart  # Secure storage implementation
   ├── utils/            # Utility functions
   ├── theme/            # App theme and styling
   │   └── app_theme.dart           # Theme configuration with extensions
+  └── config/           # Configuration files
+      └── supabase_config.dart     # Environment-based Supabase configuration
   └── main.dart         # App entry point with Go Router configuration
 ```
 

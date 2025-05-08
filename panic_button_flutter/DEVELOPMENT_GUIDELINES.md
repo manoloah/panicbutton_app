@@ -33,6 +33,120 @@
 
 ---
 
+### Security Best Practices
+
+- **Environment Variables**
+  - **NEVER hardcode credentials** in the codebase
+  - Use `flutter_dotenv` to load credentials from `.env` file
+  - Add `.env` files to `.gitignore` to prevent accidental commits
+  - Example implementation:
+    ```dart
+    // Configuration
+    static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+    static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    ```
+  - Add validation for missing environment variables:
+    ```dart
+    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+      throw Exception('Configuration not found. Make sure your .env file is properly set up.');
+    }
+    ```
+
+- **Secure Logging**
+  - **NEVER log sensitive information** such as:
+    - API keys, tokens, or credentials
+    - User IDs (full UUIDs)
+    - User email addresses or personal information
+  - Use conditional logging with `kDebugMode`:
+    ```dart
+    if (kDebugMode) {
+      // Debug-only logs
+      debugPrint('Uploading avatar (user ID: ${user.id.substring(0, 8)}...)');
+    }
+    ```
+  - Truncate sensitive IDs in logs:
+    ```dart
+    // Bad:
+    debugPrint('User ID: $userId');
+    
+    // Good:
+    debugPrint('User ID: ${userId.substring(0, 8)}...');
+    ```
+
+- **Secure Storage**
+  - Use `flutter_secure_storage` for sensitive data like:
+    - Authentication tokens
+    - Refresh tokens
+    - User credentials
+  - **NEVER** store sensitive data in `SharedPreferences` or regular storage
+  - iOS-specific security options:
+    ```dart
+    static const _options = IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock,
+    );
+    ```
+
+- **Database Access Security**
+  - Always validate user input before using in queries
+  - Use Supabase's method chaining for queries (safe from SQL injection)
+  - Avoid string interpolation in database queries:
+    ```dart
+    // Bad:
+    client.rpc('some_function', params: {'query': "name='$userInput'"});
+    
+    // Good:
+    client.from('table').select().eq('name', userInput);
+    ```
+  - Always include user IDs in queries to leverage Row-Level Security
+
+---
+
+### iOS App Store Compliance
+
+- **Privacy Declarations**
+  - Add required usage descriptions to `Info.plist`:
+    - `NSPhotoLibraryUsageDescription` - For profile photos
+    - `NSCameraUsageDescription` - For taking profile photos
+    - `NSHealthShareUsageDescription` - For health data integration
+    - `NSHealthUpdateUsageDescription` - For health data updates
+  - Add proper App Transport Security settings:
+    ```xml
+    <key>NSAppTransportSecurity</key>
+    <dict>
+      <key>NSAllowsArbitraryLoads</key>
+      <false/>
+    </dict>
+    ```
+  - Add non-exempt encryption declaration:
+    ```xml
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    ```
+
+- **Keychain Access**
+  - Create `Runner.entitlements` file with proper app group identifiers:
+    ```xml
+    <key>keychain-access-groups</key>
+    <array>
+      <string>$(AppIdentifierPrefix)com.panicbutton.panicButtonFlutter</string>
+    </array>
+    ```
+
+- **Build Configuration**
+  - Minimum iOS version should be 14.0 or higher
+  - Disable Bitcode (Apple removed support)
+  - Use code obfuscation for production builds:
+    ```bash
+    flutter build ios --release --obfuscate --split-debug-info=build/ios/obfuscation
+    ```
+
+- **Medical App Requirements**
+  - Include medical disclaimers in app description and within the app
+  - Clarify that the app is not a diagnostic tool
+  - Provide accurate descriptions of health-related features
+
+---
+
 ### File Structure
 
 ```
@@ -41,11 +155,13 @@ lib/
 ├── widgets/          # Reusable widgets
 ├── models/           # Data models
 ├── services/         # Business logic and API calls
+│   └── secure_storage_service.dart  # Secure storage implementation
 ├── utils/            # Helper functions and utilities
 ├── constants/        # App-wide constants
 ├── providers/        # State management providers
 ├── data/             # Data repositories
 └── config/           # Configuration files
+    └── supabase_config.dart  # Environment-based configuration
 ```
 
 ---

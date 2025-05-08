@@ -28,6 +28,15 @@
 	<string>Necesitamos acceso a tu galería para seleccionar tu foto de perfil.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Necesitamos acceso a tu cámara para tomar tu foto de perfil.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>PanicButton requiere acceso a tus datos de ritmo cardíaco para optimizar los ejercicios de respiración.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>PanicButton requiere acceso a tus datos de salud para personalizar los ejercicios de respiración.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -49,5 +58,7 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

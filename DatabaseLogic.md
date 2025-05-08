@@ -8,12 +8,15 @@ This document explains the simplified Supabase schema for breath-work and shows 
 
 | Table                         | Purpose                                                                            | Example Row                                                                                |
 | ----------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **profiles**                  | User profiles including preferences, health data, and UI state.                      | `{ username: 'JohnDoe', avatar_url: 'https://example.com/avatar.jpg' }`                     |
 | **breathing\_goals**          | Master tags like Calming, Energizing, Grounding—used to filter available patterns. | `{ slug: 'calming', display_name: 'Calming' }`                                             |
 | **breathing\_steps**          | Atomic unit: one inhale/hold/exhale cycle with a breathing method (nose or mouth). | `inhale_secs:4, inhale_method:'nose', hold_in_secs:0, exhale_secs:6, exhale_method:'nose'` |
 | **breathing\_patterns**       | Song: ordered collection of steps that defines a full cycle (eg 4-6 Resonance).    | `name:'4-6 Resonance', goal_id:<uuid>, recommended_minutes:4, cycle_secs:10, slug:'coherent_4_6'` |
 | **breathing\_pattern\_steps** | Orders steps inside a pattern and sets repetitions of each step.                   | `pattern_id:<id>, step_id:<id>, position:1, repetitions:1`                                 |
 | **breathing\_pattern\_status**| Tracks user progress with patterns, including total runs and time spent.           | `user_id:<id>, pattern_id:<id>, last_run:<timestamp>, total_runs:12, total_seconds:720`   |
 | **breathing\_activity**       | Detailed tracking of individual breathing sessions with duration and status.       | `user_id:<id>, pattern_id:<id>, started_at:<timestamp>, duration_seconds:180, completed:true` |
+| **breath\_bolt\_scores**       | Tracks user's BOLT scores over time (measure of anxiety).                           | `user_id:<id>, score_value:75, measured_at:<timestamp>`                                    |
+| **breathing\_journey\_progress**| Tracks unlocked levels in the breathing journey.                                | `user_id:<id>, level_id:<id>, unlocked:true, completed_at:<timestamp>`                     |
 
 Note: We have removed the previous 'routines' layer—UI will loop a single pattern to fill the user-selected minutes (1-10).
 
@@ -394,6 +397,231 @@ void pause() {
     _startTime = null;
   }
 }
+```
+
+---
+
+## Schema Relationships
+
+- Each `breathing_goal` (e.g., "Calm Down") has multiple `breathing_patterns`
+- Each `breathing_pattern` belongs to a specific `breathing_goal`
+- Each `breathing_activity` belongs to a user (`profiles`) and a specific `breathing_pattern`
+- Each `breath_bolt_score` belongs to a user (`profiles`)
+- Each `breathing_journey_progress` entry belongs to a user (`profiles`)
+
+## Sample Queries
+
+### Getting all breathing patterns for a specific goal:
+
+```sql
+SELECT p.* 
+FROM breathing_patterns p
+JOIN breathing_goals g ON p.goal_id = g.id
+WHERE g.name = 'Calm Down' 
+ORDER BY p.difficulty_level ASC;
+```
+
+### Recording a new breathing activity:
+
+```sql
+INSERT INTO breathing_activities 
+(user_id, pattern_id, duration_seconds, completed, created_at)
+VALUES 
+('auth.uid()', 3, 120, true, NOW());
+```
+
+### Getting a user's recent BOLT scores:
+
+```sql
+SELECT score_value, measured_at
+FROM breath_bolt_scores
+WHERE user_id = 'auth.uid()'
+ORDER BY measured_at DESC
+LIMIT 10;
+```
+
+### Updating a user's journey progress:
+
+```sql
+INSERT INTO breathing_journey_progress
+(user_id, level_id, unlocked, completed_at)
+VALUES
+('auth.uid()', 2, true, NOW())
+ON CONFLICT (user_id, level_id) 
+DO UPDATE SET unlocked = true, completed_at = NOW();
+```
+
+## Security and Best Practices
+
+### Row-Level Security (RLS)
+
+All tables should have Row-Level Security (RLS) policies enabled to limit access to data:
+
+```sql
+-- Example RLS policy (apply to each table)
+CREATE POLICY "Users can only access their own data" 
+ON breathing_activities 
+FOR ALL
+USING (user_id = auth.uid());
+```
+
+### Secure Query Practices
+
+1. **NEVER use string interpolation** in SQL queries:
+
+   ```dart
+   // INSECURE - DO NOT USE:
+   final userInput = "O'Connor"; // SQL injection risk with quote
+   final query = "SELECT * FROM profiles WHERE name = '$userInput'";
+   final result = await supabase.rpc('execute_sql', { query: query });
+   
+   // SECURE - Use method chaining or parameters:
+   final result = await supabase.from('profiles').select().eq('name', userInput);
+   ```
+
+2. **Always use Supabase's query builder methods** which automatically handle parameter binding:
+
+   ```dart
+   // Correct parameter usage:
+   final response = await supabase
+      .from('breathing_activities')
+      .select()
+      .eq('user_id', userId)
+      .order('created_at', ascending: false);
+   ```
+
+3. **Limit data exposure** by selecting only needed columns:
+
+   ```dart
+   // Get only what you need:
+   final response = await supabase
+      .from('profiles')
+      .select('username,avatar_url')
+      .eq('id', userId);
+   ```
+
+4. **Validate user input** before using in queries:
+
+   ```dart
+   // Validate input before using in query
+   if (durationSeconds <= 0 || durationSeconds > 3600) {
+     throw Exception('Invalid duration');
+   }
+   
+   final response = await supabase
+      .from('breathing_activities')
+      .insert({
+         'user_id': userId,
+         'pattern_id': patternId,
+         'duration_seconds': durationSeconds
+      });
+   ```
+
+5. **Use RPC calls with secure parameters** for stored procedures or functions:
+
+   ```dart
+   // Correct RPC usage:
+   final result = await supabase.rpc(
+     'calculate_user_stats',
+     params: {
+       'user_id': userId,
+       'days_back': 30
+     }
+   );
+   ```
+
+6. **Always include user ID in queries** to enforce RLS policies:
+
+   ```dart
+   // Explicitly include the user ID even if RLS would handle it
+   final response = await supabase
+      .from('breathing_activities')
+      .select()
+      .eq('user_id', supabase.auth.currentUser!.id)
+      .order('created_at');
+   ```
+
+### Secure Storage of Auth Tokens
+
+1. **Use SecureStorageService** for storing refresh tokens, never SharedPreferences:
+
+   ```dart
+   // Storing tokens securely
+   await secureStorage.storeRefreshToken(refreshToken);
+   
+   // Retrieving tokens securely
+   final refreshToken = await secureStorage.getRefreshToken();
+   ```
+
+2. **Implement token refresh** properly using secure storage:
+
+   ```dart
+   Future<void> refreshSession() async {
+     try {
+       final refreshToken = await secureStorage.getRefreshToken();
+       if (refreshToken != null) {
+         final response = await supabase.auth.refreshSession(refreshToken);
+         // Store new tokens
+         await secureStorage.storeRefreshToken(response.refreshToken);
+       }
+     } catch (e) {
+       // Handle refresh error
+     }
+   }
+   ```
+
+## Migrations and Schema Updates
+
+When updating the database schema, always use migrations:
+
+1. Create a new migration file in `/migrations` with timestamp prefix
+2. Test the migration on a development instance first
+3. Apply the migration using Supabase CLI or dashboard
+4. Document the changes in the code
+
+Example migration:
+
+```sql
+-- migrations/20240715_add_reminder_settings.sql
+ALTER TABLE profiles 
+ADD COLUMN reminder_enabled BOOLEAN DEFAULT false,
+ADD COLUMN reminder_time TIME DEFAULT '08:00:00';
+```
+
+## Testing Database Operations
+
+1. Create test fixtures with known test data
+2. Use a dedicated test database for integration tests
+3. Reset the database state between test runs
+4. Include both positive and negative test cases (input validation, error handling)
+5. Test RLS policies by simulating different user contexts
+
+Example test pattern:
+
+```dart
+test('User can only access their own activities', () async {
+  // Login as user 1
+  await supabase.auth.signIn(email: 'user1@example.com', password: 'password');
+  final user1Id = supabase.auth.currentUser!.id;
+  
+  // Create activity for user 1
+  await supabase.from('breathing_activities').insert({
+    'user_id': user1Id,
+    'pattern_id': 1,
+    'duration_seconds': 60
+  });
+  
+  // Login as user 2
+  await supabase.auth.signOut();
+  await supabase.auth.signIn(email: 'user2@example.com', password: 'password');
+  
+  // Try to access user 1's activities - should return empty array
+  final response = await supabase.from('breathing_activities')
+    .select().eq('user_id', user1Id);
+  
+  // Should be empty due to RLS
+  expect(response.data, isEmpty);
+});
 ```
 
 ---

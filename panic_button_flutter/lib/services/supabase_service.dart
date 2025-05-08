@@ -109,7 +109,10 @@ class SupabaseService {
     }
 
     final filePath = '${user.id}/avatar.jpg';
-    debugPrint('Uploading avatar → $filePath');
+    // Only log in debug mode and don't log the full path
+    if (kDebugMode) {
+      debugPrint('Uploading avatar (user ID: ${user.id.substring(0, 8)}...)');
+    }
 
     try {
       await _client.storage.from(_avatarBucketName).remove([filePath]);
