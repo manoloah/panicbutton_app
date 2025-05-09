@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/custom_nav_bar.dart';
 import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
+import '../widgets/bolt_chart.dart' as bolt_chart;
 import '../constants/images.dart';
 import 'package:animations/animations.dart';
 
@@ -692,106 +693,34 @@ class _BoltScreenState extends State<BoltScreen>
 
                       const SizedBox(height: 16),
 
-                      // Responsive chart
+                      // Responsive chart with proper constraints for mobile
                       Container(
+                        width: double.infinity,
+                        constraints: BoxConstraints(
+                          minHeight: MediaQuery.of(context).size.width < 400
+                              ? 300
+                              : 250,
+                        ),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: cs.surface,
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: AspectRatio(
-                          aspectRatio: 1.7,
-                          child: LineChart(
-                            LineChartData(
-                              gridData: FlGridData(
-                                show: true,
-                                drawVerticalLine: false,
-                                horizontalInterval: 10,
-                                getDrawingHorizontalLine: (_) => FlLine(
-                                  color: cs.onSurface.withOpacity(0.1),
-                                  strokeWidth: 1,
+                        child: periodScores.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No hay datos suficientes para mostrar una gráfica',
+                                  textAlign: TextAlign.center,
                                 ),
+                              )
+                            : bolt_chart.BoltChart(
+                                periodScores: periodScores
+                                    .map((p) => bolt_chart.PeriodScore(
+                                        period: p.period,
+                                        averageScore: p.averageScore))
+                                    .toList(),
+                                formatBottomLabel: _formatBottom,
                               ),
-                              borderData: FlBorderData(show: false),
-                              lineTouchData: LineTouchData(
-                                touchTooltipData: LineTouchTooltipData(
-                                  tooltipBgColor: cs.surface.withOpacity(0.8),
-                                  tooltipRoundedRadius: 8,
-                                  getTooltipItems:
-                                      (List<LineBarSpot> touchedSpots) {
-                                    return touchedSpots.map((spot) {
-                                      return LineTooltipItem(
-                                        // Format with only one decimal place
-                                        '${spot.y.toStringAsFixed(1)}',
-                                        TextStyle(
-                                          color: cs.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                ),
-                              ),
-                              titlesData: FlTitlesData(
-                                leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 10,
-                                    reservedSize: 40,
-                                    getTitlesWidget: (v, _) => Text(
-                                        v.toInt().toString(),
-                                        style: tt.bodyMedium),
-                                  ),
-                                ),
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    interval: 1,
-                                    reservedSize:
-                                        30, // plenty of room for rotated labels
-                                    getTitlesWidget: (value, meta) {
-                                      final i = value.toInt();
-                                      if (i < 0 || i >= periodScores.length) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      final label =
-                                          _formatBottom(periodScores[i].period);
-                                      return Transform.rotate(
-                                        angle: -math.pi / 4,
-                                        alignment: Alignment.topLeft,
-                                        child:
-                                            Text(label, style: tt.bodyMedium),
-                                      );
-                                    },
-                                  ),
-                                ),
-                                topTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                                rightTitles: const AxisTitles(
-                                    sideTitles: SideTitles(showTitles: false)),
-                              ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: periodScores
-                                      .asMap()
-                                      .entries
-                                      .map((e) => FlSpot(e.key.toDouble(),
-                                          e.value.averageScore))
-                                      .toList(),
-                                  isCurved: true,
-                                  color: cs.primary,
-                                  barWidth: 3,
-                                  isStrokeCapRound: true,
-                                  dotData: const FlDotData(show: true),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    color: cs.primary.withOpacity(0.1),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       ),
                     ],
                   ]),
@@ -1051,6 +980,44 @@ class _BoltScreenState extends State<BoltScreen>
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
+    // Get mental state description based on score
+    String getMentalStateDescription(int score) {
+      if (score <= 10) {
+        return 'Pánico Constante: Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.';
+      } else if (score <= 15) {
+        return 'Ansioso/Inestable: Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.';
+      } else if (score <= 20) {
+        return 'Inquieto/Irregular: Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.';
+      } else if (score <= 25) {
+        return 'Calma Parcial: La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
+      } else if (score <= 30) {
+        return 'Tranquilo/Estable: Te sientes tranquilo, seguro y estable.';
+      } else if (score <= 35) {
+        return 'Zen/Inmune: Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else {
+        return 'Suprema Calma: Has alcanzado un nivel excepcional de calma y resiliencia mental.';
+      }
+    }
+
+    // Get color based on score
+    Color getMentalStateColor(int score) {
+      if (score <= 10) {
+        return Colors.redAccent.shade200;
+      } else if (score <= 15) {
+        return Colors.orange;
+      } else if (score <= 20) {
+        return Colors.amber;
+      } else if (score <= 25) {
+        return Colors.lightGreen;
+      } else if (score <= 30) {
+        return Colors.teal.shade300;
+      } else if (score <= 35) {
+        return Colors.blue.shade300;
+      } else {
+        return Colors.indigo.shade300;
+      }
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1074,6 +1041,26 @@ class _BoltScreenState extends State<BoltScreen>
               'Lo hicistes bien si después de retener lograste respirar normal y de forma controlada como empezaste',
               style: tt.bodySmall,
               textAlign: TextAlign.center,
+            ),
+            // Mental state description
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: getMentalStateColor(_seconds).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: getMentalStateColor(_seconds).withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                getMentalStateDescription(_seconds),
+                style: tt.bodyMedium?.copyWith(
+                  color: getMentalStateColor(_seconds).withOpacity(0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
           const SizedBox(height: 20),
