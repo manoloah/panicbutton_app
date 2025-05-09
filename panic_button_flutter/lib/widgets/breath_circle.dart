@@ -15,13 +15,18 @@ class BreathCircle extends ConsumerWidget {
     required this.onTap,
     this.phaseIndicator,
     this.isBreathing = false, // Default to false for backward compatibility
-    this.size = 280, // Default size
+    this.size = 240, // Reduced from 280 to 240
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
     final playbackState = ref.watch(breathingPlaybackControllerProvider);
+
+    // Get screen size to adjust scaling based on device
+    final screenSize = MediaQuery.of(context).size;
+    // Adjust scaling factors for smaller screens
+    final maxScaleFactor = screenSize.width < 360 ? 1.2 : 1.25;
 
     // Calculate scale factor based on current phase
     double scaleFactor = 1.0;
@@ -41,16 +46,18 @@ class BreathCircle extends ConsumerWidget {
 
       switch (playbackState.currentPhase) {
         case BreathPhase.inhale:
-          // Scale from 1.0 to 1.3 during inhale with eased transition
-          scaleFactor = 1.0 + (0.3 * easedProgress);
+          // Scale from 1.0 to maxScaleFactor during inhale with eased transition
+          scaleFactor = 1.0 + ((maxScaleFactor - 1.0) * easedProgress);
           break;
         case BreathPhase.holdIn:
           // Subtle pulsing animation during hold for more organic feel
-          scaleFactor = 1.3 + (0.02 * math.sin(progress * math.pi * 2));
+          scaleFactor =
+              maxScaleFactor + (0.02 * math.sin(progress * math.pi * 2));
           break;
         case BreathPhase.exhale:
-          // Scale from 1.3 back to 1.0 during exhale with eased transition
-          scaleFactor = 1.3 - (0.3 * easedProgress);
+          // Scale from maxScaleFactor back to 1.0 during exhale with eased transition
+          scaleFactor =
+              maxScaleFactor - ((maxScaleFactor - 1.0) * easedProgress);
           break;
         case BreathPhase.holdOut:
           // Subtle pulsing animation during hold out for more organic feel
@@ -218,6 +225,20 @@ class PhaseCountdownDisplay extends ConsumerWidget {
         ? playbackState.phaseSecondsRemaining.ceil()
         : 0;
 
+    // Adjust text size based on screen size
+    final screenSize = MediaQuery.of(context).size;
+    final headlineMediumStyle = tt.headlineMedium?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: screenSize.width < 360 ? 20 : 24,
+    );
+
+    final headlineLargeStyle = tt.headlineLarge?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w400,
+      fontSize: screenSize.width < 360 ? 28 : 34,
+    );
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -226,20 +247,14 @@ class PhaseCountdownDisplay extends ConsumerWidget {
           Text(
             phaseText,
             textAlign: TextAlign.center,
-            style: tt.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: headlineMediumStyle,
           ),
           if (playbackState.isPlaying) ...[
             const SizedBox(height: 8),
             Text(
               displaySeconds.toString(),
               textAlign: TextAlign.center,
-              style: tt.headlineLarge?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w400,
-              ),
+              style: headlineLargeStyle,
             ),
           ],
         ],

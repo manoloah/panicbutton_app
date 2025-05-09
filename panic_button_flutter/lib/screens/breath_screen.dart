@@ -192,6 +192,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     // Get device dimensions
     const bottomNavHeight = 56.0; // Standard navbar height
     final viewPadding = MediaQuery.of(context).padding;
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -202,11 +204,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: _navigateToJourney,
         ),
-        title: Text(
-          ref.watch(selectedPatternProvider)?.name ??
-              'Ejercicio de Respiración',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
+        title: null,
+        centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -230,19 +229,17 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                         viewPadding.bottom -
                         kToolbarHeight, // Account for AppBar height
                   ),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 20),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Removed title as it's now in the AppBar
-                          // The rest is the same
-
-                          // Breathing circle
-                          BreathCircle(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Breathing circle centered
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: BreathCircle(
                             onTap: _toggleBreathing,
                             phaseIndicator: const Stack(
                               alignment: Alignment.center,
@@ -252,18 +249,17 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                               ],
                             ),
                           ),
+                        ),
 
-                          const SizedBox(height: 40),
+                        // Timer display
+                        _buildTimerDisplay(playbackState),
 
-                          // Timer display
-                          _buildTimerDisplay(playbackState),
-
-                          const SizedBox(height: 20),
-
-                          // Control buttons row
-                          _buildControlsRow(),
-                        ],
-                      ),
+                        // Control buttons row wrapped for better layout on small screens
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: _buildControlsRow(),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -278,7 +274,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           ],
         ),
       ),
-      floatingActionButton: _buildPlayPauseButton(),
     );
   }
 
@@ -290,73 +285,99 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds.floor() % 60;
 
-    return Text(
-      '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-      style: Theme.of(context).textTheme.displayMedium,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+        style: Theme.of(context).textTheme.displayMedium,
+      ),
     );
   }
 
   Widget _buildControlsRow() {
     final cs = Theme.of(context).colorScheme;
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
 
     // Get the current selected pattern
     final pattern = ref.watch(selectedPatternProvider);
     final patternName = pattern?.name ?? 'Seleccionar patrón';
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 8,
-        children: [
-          // Duration selector
-          const DurationSelectorButton(),
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        // Duration selector button
+        const DurationSelectorButton(),
 
-          // Pattern selector button
-          TextButton.icon(
-            onPressed: () => showGoalPatternSheet(context),
-            style: TextButton.styleFrom(
-              backgroundColor: cs.primaryContainer,
-              foregroundColor: cs.onPrimaryContainer,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+        // Row with play button and pattern selector
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Play/pause button
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _buildPlayPauseButton(),
+            ),
+
+            // Pattern selector button
+            TextButton.icon(
+              onPressed: () => showGoalPatternSheet(context),
+              style: TextButton.styleFrom(
+                backgroundColor: cs.primaryContainer,
+                foregroundColor: cs.onPrimaryContainer,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 10 : 14,
+                    vertical: isSmallScreen ? 8 : 10),
+                elevation: 4,
+                shadowColor: cs.shadow.withOpacity(0.5),
+                side: BorderSide(
+                  color: cs.primary.withOpacity(0.4),
+                  width: 1.5,
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              elevation: 4,
-              shadowColor: cs.shadow.withOpacity(0.5),
-              side: BorderSide(
-                color: cs.primary.withOpacity(0.4),
-                width: 1.5,
+              icon: Icon(Icons.air,
+                  size: isSmallScreen ? 24 : 30, color: cs.onPrimaryContainer),
+              label: Text(
+                patternName,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: cs.onPrimaryContainer,
+                      fontSize: isSmallScreen ? 12 : 14,
+                    ),
+                maxLines: 1,
               ),
             ),
-            icon: Icon(Icons.air, size: 30, color: cs.onPrimaryContainer),
-            label: Text(
-              patternName,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: cs.onPrimaryContainer,
-                  ),
-              maxLines: 1,
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildPlayPauseButton() {
     final isPlaying = ref.watch(breathingPlaybackControllerProvider).isPlaying;
     final cs = Theme.of(context).colorScheme;
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
 
-    return FloatingActionButton(
-      backgroundColor: cs.primaryContainer,
-      foregroundColor: cs.onPrimaryContainer,
+    // Use a regular material button instead of FloatingActionButton
+    return ElevatedButton(
       onPressed: _toggleBreathing,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cs.primaryContainer,
+        foregroundColor: cs.onPrimaryContainer,
+        shape: const CircleBorder(),
+        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        elevation: 4,
+      ),
       child: Icon(
         isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-        size: 32,
+        size: isSmallScreen ? 24 : 32,
       ),
     );
   }

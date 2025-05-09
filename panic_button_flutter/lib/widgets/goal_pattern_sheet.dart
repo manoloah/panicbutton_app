@@ -45,7 +45,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Establece el ritmo',
+              'Selecciona tu respiración',
               style: tt.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: cs.onSurface,
@@ -53,7 +53,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
             ),
           ),
 
-          // Goals Row
+          // Goals Grid
           Container(
             margin: const EdgeInsets.only(bottom: 16),
             child: goals.when(
@@ -81,7 +81,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                     ),
                   );
                 }
-                return _buildGoalChips(goalsList, selectedGoalSlug);
+                return _buildGoalGrid(goalsList, selectedGoalSlug);
               },
               loading: () => const Center(
                 child: Padding(
@@ -141,18 +141,29 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
     );
   }
 
-  Widget _buildGoalChips(List<GoalModel> goals, String selectedGoalSlug) {
+  Widget _buildGoalGrid(List<GoalModel> goals, String selectedGoalSlug) {
     final cs = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    // Sort goals in the specified order: Calma, Equilibrio, Enfoque, Energia
+    final sortedGoals = _sortGoalsByPreferredOrder(goals);
+
+    // Calculate the number of columns based on screen width
+    // Smaller screens might need 2 columns, larger can have 2
+    final int columnCount = 2;
+    final double chipWidth = (screenWidth - 60) / columnCount;
+
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: goals.map((goal) {
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.start,
+        children: sortedGoals.map((goal) {
           final isSelected = goal.slug == selectedGoalSlug;
 
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
+          return SizedBox(
+            width: chipWidth,
             child: ChoiceChip(
               label: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -181,6 +192,34 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
         }).toList(),
       ),
     );
+  }
+
+  List<GoalModel> _sortGoalsByPreferredOrder(List<GoalModel> goals) {
+    // The preferred order is: Calma, Equilibrio, Enfoque, Energia
+    final preferredOrder = ['calming', 'grounding', 'focusing', 'energizing'];
+
+    // Create a copy to avoid modifying the original list
+    final sortedGoals = [...goals];
+
+    // Sort based on the preferred order
+    sortedGoals.sort((a, b) {
+      final indexA = preferredOrder.indexOf(a.slug);
+      final indexB = preferredOrder.indexOf(b.slug);
+
+      // If both slugs are found in preferred order, sort by that order
+      if (indexA >= 0 && indexB >= 0) {
+        return indexA.compareTo(indexB);
+      }
+
+      // If only one slug is found, prioritize it
+      if (indexA >= 0) return -1;
+      if (indexB >= 0) return 1;
+
+      // Otherwise, sort alphabetically by display name
+      return a.displayName.compareTo(b.displayName);
+    });
+
+    return sortedGoals;
   }
 
   Widget _getGoalIcon(String goalSlug, bool isSelected) {
@@ -412,22 +451,35 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
 }
 
 void showGoalPatternSheet(BuildContext context) {
+  // Get screen dimensions to calculate explicit heights
+  final screenHeight = MediaQuery.of(context).size.height;
+  final viewPadding = MediaQuery.of(context).viewPadding;
+  final availableHeight = screenHeight - viewPadding.top - viewPadding.bottom;
+
+  // More reliable approach for modal sheets
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
+    isDismissible: true,
+    enableDrag: true,
+    constraints: BoxConstraints(
+      maxHeight: availableHeight * 0.65, // Explicit max height
+    ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (context) => DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      minChildSize: 0.5,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (context, scrollController) {
-        return const GoalPatternSheet();
-      },
-    ),
+    builder: (context) {
+      return ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: Container(
+          color: Theme.of(context).colorScheme.surface,
+          height: availableHeight *
+              0.43, // Initial height (43% of available screen)
+          child: const GoalPatternSheet(),
+        ),
+      );
+    },
   );
 }

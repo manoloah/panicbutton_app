@@ -33,6 +33,80 @@
 
 ---
 
+### Responsive UI Guidelines
+
+- **Device Size Detection**
+  - Always use `MediaQuery` to adapt UI to screen dimensions:
+    ```dart
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
+    ```
+  - Account for system UI elements:
+    ```dart
+    final viewPadding = MediaQuery.of(context).viewPadding;
+    final availableHeight = screenHeight - viewPadding.top - viewPadding.bottom;
+    ```
+
+- **Circular Widgets**
+  - For buttons and visual elements, scale proportionally to screen width:
+    ```dart
+    // Example from PanicButton
+    final buttonSize = screenSize.width < 360 ? 160.0 : 
+                       screenSize.width < 400 ? 180.0 : 200.0;
+    ```
+  - Limit animation scaling to prevent overflow:
+    ```dart
+    // Example from BreathCircle
+    final maxScaleFactor = screenSize.width < 360 ? 1.2 : 1.25;
+    ```
+
+- **Text Scaling**
+  - Decrease font size on smaller screens for better fitting:
+    ```dart
+    // Example for responsive text
+    final fontSize = screenSize.width < 360 ? 24 : 28;
+    ```
+  - Use MediaQuery's textScaleFactor for better accessibility support:
+    ```dart
+    final scaledFontSize = 16 * MediaQuery.of(context).textScaleFactor;
+    ```
+
+- **Layout Organization**
+  - Use `Expanded` widgets and flex factors to distribute space proportionally
+  - Add padding at the bottom of scrollable content to prevent navbar overlap:
+    ```dart
+    // Prevent content from being hidden behind navbar
+    Padding(
+      padding: const EdgeInsets.only(bottom: 70),
+      child: /* content */
+    )
+    ```
+  - For grids and collections, use `Wrap` for automatic flow:
+    ```dart
+    // Example from goal chips
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.start,
+      children: /* items */
+    )
+    ```
+
+- **Bottom Sheets and Modals**
+  - Use explicit height calculations rather than percentages:
+    ```dart
+    constraints: BoxConstraints(
+      maxHeight: availableHeight * 0.65, // Explicit max height
+    ),
+    ```
+  - Include proper padding for the home indicator and notches:
+    ```dart
+    isScrollControlled: true,
+    useSafeArea: true,
+    ```
+
+---
+
 ### Security Best Practices
 
 - **Environment Variables**
