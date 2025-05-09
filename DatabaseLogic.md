@@ -22,6 +22,70 @@ Note: We have removed the previous 'routines' layer—UI will loop a single patt
 
 ---
 
+## Breathing Goals Display and Organization
+
+The application organizes breathing patterns under different goal categories (e.g., Calma, Equilibrio, Enfoque, Energia) to help users find the most appropriate exercise for their needs.
+
+### Goal Data Structure
+
+The `breathing_goals` table contains goal categories:
+
+| Column        | Purpose                                         | Example                     |
+| ------------- | ----------------------------------------------- | --------------------------- |
+| id            | Unique identifier                               | UUID                        |
+| slug          | Machine-readable identifier                     | "calming", "focusing"       |
+| display_name  | Human-readable name in Spanish                  | "Calma", "Enfoque"          |
+| description   | Optional longer description                     | "Ejercicios para relajarse" |
+
+### Goal Display Order
+
+Goals are displayed in a specific order in the UI to prioritize the most commonly used categories:
+
+1. **Calma** (calming) - For relaxation and anxiety reduction
+2. **Equilibrio** (grounding) - For balance and stability 
+3. **Enfoque** (focusing) - For concentration and mental clarity
+4. **Energía** (energizing) - For energy and activation
+
+This order is implemented in the UI using explicit sorting, regardless of the order returned from the database:
+
+```dart
+// The preferred order is: Calma, Equilibrio, Enfoque, Energia
+final preferredOrder = ['calming', 'grounding', 'focusing', 'energizing'];
+
+// Sort goals based on the preferred order
+sortedGoals.sort((a, b) {
+  final indexA = preferredOrder.indexOf(a.slug);
+  final indexB = preferredOrder.indexOf(b.slug);
+  
+  // If both slugs are found in preferred order, sort by that order
+  if (indexA >= 0 && indexB >= 0) {
+    return indexA.compareTo(indexB);
+  }
+  
+  // If only one slug is found, prioritize it
+  if (indexA >= 0) return -1;
+  if (indexB >= 0) return 1;
+  
+  // Otherwise, sort alphabetically by display name
+  return a.displayName.compareTo(b.displayName);
+});
+```
+
+### Goal Icons
+
+Each goal category has an associated icon for visual identification:
+
+| Goal       | Icon                            | Usage                               |
+| ---------- | ------------------------------- | ----------------------------------- |
+| Calma      | `Icons.spa`                     | Relaxation and calming exercises   |
+| Equilibrio | `Icons.balance`                 | Balancing and grounding exercises  |
+| Enfoque    | `Icons.psychology`              | Focus and concentration exercises  |
+| Energía    | `Icons.bolt`                    | Energizing and activating exercises|
+
+Icons are consistently used across the UI to maintain visual coherence.
+
+---
+
 ## Breathing Activity Tracking
 
 The application tracks detailed breathing activities to provide accurate usage statistics and progress tracking.
