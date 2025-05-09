@@ -114,7 +114,7 @@ class _AuthScreenState extends State<AuthScreen> {
               children: [
                 const SizedBox(height: 48),
                 Text(
-                  'PanicButton',
+                  'Tu botón de calma',
                   style: textTheme.displayLarge,
                   textAlign: TextAlign.center,
                 ),

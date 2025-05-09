@@ -42,6 +42,7 @@ class _BoltScreenState extends State<BoltScreen>
   double _instructionCountdownDouble =
       0; // Store as double for smooth animation
   late AnimationController _breathAnimationController;
+  // No need for scroll controller and key with new approach
 
   /// Currently selected aggregation mode:
   Aggregation _aggregation = Aggregation.day;
@@ -102,11 +103,10 @@ class _BoltScreenState extends State<BoltScreen>
   }
 
   void _startMeasurement() {
-    // Start directly with the instructions and "SIGUIENTE" button
+    // Simply show the instructions overlay - no scrolling needed
     setState(() {
       _isShowingInstructions = true;
       _instructionStep = 0;
-      // Do not start any timers here - wait for user to click "SIGUIENTE"
     });
   }
 
@@ -146,10 +146,11 @@ class _BoltScreenState extends State<BoltScreen>
                 from: 0.0,
               );
               break;
-            case 3: // Pinch nose instruction - show longer
-              _instructionCountdownDouble = 3; // Unchanged
+            case 3: // Pinch nose instruction - STOP here and wait for button click
+              // Cancel the timer - we'll wait for user to click the button
+              timer.cancel();
               break;
-            case 4: // Start BOLT measurement
+            case 4: // This case should only be reached via button click now
               _isShowingInstructions = false;
               _actuallyStartMeasurement();
               timer.cancel();
@@ -330,7 +331,7 @@ class _BoltScreenState extends State<BoltScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildInstructionStep(1,
-                  'Cálmate y respira normal por la nariz durante 10 segundos'),
+                  'Respira de forma tranquila por la nariz unas cuantas veces'),
               _buildInstructionStep(
                   2, 'Realiza una inhalación NORMAL durante 5 segundos'),
               _buildInstructionStep(
@@ -341,8 +342,8 @@ class _BoltScreenState extends State<BoltScreen>
               _buildInstructionStep(6,
                   'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire'),
               _buildInstructionStep(7, 'Detén el cronometro en ese momento'),
-              _buildInstructionStep(
-                  8, 'Recupera tu respiración normal, lenta y controlada'),
+              _buildInstructionStep(8,
+                  'Regresa a respirar como empezaste de forma normal, lenta y controlada'),
             ],
           ),
 
@@ -405,7 +406,308 @@ class _BoltScreenState extends State<BoltScreen>
     );
   }
 
-  Widget _buildInstructionAnimation() {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final periodScores = _periodScores;
+
+    return Scaffold(
+      // SliverAppBar will scroll away
+      body: Stack(
+        children: [
+          // Main content
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                backgroundColor: const Color(0xFF132737),
+                foregroundColor: cs.onBackground,
+                elevation: 0,
+                // Makes it disappear when you scroll up
+                pinned: false, // not fixed
+                floating: true, // re-appears on quick swipe-down
+                snap: true,
+                // Kill the "scroll-under" tint/elevation
+                scrolledUnderElevation: 0,
+                surfaceTintColor: Colors.transparent,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => context.go('/settings'),
+                  ),
+                ],
+              ),
+
+              // Everything that used to be in your old Column
+              SliverPadding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Title & description
+                    Text(
+                      'Mide tu nivel de calma',
+                      style: tt.displayMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
+                      'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
+                      'Mientras mayor sea tu score de BOLT, menos es la probabilidad de que tengas un ataque de pánico, asma o ansiedad.',
+                      style: tt.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Measurement UI - only show this when not in instructions mode
+                    if (!_isShowingInstructions)
+                      !_isMeasuring && !_isComplete
+                          ? _buildInstructionsCard()
+                          : _buildMeasurementUI(),
+
+                    const SizedBox(height: 30),
+
+                    // Chart or loader
+                    if (_isLoading)
+                      const Center(child: CircularProgressIndicator())
+                    else if (periodScores.isNotEmpty) ...[
+                      Text('Tu progreso', style: tt.headlineMedium),
+                      const SizedBox(height: 16),
+
+                      // Two-row layout for aggregation selectors
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          // Split the aggregation values into two rows
+                          final firstRowAggregations = [
+                            Aggregation.day,
+                            Aggregation.week,
+                            Aggregation.month,
+                          ];
+                          final secondRowAggregations = [
+                            Aggregation.quarter,
+                            Aggregation.year,
+                          ];
+
+                          // Function to build an aggregation button
+                          Widget buildAggregationButton(Aggregation a) {
+                            final sel = a == _aggregation;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 4),
+                              child: InkWell(
+                                onTap: () => setState(() => _aggregation = a),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: sel ? cs.primary : cs.surface,
+                                    borderRadius: BorderRadius.circular(20),
+                                    // Add subtle border for non-selected items
+                                    border: !sel
+                                        ? Border.all(
+                                            color:
+                                                cs.onSurface.withOpacity(0.1),
+                                            width: 1,
+                                          )
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    _aggLabel(a),
+                                    style: tt.bodyMedium?.copyWith(
+                                      color: sel ? cs.onPrimary : cs.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: [
+                              // First row - Day, Week, Month
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: firstRowAggregations
+                                    .map(buildAggregationButton)
+                                    .toList(),
+                              ),
+
+                              // Small space between rows
+                              const SizedBox(height: 4),
+
+                              // Second row - Quarter, Year
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: secondRowAggregations
+                                    .map(buildAggregationButton)
+                                    .toList(),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Responsive chart
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: cs.surface,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1.7,
+                          child: LineChart(
+                            LineChartData(
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: 10,
+                                getDrawingHorizontalLine: (_) => FlLine(
+                                  color: cs.onSurface.withOpacity(0.1),
+                                  strokeWidth: 1,
+                                ),
+                              ),
+                              borderData: FlBorderData(show: false),
+                              lineTouchData: LineTouchData(
+                                touchTooltipData: LineTouchTooltipData(
+                                  tooltipBgColor: cs.surface.withOpacity(0.8),
+                                  tooltipRoundedRadius: 8,
+                                  getTooltipItems:
+                                      (List<LineBarSpot> touchedSpots) {
+                                    return touchedSpots.map((spot) {
+                                      return LineTooltipItem(
+                                        // Format with only one decimal place
+                                        '${spot.y.toStringAsFixed(1)}',
+                                        TextStyle(
+                                          color: cs.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                ),
+                              ),
+                              titlesData: FlTitlesData(
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 10,
+                                    reservedSize: 40,
+                                    getTitlesWidget: (v, _) => Text(
+                                        v.toInt().toString(),
+                                        style: tt.bodyMedium),
+                                  ),
+                                ),
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: 1,
+                                    reservedSize:
+                                        30, // plenty of room for rotated labels
+                                    getTitlesWidget: (value, meta) {
+                                      final i = value.toInt();
+                                      if (i < 0 || i >= periodScores.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final label =
+                                          _formatBottom(periodScores[i].period);
+                                      return Transform.rotate(
+                                        angle: -math.pi / 4,
+                                        alignment: Alignment.topLeft,
+                                        child:
+                                            Text(label, style: tt.bodyMedium),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                topTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: const AxisTitles(
+                                    sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: periodScores
+                                      .asMap()
+                                      .entries
+                                      .map((e) => FlSpot(e.key.toDouble(),
+                                          e.value.averageScore))
+                                      .toList(),
+                                  isCurved: true,
+                                  color: cs.primary,
+                                  barWidth: 3,
+                                  isStrokeCapRound: true,
+                                  dotData: const FlDotData(show: true),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    color: cs.primary.withOpacity(0.1),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ]),
+                ),
+              ),
+            ],
+          ),
+
+          // Full-screen overlay for instruction steps
+          if (_isShowingInstructions) _buildFullScreenInstructionOverlay(),
+        ],
+      ),
+      bottomNavigationBar: const CustomNavBar(currentIndex: 2),
+    );
+  }
+
+  // New method to build a full-screen overlay for instructions
+  Widget _buildFullScreenInstructionOverlay() {
+    final cs = Theme.of(context).colorScheme;
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.9), // Dim background
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                children: [
+                  // Header with close button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () =>
+                            setState(() => _isShowingInstructions = false),
+                      ),
+                    ],
+                  ),
+
+                  // Instruction animation - takes most of the screen
+                  Expanded(
+                    child: _buildCompactInstructionAnimation(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // New more compact instruction animation
+  Widget _buildCompactInstructionAnimation() {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -437,151 +739,171 @@ class _BoltScreenState extends State<BoltScreen>
       displayCountdown = 1;
     }
 
-    return PageTransitionSwitcher(
-      duration: const Duration(milliseconds: 600),
-      transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
-        return FadeThroughTransition(
-          animation: primaryAnimation,
-          secondaryAnimation: secondaryAnimation,
-          child: child,
-        );
-      },
-      child: Container(
-        key: ValueKey<int>(_instructionStep),
-        width: double.infinity,
-        height: 480, // Fixed height for all instruction steps
-        padding: const EdgeInsets.all(24.0),
-        color: cs.surface, // Match parent container color
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Text(
-              phaseText,
-              style: tt.headlineMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Title
+          Text(
+            phaseText,
+            style: tt.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 30),
 
-            // Main content - same height for all steps
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_instructionStep == 0) ...[
-                    Image.asset(
-                      instructionImage,
-                      width: 120,
-                      height: 120,
-                      color: cs.primary,
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Preparate para hacer una inhalación normal',
-                      style: tt.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _advanceToNextInstruction,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primaryContainer,
-                        foregroundColor: cs.onPrimaryContainer,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 12),
-                        elevation: 4,
-                        shadowColor: cs.shadow.withOpacity(0.5),
-                        side: BorderSide(
-                          color: cs.primary.withOpacity(0.4),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Text('SIGUIENTE'),
-                    ),
-                  ] else if (_instructionStep == 1 ||
-                      _instructionStep == 2) ...[
-                    // Display the countdown above the circle in its own container
-                    Container(
-                      margin: const EdgeInsets.only(
-                          bottom: 16), // Add space between countdown and circle
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: cs.primary.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        displayCountdown.toString(),
-                        style: tt.displayLarge?.copyWith(
-                          color: cs.primary,
-                          fontSize: 48,
-                        ),
-                      ),
-                    ),
-
-                    // Circle
-                    BreathCircle(
-                      isBreathing: true,
-                      onTap: () {},
-                      size: 200,
-                      phaseIndicator: WaveAnimation(
-                        waveAnimation: _breathAnimationController,
-                        fillLevel: _instructionStep == 1
-                            ? _breathAnimationController.value
-                            : 1 - _breathAnimationController.value,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _instructionStep == 1
-                          ? 'Preparate para exhalar...'
-                          : 'Preparate para retener...',
-                      style: tt.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                  ] else if (_instructionStep == 3) ...[
-                    Image.asset(
-                      instructionImage,
-                      width: 120,
-                      height: 120,
-                    ),
-                    const SizedBox(height: 30),
-                    ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _instructionStep = 4; // Move to next step
-                          _isShowingInstructions = false;
-                          _actuallyStartMeasurement();
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cs.primaryContainer,
-                        foregroundColor: cs.onPrimaryContainer,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 12),
-                        elevation: 4,
-                        shadowColor: cs.shadow.withOpacity(0.5),
-                        side: BorderSide(
-                          color: cs.primary.withOpacity(0.4),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Text('EMPEZAR RETENCIÓN'),
-                    ),
-                  ],
-                ],
+          // Main content
+          Expanded(
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _buildInstructionStepContent(
+                    cs, tt, instructionImage, displayCountdown),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+  }
+
+  // Helper method to build the content for each instruction step
+  Widget _buildInstructionStepContent(ColorScheme cs, TextTheme tt,
+      String instructionImage, int displayCountdown) {
+    if (_instructionStep == 0) {
+      return Column(
+        key: const ValueKey('step0'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            instructionImage,
+            width: 100,
+            height: 100,
+            color: cs.primary,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Preparate para hacer una inhalación normal',
+            style: tt.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _advanceToNextInstruction,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              elevation: 4,
+              shadowColor: cs.shadow.withOpacity(0.5),
+              side: BorderSide(
+                color: cs.primary.withOpacity(0.4),
+                width: 1.5,
+              ),
+            ),
+            child: const Text('SIGUIENTE'),
+          ),
+        ],
+      );
+    } else if (_instructionStep == 1 || _instructionStep == 2) {
+      return Column(
+        key: ValueKey('step${_instructionStep}'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Countdown
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            decoration: BoxDecoration(
+              color: cs.primary.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              displayCountdown.toString(),
+              style: tt.displayLarge?.copyWith(
+                color: cs.primary,
+                fontSize: 48,
+              ),
+            ),
+          ),
+
+          // Circle
+          BreathCircle(
+            isBreathing: true,
+            onTap: () {},
+            size: 150, // Smaller size
+            phaseIndicator: WaveAnimation(
+              waveAnimation: _breathAnimationController,
+              fillLevel: _instructionStep == 1
+                  ? _breathAnimationController.value
+                  : 1 - _breathAnimationController.value,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _instructionStep == 1
+                ? 'Preparate para exhalar...'
+                : 'Preparate para retener...',
+            style: tt.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
+      );
+    } else if (_instructionStep == 3) {
+      return Column(
+        key: const ValueKey('step3'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            instructionImage,
+            width: 100,
+            height: 100,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Cuando estés listo para comenzar la retención, presiona el botón:',
+            style: tt.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _instructionStep = 4; // Move to next step
+                _isShowingInstructions = false;
+                _actuallyStartMeasurement();
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              elevation: 4,
+              shadowColor: cs.shadow.withOpacity(0.5),
+              side: BorderSide(
+                color: cs.primary.withOpacity(0.4),
+                width: 1.5,
+              ),
+            ),
+            child: const Text('EMPEZAR MEDICIÓN'),
+          ),
+        ],
+      );
+    } else {
+      return const SizedBox(); // Fallback
+    }
   }
 
   Widget _buildMeasurementUI() {
@@ -608,17 +930,32 @@ class _BoltScreenState extends State<BoltScreen>
           if (_isComplete) ...[
             const SizedBox(height: 8),
             Text(
-              'Lo hicistes bien si después de retener lograste respirar normal y controlado como empezaste',
+              'Lo hicistes bien si después de retener lograste respirar normal y de forma controlada como empezaste',
               style: tt.bodySmall,
               textAlign: TextAlign.center,
             ),
           ],
           const SizedBox(height: 20),
           if (_isMeasuring) ...[
-            Text(
-              '$_seconds segundos',
-              style: tt.displayLarge,
-              textAlign: TextAlign.center,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$_seconds',
+                  style: tt.displayLarge?.copyWith(
+                    fontSize: 64,
+                    height: 1.0, // Tighter line height
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                Text(
+                  'segundos',
+                  style: tt.headlineSmall?.copyWith(
+                    color: cs.onSurface.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
             const SizedBox(height: 20),
             ElevatedButton(
@@ -707,206 +1044,6 @@ class _BoltScreenState extends State<BoltScreen>
           ],
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final periodScores = _periodScores;
-
-    // Debug state
-    // print(
-    //     "Build: _isShowingInstructions=[4m_isShowingInstructions, _isMeasuring=[4m_isMeasuring, _isComplete=[4m_isComplete");
-
-    return Scaffold(
-      // SliverAppBar will scroll away
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: const Color(0xFF132737),
-            foregroundColor: cs.onBackground,
-            elevation: 0,
-            // Makes it disappear when you scroll up
-            pinned: false, // not fixed
-            floating: true, // re-appears on quick swipe-down
-            snap: true,
-            // Kill the "scroll-under" tint/elevation
-            scrolledUnderElevation: 0,
-            surfaceTintColor: Colors.transparent,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () => context.go('/settings'),
-              ),
-            ],
-          ),
-
-          // Everything that used to be in your old Column
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Title & description
-                Text(
-                  'Mide tu probabilidad de tener un ataque de pánico',
-                  style: tt.displayMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
-                  'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
-                  'Mientras mayor sea tu score de BOLT, menor será tu probabilidad de tener un ataque de pánico.',
-                  style: tt.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-
-                // Measurement UI
-                if (_isShowingInstructions)
-                  Material(
-                    elevation: 0,
-                    color: cs.surface,
-                    borderRadius: BorderRadius.circular(20),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: _buildInstructionAnimation(),
-                    ),
-                  )
-                else if (!_isMeasuring && !_isComplete)
-                  _buildInstructionsCard()
-                else
-                  _buildMeasurementUI(),
-
-                const SizedBox(height: 30),
-
-                // Chart or loader
-                if (_isLoading)
-                  const Center(child: CircularProgressIndicator())
-                else if (periodScores.isNotEmpty) ...[
-                  Text('Tu progreso', style: tt.headlineMedium),
-                  const SizedBox(height: 16),
-
-                  // Aggregation selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: Aggregation.values.map((a) {
-                      final sel = a == _aggregation;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: GestureDetector(
-                          onTap: () => setState(() => _aggregation = a),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: sel ? cs.primary : cs.surface,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              _aggLabel(a),
-                              style: tt.bodyMedium?.copyWith(
-                                color: sel ? cs.onPrimary : cs.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Responsive chart
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cs.surface,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: AspectRatio(
-                      aspectRatio: 1.7,
-                      child: LineChart(
-                        LineChartData(
-                          gridData: FlGridData(
-                            show: true,
-                            drawVerticalLine: false,
-                            horizontalInterval: 10,
-                            getDrawingHorizontalLine: (_) => FlLine(
-                              color: cs.onSurface.withOpacity(0.1),
-                              strokeWidth: 1,
-                            ),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          titlesData: FlTitlesData(
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: 10,
-                                reservedSize: 40,
-                                getTitlesWidget: (v, _) => Text(
-                                    v.toInt().toString(),
-                                    style: tt.bodyMedium),
-                              ),
-                            ),
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                interval: 1,
-                                reservedSize:
-                                    30, // plenty of room for rotated labels
-                                getTitlesWidget: (value, meta) {
-                                  final i = value.toInt();
-                                  if (i < 0 || i >= periodScores.length) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  final label =
-                                      _formatBottom(periodScores[i].period);
-                                  return Transform.rotate(
-                                    angle: -math.pi / 4,
-                                    alignment: Alignment.topLeft,
-                                    child: Text(label, style: tt.bodyMedium),
-                                  );
-                                },
-                              ),
-                            ),
-                            topTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: const AxisTitles(
-                                sideTitles: SideTitles(showTitles: false)),
-                          ),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: periodScores
-                                  .asMap()
-                                  .entries
-                                  .map((e) => FlSpot(
-                                      e.key.toDouble(), e.value.averageScore))
-                                  .toList(),
-                              isCurved: true,
-                              color: cs.primary,
-                              barWidth: 3,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: true),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color: cs.primary.withOpacity(0.1),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ]),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: const CustomNavBar(currentIndex: 2),
     );
   }
 }

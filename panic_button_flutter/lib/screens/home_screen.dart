@@ -38,7 +38,7 @@ class HomeScreen extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
-                        'Cuando sientas un ataque de pánico, presiona el botón para iniciar un ejercicio de respiración guiada de 3 minutos.',
+                        'Está comprobado científicamente que practicar ejercicios de respiración reduce significativamente tu ansiedad y aumenta tu capacidad para manejar el estrés, reduciendo la probabilidad de ataques de pánico, asma o ansiedad.',
                         style: tt.bodyLarge,
                         textAlign: TextAlign.center,
                       ),
