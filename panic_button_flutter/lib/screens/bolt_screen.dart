@@ -306,48 +306,120 @@ class _BoltScreenState extends State<BoltScreen>
     final tt = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
-          Text(
-            'Instrucciones para medir tu BOLT',
-            style: tt.headlineMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Para mejores resultados, realiza esta medición al despertar por la mañana.',
-            style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-
-          // Instruction steps
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // Header
+          Row(
             children: [
-              _buildInstructionStep(1,
-                  'Respira de forma tranquila por la nariz unas cuantas veces'),
-              _buildInstructionStep(
-                  2, 'Realiza una inhalación NORMAL durante 5 segundos'),
-              _buildInstructionStep(
-                  3, 'Realiza una exhalación NORMAL durante 5 segundos'),
-              _buildInstructionStep(
-                  4, 'Pincha tu nariz o retén la respiración'),
-              _buildInstructionStep(5, 'Inicia el cronómetro'),
-              _buildInstructionStep(6,
-                  'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire'),
-              _buildInstructionStep(7, 'Detén el cronometro en ese momento'),
-              _buildInstructionStep(8,
-                  'Regresa a respirar como empezaste de forma normal, lenta y controlada'),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'BOLT',
+                      style: tt.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Para mejores resultados, realiza esta medición al despertar por la mañana.',
+                      style: tt.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              // Info button
+              IconButton(
+                icon: Icon(
+                  Icons.info_outline,
+                  color: cs.primary,
+                ),
+                onPressed: () {
+                  // Show detailed instructions in a dialog
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Instrucciones Detalladas'),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildInstructionStep(1,
+                                'Respira de forma tranquila por la nariz unas cuantas veces'),
+                            _buildInstructionStep(2,
+                                'Realiza una inhalación NORMAL durante 5 segundos'),
+                            _buildInstructionStep(3,
+                                'Realiza una exhalación NORMAL durante 5 segundos'),
+                            _buildInstructionStep(
+                                4, 'Pincha tu nariz o retén la respiración'),
+                            _buildInstructionStep(5, 'Inicia el cronómetro'),
+                            _buildInstructionStep(6,
+                                'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire'),
+                            _buildInstructionStep(
+                                7, 'Detén el cronometro en ese momento'),
+                            _buildInstructionStep(8,
+                                'Regresa a respirar como empezaste de forma normal, lenta y controlada'),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cerrar'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+
+          // Compact instruction steps - just show core steps with icons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Step 1-3: Breathe
+              _buildCompactStep(
+                cs,
+                Icons.air_rounded,
+                'Respira\nNormal',
+              ),
+
+              // Arrow
+              Icon(Icons.arrow_forward, color: cs.onSurface.withOpacity(0.5)),
+
+              // Step 4: Hold breath - using pinch nose image
+              _buildCompactStepWithImage(
+                cs,
+                Images.pinchNose,
+                'Retén\nrespiración',
+              ),
+
+              // Arrow
+              Icon(Icons.arrow_forward, color: cs.onSurface.withOpacity(0.5)),
+
+              // Step 5-7: Measure time specifically
+              _buildCompactStep(
+                cs,
+                Icons.timer,
+                'Mide\nTiempo',
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Start button
           ElevatedButton(
             onPressed: _startMeasurement,
             style: ElevatedButton.styleFrom(
@@ -356,13 +428,15 @@ class _BoltScreenState extends State<BoltScreen>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               elevation: 4,
               shadowColor: cs.shadow.withOpacity(0.5),
               side: BorderSide(
                 color: cs.primary.withOpacity(0.4),
                 width: 1.5,
               ),
+              minimumSize:
+                  const Size(double.infinity, 48), // Make button full width
             ),
             child: const Text('COMENZAR'),
           ),
@@ -371,6 +445,75 @@ class _BoltScreenState extends State<BoltScreen>
     );
   }
 
+  // New helper method for compact step display
+  Widget _buildCompactStep(ColorScheme cs, IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: cs.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              color: cs.primary,
+              size: 24,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: cs.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // New helper method for compact step using image instead of icon
+  Widget _buildCompactStepWithImage(
+      ColorScheme cs, String imagePath, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: cs.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Image.asset(
+              imagePath,
+              width: 30,
+              height: 30,
+              color: cs.primary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12,
+            color: cs.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Add back the instruction step method
   Widget _buildInstructionStep(int step, String text) {
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
@@ -452,9 +595,7 @@ class _BoltScreenState extends State<BoltScreen>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'La prueba BOLT (Body Oxygen Level Test) mide tu tolerancia al CO2. '
-                      'Es un gran indicador de tu nivel de ansiedad y tu capacidad para manejar el estrés. '
-                      'Mientras mayor sea tu score de BOLT, menos es la probabilidad de que tengas un ataque de pánico, asma o ansiedad.',
+                      'La prueba BOLT mide tu resistencia al CO2 y refleja tu nivel de calma. A mayor puntaje, menor riesgo de ansiedad o ataques de pánico.',
                       style: tt.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
