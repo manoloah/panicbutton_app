@@ -6,7 +6,7 @@
     "minutes_week": 10,
     "pattern_slugs": ["conscious_4_4"],
     "description_es": "Inhala 4 s – exhala 4 s por la nariz. Primer ancla rápida ante la ansiedad.",
-    "benefit_es": "Ayuda a que tu corazón lata más lento y te sientas más seguro."
+    "benefit_es": "Ayuda a que tu corazón lata más lento y tengas más seguridad en ti."
   },
   {
     "id": 2,
@@ -15,7 +15,7 @@
     "minutes_week": 15,
     "pattern_slugs": ["conscious_5_5"],
     "description_es": "Amplía tu \"habitación segura\" al alargar el ritmo a 5 s.",
-    "benefit_es": "Relaja tu cuerpo y a que pienses con más claridad."
+    "benefit_es": "Relaja tu cuerpo para que pienses con más claridad."
   },
   {
     "id": 3,
@@ -24,7 +24,7 @@
     "minutes_week": 20,
     "pattern_slugs": ["coherent_4_6"],
     "description_es": "4 s in / 6 s out. Sincroniza corazón-respiración y silencia la mente rumiativa.",
-    "benefit_es": "Sincroniza tu corazón con tu respiración y a calmar tu mente."
+    "benefit_es": "Sincroniza tu corazón con tu respiración y calma tu mente."
   },
   {
     "id": 4,
@@ -78,7 +78,7 @@
     "minutes_week": 70,
     "pattern_slugs": ["pause15_every4"],
     "description_es": "Pausa vacía de 15 s cada 4 respiraciones. Desafío intermedio de CO₂.",
-    "benefit_es": "Te ayuda a calmar la sensación de falta de aire y a mantener tu mente tranquila durante un ataque de pánico o asma."
+    "benefit_es": "Te ayuda a calmar la sensación de falta de aire y a mantener tu mente tranquila durante un ataque."
   },
   {
     "id": 10,

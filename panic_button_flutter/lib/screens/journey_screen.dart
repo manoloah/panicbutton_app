@@ -20,16 +20,18 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
   // Map level IDs to themed icons
   final Map<int, IconData> _levelIcons = {
-    1: Icons.local_florist, // Beginner level - plant/seed/growth
-    2: Icons.air, // Basic breathing
-    3: Icons.waves, // Steady breathing waves
-    4: Icons.health_and_safety, // Health focus
-    5: Icons.self_improvement, // Meditation/improvement
-    6: Icons.psychology, // Mental clarity
-    7: Icons.landscape, // Nature connection
-    8: Icons.spa, // Relaxation mastery
-    9: Icons.emoji_emotions, // Emotional balance
-    10: Icons.star, // Master level achievement
+    1: Icons.eco, // Beginner level - first growth
+    2: Icons.air_rounded, // Basic breathing - gentle air
+    3: Icons.waves_rounded, // Steady breathing waves
+    4: Icons.favorite_outline, // Heart and health focus
+    5: Icons.self_improvement, // Meditation and mindfulness
+    6: Icons.lightbulb_outline, // Mental clarity and insight
+    7: Icons.park_rounded, // Nature connection - forest immersion
+    8: Icons.water_drop, // Flow state - fluid like water
+    9: Icons.palette, // Emotional balance and expression
+    10: Icons.flight_takeoff, // Transcendence and breakthrough
+    11: Icons.electric_bolt, // Chispa Controlada - spark/electricity control
+    12: Icons.insights, // Balance Supremo - harmony and equilibrium
   };
 
   void _toggleExpandLevel(int id) {
@@ -141,7 +143,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                             children: [
                               const SizedBox(height: 32),
                               Text(
-                                'Camino Respiratorio',
+                                'Camino a la Calma',
                                 style: Theme.of(context)
                                     .textTheme
                                     .displayLarge
@@ -151,7 +153,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Desbloquea nuevas técnicas y mejora tu respiración día a día',
+                                'Desbloquea nuevas técnicas de respiración y mejora tu sistema nervioso',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodyLarge
@@ -279,53 +281,64 @@ class _JourneyScreenState extends State<JourneyScreen> {
     required bool isBolt,
   }) {
     String unit = isBolt ? 's' : 'min/semana';
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          flex: 3,
-          child: isBolt
-              ? GestureDetector(
-                  onTap: _navigateToBoltScreen,
-                  child: Row(
-                    children: [
-                      Text(
-                        '$title: $target$unit',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.white,
-                            ),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.info_outline,
-                        color: Color(0xFF336699),
-                        size: 16,
-                      ),
-                    ],
+        // Row for the title and value
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Left side - title with optional info icon
+            isBolt
+                ? GestureDetector(
+                    onTap: _navigateToBoltScreen,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$title: $target$unit',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Colors.white,
+                                  ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(
+                          Icons.info_outline,
+                          color: Color(0xFF336699),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  )
+                : Text(
+                    '$title: $target$unit',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white,
+                        ),
                   ),
-                )
-              : Text(
-                  '$title: $target$unit',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white,
-                      ),
-                ),
+
+            // Right side - current value
+            Text(
+              '$current/$target$unit',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFB0B0B0),
+                  ),
+              textAlign: TextAlign.end,
+            ),
+          ],
         ),
-        Expanded(
-          flex: 4,
-          child: LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            backgroundColor: const Color(0xFF243649),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF336699)),
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$current/$target$unit',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFFB0B0B0),
-              ),
+
+        // Small vertical spacing
+        const SizedBox(height: 4),
+
+        // Progress bar below
+        LinearProgressIndicator(
+          value: progress.clamp(0.0, 1.0),
+          backgroundColor: const Color(0xFF243649),
+          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF336699)),
+          minHeight: 6,
+          borderRadius: BorderRadius.circular(3),
         ),
       ],
     );
@@ -580,13 +593,17 @@ class _JourneyScreenState extends State<JourneyScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'BOLT mayor a: ${level.boltMin}s',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: provider.isLevelUnlocked(level.id)
-                        ? const Color(0xFFB0B0B0)
-                        : const Color(0xFF666666),
-                  ),
+            Flexible(
+              child: Text(
+                'BOLT mayor a: ${level.boltMin}s',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: provider.isLevelUnlocked(level.id)
+                          ? const Color(0xFFB0B0B0)
+                          : const Color(0xFF666666),
+                    ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
             const SizedBox(width: 2),
             Icon(
@@ -610,6 +627,8 @@ class _JourneyScreenState extends State<JourneyScreen> {
                   ? const Color(0xFFB0B0B0)
                   : const Color(0xFF666666),
             ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
 
