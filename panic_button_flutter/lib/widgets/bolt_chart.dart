@@ -48,7 +48,7 @@ class BoltChart extends StatelessWidget {
       {'y': 20.0, 'label': 'Inquieto/Irregular'},
       {'y': 25.0, 'label': 'Calma Parcial'},
       {'y': 30.0, 'label': 'Tranquilo/Estable'},
-      {'y': 35.0, 'label': 'Zen/Inmune'},
+      {'y': 40.0, 'label': 'Zen/Inmune'},
     ];
 
     // Zone colors for different mental states

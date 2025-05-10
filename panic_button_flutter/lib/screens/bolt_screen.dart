@@ -561,172 +561,182 @@ class _BoltScreenState extends State<BoltScreen>
       body: Stack(
         children: [
           // Main content
-          CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                backgroundColor: const Color(0xFF132737),
-                foregroundColor: cs.onBackground,
-                elevation: 0,
-                // Makes it disappear when you scroll up
-                pinned: false, // not fixed
-                floating: true, // re-appears on quick swipe-down
-                snap: true,
-                // Kill the "scroll-under" tint/elevation
-                scrolledUnderElevation: 0,
-                surfaceTintColor: Colors.transparent,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.settings),
-                    onPressed: () => context.go('/settings'),
+          SafeArea(
+            bottom:
+                false, // Don't pad the bottom - we'll handle that separately
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: const Color(0xFF132737),
+                  foregroundColor: cs.onBackground,
+                  elevation: 0,
+                  // Makes it disappear when you scroll up
+                  pinned: false, // not fixed
+                  floating: true, // re-appears on quick swipe-down
+                  snap: true,
+                  // Kill the "scroll-under" tint/elevation
+                  scrolledUnderElevation: 0,
+                  surfaceTintColor: Colors.transparent,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      onPressed: () => context.go('/settings'),
+                    ),
+                  ],
+                ),
+
+                // Everything that used to be in your old Column
+                SliverPadding(
+                  padding: const EdgeInsets.only(
+                    left: 24,
+                    right: 24,
+                    top: 16,
+                    bottom:
+                        90, // Add extra bottom padding to avoid navbar overlap
                   ),
-                ],
-              ),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Title & description
+                      Text(
+                        'Mide tu nivel de calma',
+                        style: tt.displayMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'La prueba BOLT mide tu resistencia al CO2 y refleja tu nivel de calma. A mayor puntaje, menor riesgo de ansiedad o ataques de pánico.',
+                        style: tt.bodyMedium,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 30),
 
-              // Everything that used to be in your old Column
-              SliverPadding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                sliver: SliverList(
-                  delegate: SliverChildListDelegate([
-                    // Title & description
-                    Text(
-                      'Mide tu nivel de calma',
-                      style: tt.displayMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'La prueba BOLT mide tu resistencia al CO2 y refleja tu nivel de calma. A mayor puntaje, menor riesgo de ansiedad o ataques de pánico.',
-                      style: tt.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 30),
+                      // Measurement UI - only show this when not in instructions mode
+                      if (!_isShowingInstructions)
+                        !_isMeasuring && !_isComplete
+                            ? _buildInstructionsCard()
+                            : _buildMeasurementUI(),
 
-                    // Measurement UI - only show this when not in instructions mode
-                    if (!_isShowingInstructions)
-                      !_isMeasuring && !_isComplete
-                          ? _buildInstructionsCard()
-                          : _buildMeasurementUI(),
+                      const SizedBox(height: 30),
 
-                    const SizedBox(height: 30),
+                      // Chart or loader
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (periodScores.isNotEmpty) ...[
+                        Text('Tu progreso', style: tt.headlineMedium),
+                        const SizedBox(height: 16),
 
-                    // Chart or loader
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else if (periodScores.isNotEmpty) ...[
-                      Text('Tu progreso', style: tt.headlineMedium),
-                      const SizedBox(height: 16),
+                        // Two-row layout for aggregation selectors
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Split the aggregation values into two rows
+                            final firstRowAggregations = [
+                              Aggregation.day,
+                              Aggregation.week,
+                              Aggregation.month,
+                            ];
+                            final secondRowAggregations = [
+                              Aggregation.quarter,
+                              Aggregation.year,
+                            ];
 
-                      // Two-row layout for aggregation selectors
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          // Split the aggregation values into two rows
-                          final firstRowAggregations = [
-                            Aggregation.day,
-                            Aggregation.week,
-                            Aggregation.month,
-                          ];
-                          final secondRowAggregations = [
-                            Aggregation.quarter,
-                            Aggregation.year,
-                          ];
-
-                          // Function to build an aggregation button
-                          Widget buildAggregationButton(Aggregation a) {
-                            final sel = a == _aggregation;
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 4),
-                              child: InkWell(
-                                onTap: () => setState(() => _aggregation = a),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: sel ? cs.primary : cs.surface,
-                                    borderRadius: BorderRadius.circular(20),
-                                    // Add subtle border for non-selected items
-                                    border: !sel
-                                        ? Border.all(
-                                            color:
-                                                cs.onSurface.withOpacity(0.1),
-                                            width: 1,
-                                          )
-                                        : null,
-                                  ),
-                                  child: Text(
-                                    _aggLabel(a),
-                                    style: tt.bodyMedium?.copyWith(
-                                      color: sel ? cs.onPrimary : cs.onSurface,
+                            // Function to build an aggregation button
+                            Widget buildAggregationButton(Aggregation a) {
+                              final sel = a == _aggregation;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 4, vertical: 4),
+                                child: InkWell(
+                                  onTap: () => setState(() => _aggregation = a),
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: sel ? cs.primary : cs.surface,
+                                      borderRadius: BorderRadius.circular(20),
+                                      // Add subtle border for non-selected items
+                                      border: !sel
+                                          ? Border.all(
+                                              color:
+                                                  cs.onSurface.withOpacity(0.1),
+                                              width: 1,
+                                            )
+                                          : null,
+                                    ),
+                                    child: Text(
+                                      _aggLabel(a),
+                                      style: tt.bodyMedium?.copyWith(
+                                        color:
+                                            sel ? cs.onPrimary : cs.onSurface,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }
+                              );
+                            }
 
-                          return Column(
-                            children: [
-                              // First row - Day, Week, Month
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: firstRowAggregations
-                                    .map(buildAggregationButton)
-                                    .toList(),
-                              ),
-
-                              // Small space between rows
-                              const SizedBox(height: 4),
-
-                              // Second row - Quarter, Year
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: secondRowAggregations
-                                    .map(buildAggregationButton)
-                                    .toList(),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Responsive chart with proper constraints for mobile
-                      Container(
-                        width: double.infinity,
-                        constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.width < 400
-                              ? 300
-                              : 250,
-                        ),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: cs.surface,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: periodScores.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  'No hay datos suficientes para mostrar una gráfica',
-                                  textAlign: TextAlign.center,
+                            return Column(
+                              children: [
+                                // First row - Day, Week, Month
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: firstRowAggregations
+                                      .map(buildAggregationButton)
+                                      .toList(),
                                 ),
-                              )
-                            : bolt_chart.BoltChart(
-                                periodScores: periodScores
-                                    .map((p) => bolt_chart.PeriodScore(
-                                        period: p.period,
-                                        averageScore: p.averageScore))
-                                    .toList(),
-                                formatBottomLabel: _formatBottom,
-                              ),
-                      ),
-                    ],
-                  ]),
+
+                                // Small space between rows
+                                const SizedBox(height: 4),
+
+                                // Second row - Quarter, Year
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: secondRowAggregations
+                                      .map(buildAggregationButton)
+                                      .toList(),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Responsive chart with proper constraints for mobile
+                        Container(
+                          width: double.infinity,
+                          constraints: BoxConstraints(
+                            minHeight: MediaQuery.of(context).size.width < 400
+                                ? 300
+                                : 250,
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: cs.surface,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: periodScores.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No hay datos suficientes para mostrar una gráfica',
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : bolt_chart.BoltChart(
+                                  periodScores: periodScores
+                                      .map((p) => bolt_chart.PeriodScore(
+                                          period: p.period,
+                                          averageScore: p.averageScore))
+                                      .toList(),
+                                  formatBottomLabel: _formatBottom,
+                                ),
+                        ),
+                      ],
+                    ]),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // Full-screen overlay for instruction steps
@@ -983,38 +993,36 @@ class _BoltScreenState extends State<BoltScreen>
     // Get mental state description based on score
     String getMentalStateDescription(int score) {
       if (score <= 10) {
-        return 'Pánico Constante: Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.';
+        return 'Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.';
       } else if (score <= 15) {
-        return 'Ansioso/Inestable: Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.';
+        return 'Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.';
       } else if (score <= 20) {
-        return 'Inquieto/Irregular: Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.';
-      } else if (score <= 25) {
-        return 'Calma Parcial: La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
+        return 'Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.';
       } else if (score <= 30) {
-        return 'Tranquilo/Estable: Te sientes tranquilo, seguro y estable.';
-      } else if (score <= 35) {
-        return 'Zen/Inmune: Estás en un estado profundo de calma y control, difícilmente te alteras.';
+        return 'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
+      } else if (score <= 40) {
+        return 'Te sientes tranquilo, seguro y estable.';
       } else {
-        return 'Suprema Calma: Has alcanzado un nivel excepcional de calma y resiliencia mental.';
+        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
       }
     }
 
     // Get color based on score
     Color getMentalStateColor(int score) {
       if (score <= 10) {
-        return Colors.redAccent.shade200;
+        return const Color(0xFF8D7DAF); // Soft purple
       } else if (score <= 15) {
-        return Colors.orange;
+        return const Color(0xFF7A97C9); // Soft blue-purple
       } else if (score <= 20) {
-        return Colors.amber;
+        return const Color(0xFF68B0C1); // Teal-blue
       } else if (score <= 25) {
-        return Colors.lightGreen;
+        return const Color(0xFF5BBFAD); // Mint green
       } else if (score <= 30) {
-        return Colors.teal.shade300;
-      } else if (score <= 35) {
-        return Colors.blue.shade300;
+        return const Color(0xFF52A375); // More green than teal
+      } else if (score <= 40) {
+        return const Color(0xFF3B7F8C); // Deep teal
       } else {
-        return Colors.indigo.shade300;
+        return const Color(0xFF4265D6); // Brighter blue for better contrast
       }
     }
 
@@ -1025,6 +1033,7 @@ class _BoltScreenState extends State<BoltScreen>
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min, // Use minimum required space
         children: [
           Text(
             _isMeasuring
@@ -1047,63 +1056,115 @@ class _BoltScreenState extends State<BoltScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: getMentalStateColor(_seconds).withOpacity(0.1),
+                color: getMentalStateColor(_seconds).withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: getMentalStateColor(_seconds).withOpacity(0.3),
-                  width: 1,
+                  color: getMentalStateColor(_seconds).withOpacity(0.5),
+                  width: 1.5,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: Text(
-                getMentalStateDescription(_seconds),
-                style: tt.bodyMedium?.copyWith(
-                  color: getMentalStateColor(_seconds).withOpacity(0.8),
-                ),
-                textAlign: TextAlign.center,
+              child: Column(
+                children: [
+                  Text(
+                    '¿Qué significa tu score?',
+                    style: tt.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: getMentalStateColor(_seconds),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          getMentalStateDescription(_seconds),
+                          style: tt.bodyMedium?.copyWith(
+                            color: getMentalStateColor(_seconds),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: Icon(
+                          Icons.info_outline,
+                          color: getMentalStateColor(_seconds),
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 24, minHeight: 24),
+                        onPressed: () {
+                          _showBoltScoreInfoDialog();
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
           const SizedBox(height: 20),
           if (_isMeasuring) ...[
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$_seconds',
-                  style: tt.displayLarge?.copyWith(
-                    fontSize: 64,
-                    height: 1.0, // Tighter line height
+            Container(
+              constraints:
+                  const BoxConstraints(maxHeight: 140), // Constrain height
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // Use minimum space
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$_seconds',
+                    style: tt.displayLarge?.copyWith(
+                      fontSize: 60, // Reduced from 64
+                      height: 0.9, // Tighter line height
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                Text(
-                  'segundos',
-                  style: tt.headlineSmall?.copyWith(
-                    color: cs.onSurface.withOpacity(0.8),
+                  Text(
+                    'segundos',
+                    style: tt.headlineSmall?.copyWith(
+                      color: cs.onSurface.withOpacity(0.8),
+                      fontSize: 18, // Smaller text
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _stopMeasurement,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF4500), // Error color
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                elevation: 4,
-                shadowColor: Colors.red.withOpacity(0.5),
-                side: BorderSide(
-                  color: Colors.red.withOpacity(0.4),
-                  width: 1.5,
-                ),
+                ],
               ),
-              child: const Text('DETENER'),
+            ),
+            const SizedBox(height: 16), // Reduced from 20
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8), // Added bottom padding
+              child: ElevatedButton(
+                onPressed: _stopMeasurement,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF4500), // Error color
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  elevation: 4,
+                  shadowColor: Colors.red.withOpacity(0.5),
+                  side: BorderSide(
+                    color: Colors.red.withOpacity(0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Text('DETENER'),
+              ),
             ),
           ] else if (_isComplete) ...[
             Row(
@@ -1170,6 +1231,260 @@ class _BoltScreenState extends State<BoltScreen>
               child: const Text('EMPEZAR'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  void _showBoltScoreInfoDialog() {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final screenSize = MediaQuery.of(context).size;
+    final scrollController = ScrollController();
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: Container(
+          width: double.infinity,
+          constraints: BoxConstraints(
+            maxWidth: screenSize.width * 0.9,
+            maxHeight: screenSize.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Custom title bar
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 4, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        '¿Qué significa tu score?',
+                        style: tt.headlineSmall?.copyWith(
+                          fontSize: 20,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.of(context).pop(),
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 10, 24, 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Table(
+                          columnWidths: const {
+                            0: FixedColumnWidth(
+                                80), // Fixed width for score range column
+                            1: FlexColumnWidth(), // Flexible width for description column
+                          },
+                          defaultVerticalAlignment:
+                              TableCellVerticalAlignment.middle,
+                          children: [
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '1-10 segs',
+                                'Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.',
+                                const Color(0xFF8D7DAF)),
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '11-15 segs',
+                                'Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.',
+                                const Color(0xFF7A97C9)),
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '16-20 segs',
+                                'Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.',
+                                const Color(0xFF68B0C1)),
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '21-30 segs',
+                                'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.',
+                                const Color(0xFF52A375)),
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '31-40 segs',
+                                'Te sientes tranquilo, seguro y estable.',
+                                const Color(0xFF3B7F8C)),
+                            _buildScoreTableRow(
+                                cs,
+                                tt,
+                                '40+ segs',
+                                'Estás en un estado profundo de calma y control, difícilmente te alteras.',
+                                const Color(0xFF4265D6)),
+                          ],
+                        ),
+                        // Add padding at the bottom to ensure the last item is fully visible
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Scroll indicator at the bottom
+              Container(
+                height: 32,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      cs.surface.withOpacity(0),
+                      cs.surface,
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: cs.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              ),
+              // Action buttons
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: TextButton(
+                  child: const Text('Cerrar'),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // New method for table rows
+  TableRow _buildScoreTableRow(ColorScheme cs, TextTheme tt, String range,
+      String description, Color color) {
+    return TableRow(
+      children: [
+        // Score range cell
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+            ),
+            child: Text(
+              range,
+              style: tt.bodyMedium?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        // Description cell
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+          child: Text(
+            description,
+            style: tt.bodyMedium,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // More compact version for the dialog
+  Widget _buildCompactScoreRangeRow(ColorScheme cs, TextTheme tt, String range,
+      String description, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            margin: const EdgeInsets.only(top: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: color.withOpacity(0.5)),
+            ),
+            child: Text(
+              range,
+              style: tt.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              description,
+              style: tt.bodySmall?.copyWith(fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Keep the original version for individual scores
+  Widget _buildScoreRangeRow(ColorScheme cs, TextTheme tt, String range,
+      String description, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: color.withOpacity(0.5)),
+            ),
+            child: Text(range,
+                style: tt.bodyMedium
+                    ?.copyWith(color: color, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              description,
+              style: tt.bodyMedium,
+            ),
+          ),
         ],
       ),
     );
