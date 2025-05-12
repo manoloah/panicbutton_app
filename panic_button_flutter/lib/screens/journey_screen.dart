@@ -222,7 +222,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
           Text(
             'Ejercicio: $patternName',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withAlpha(192),
                 ),
           ),
           const SizedBox(height: 16),
@@ -449,7 +449,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
           boxShadow: isExpanded
               ? [
                   BoxShadow(
-                    color: borderColor.withOpacity(0.3),
+                    color: borderColor.withAlpha(192),
                     blurRadius: 10,
                     spreadRadius: 1,
                   )
@@ -669,7 +669,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
         boxShadow: isUnlocked
             ? [
                 BoxShadow(
-                  color: const Color(0xFF00B383).withOpacity(0.3),
+                  color: const Color(0xFF00B383).withAlpha(192),
                   blurRadius: 6,
                   spreadRadius: 1,
                 )

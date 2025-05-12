@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,7 +11,6 @@ import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
 import '../widgets/bolt_chart.dart' as bolt_chart;
 import '../constants/images.dart';
-import 'package:animations/animations.dart';
 
 /// How we bucket your raw BOLT scores:
 enum Aggregation { day, week, month, quarter, year }
@@ -164,7 +162,7 @@ class _BoltScreenState extends State<BoltScreen>
 
   // Method to advance to the next instruction manually
   void _advanceToNextInstruction() {
-    print("_advanceToNextInstruction called");
+    debugPrint("_advanceToNextInstruction called");
     setState(() {
       _instructionStep = 1; // Explicitly set to step 1 (inhale)
       _instructionCountdownDouble = 5; // Changed from 4 to 5 seconds
@@ -175,7 +173,7 @@ class _BoltScreenState extends State<BoltScreen>
       // Now start the timer for automatic progression through remaining steps
       _startInstructionTimer();
     });
-    print("Advanced to step: $_instructionStep");
+    debugPrint("Advanced to step: $_instructionStep");
   }
 
   void _actuallyStartMeasurement() {
@@ -397,7 +395,7 @@ class _BoltScreenState extends State<BoltScreen>
               ),
 
               // Arrow
-              Icon(Icons.arrow_forward, color: cs.onSurface.withOpacity(0.5)),
+              Icon(Icons.arrow_forward, color: cs.onSurface.withAlpha(128)),
 
               // Step 4: Hold breath - using pinch nose image
               _buildCompactStepWithImage(
@@ -407,7 +405,7 @@ class _BoltScreenState extends State<BoltScreen>
               ),
 
               // Arrow
-              Icon(Icons.arrow_forward, color: cs.onSurface.withOpacity(0.5)),
+              Icon(Icons.arrow_forward, color: cs.onSurface.withAlpha(128)),
 
               // Step 5-7: Measure time specifically
               _buildCompactStep(
@@ -431,9 +429,9 @@ class _BoltScreenState extends State<BoltScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               elevation: 4,
-              shadowColor: cs.shadow.withOpacity(0.5),
+              shadowColor: cs.shadow.withAlpha(102),
               side: BorderSide(
-                color: cs.primary.withOpacity(0.4),
+                color: cs.primary.withAlpha(102),
                 width: 1.5,
               ),
               minimumSize:
@@ -455,7 +453,7 @@ class _BoltScreenState extends State<BoltScreen>
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: cs.primary.withOpacity(0.1),
+            color: cs.primary.withAlpha((0.1 * 255).toInt()),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -489,7 +487,7 @@ class _BoltScreenState extends State<BoltScreen>
           width: 50,
           height: 50,
           decoration: BoxDecoration(
-            color: cs.primary.withOpacity(0.1),
+            color: cs.primary.withAlpha((0.1 * 255).toInt()),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -568,7 +566,7 @@ class _BoltScreenState extends State<BoltScreen>
               slivers: [
                 SliverAppBar(
                   backgroundColor: const Color(0xFF132737),
-                  foregroundColor: cs.onBackground,
+                  foregroundColor: cs.onSurface,
                   elevation: 0,
                   // Makes it disappear when you scroll up
                   pinned: false, // not fixed
@@ -658,7 +656,7 @@ class _BoltScreenState extends State<BoltScreen>
                                       border: !sel
                                           ? Border.all(
                                               color:
-                                                  cs.onSurface.withOpacity(0.1),
+                                                  cs.onSurface.withAlpha(128),
                                               width: 1,
                                             )
                                           : null,
@@ -753,7 +751,7 @@ class _BoltScreenState extends State<BoltScreen>
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.9), // Dim background
+        color: Colors.black.withAlpha((0.9 * 255).toInt()), // Dim background
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -884,9 +882,9 @@ class _BoltScreenState extends State<BoltScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               elevation: 4,
-              shadowColor: cs.shadow.withOpacity(0.5),
+              shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
               side: BorderSide(
-                color: cs.primary.withOpacity(0.4),
+                color: cs.primary.withAlpha((0.4 * 255).toInt()),
                 width: 1.5,
               ),
             ),
@@ -904,7 +902,7 @@ class _BoltScreenState extends State<BoltScreen>
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
-              color: cs.primary.withOpacity(0.2),
+              color: cs.primary.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -971,9 +969,9 @@ class _BoltScreenState extends State<BoltScreen>
               ),
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               elevation: 4,
-              shadowColor: cs.shadow.withOpacity(0.5),
+              shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
               side: BorderSide(
-                color: cs.primary.withOpacity(0.4),
+                color: cs.primary.withAlpha((0.4 * 255).toInt()),
                 width: 1.5,
               ),
             ),
@@ -1056,15 +1054,17 @@ class _BoltScreenState extends State<BoltScreen>
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: getMentalStateColor(_seconds).withOpacity(0.15),
+                color: getMentalStateColor(_seconds)
+                    .withAlpha((0.15 * 255).toInt()),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: getMentalStateColor(_seconds).withOpacity(0.5),
+                  color: getMentalStateColor(_seconds)
+                      .withAlpha((0.5 * 255).toInt()),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha((0.1 * 255).toInt()),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1135,7 +1135,7 @@ class _BoltScreenState extends State<BoltScreen>
                   Text(
                     'segundos',
                     style: tt.headlineSmall?.copyWith(
-                      color: cs.onSurface.withOpacity(0.8),
+                      color: cs.onSurface.withAlpha((0.8 * 255).toInt()),
                       fontSize: 18, // Smaller text
                     ),
                     textAlign: TextAlign.center,
@@ -1157,9 +1157,9 @@ class _BoltScreenState extends State<BoltScreen>
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   elevation: 4,
-                  shadowColor: Colors.red.withOpacity(0.5),
+                  shadowColor: Colors.red.withAlpha((0.5 * 255).toInt()),
                   side: BorderSide(
-                    color: Colors.red.withOpacity(0.4),
+                    color: Colors.red.withAlpha((0.4 * 255).toInt()),
                     width: 1.5,
                   ),
                 ),
@@ -1181,9 +1181,9 @@ class _BoltScreenState extends State<BoltScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     elevation: 4,
-                    shadowColor: cs.shadow.withOpacity(0.5),
+                    shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                     side: BorderSide(
-                      color: cs.primary.withOpacity(0.4),
+                      color: cs.primary.withAlpha((0.4 * 255).toInt()),
                       width: 1.5,
                     ),
                   ),
@@ -1200,9 +1200,9 @@ class _BoltScreenState extends State<BoltScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 10),
                     elevation: 4,
-                    shadowColor: cs.shadow.withOpacity(0.5),
+                    shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                     side: BorderSide(
-                      color: cs.primary.withOpacity(0.4),
+                      color: cs.primary.withAlpha((0.4 * 255).toInt()),
                       width: 1.5,
                     ),
                   ),
@@ -1222,9 +1222,9 @@ class _BoltScreenState extends State<BoltScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 elevation: 4,
-                shadowColor: cs.shadow.withOpacity(0.5),
+                shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                 side: BorderSide(
-                  color: cs.primary.withOpacity(0.4),
+                  color: cs.primary.withAlpha((0.4 * 255).toInt()),
                   width: 1.5,
                 ),
               ),
@@ -1358,7 +1358,7 @@ class _BoltScreenState extends State<BoltScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      cs.surface.withOpacity(0),
+                      cs.surface.withAlpha((0 * 255).toInt()),
                       cs.surface,
                     ],
                   ),
@@ -1366,7 +1366,7 @@ class _BoltScreenState extends State<BoltScreen>
                 child: Center(
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: cs.onSurface.withOpacity(0.6),
+                    color: cs.onSurface.withAlpha((0.6 * 255).toInt()),
                   ),
                 ),
               ),
@@ -1396,9 +1396,10 @@ class _BoltScreenState extends State<BoltScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              color: color.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+              border: Border.all(
+                  color: color.withAlpha((0.6 * 255).toInt()), width: 1.5),
             ),
             child: Text(
               range,
@@ -1419,74 +1420,6 @@ class _BoltScreenState extends State<BoltScreen>
           ),
         ),
       ],
-    );
-  }
-
-  // More compact version for the dialog
-  Widget _buildCompactScoreRangeRow(ColorScheme cs, TextTheme tt, String range,
-      String description, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: color.withOpacity(0.5)),
-            ),
-            child: Text(
-              range,
-              style: tt.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              description,
-              style: tt.bodySmall?.copyWith(fontSize: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Keep the original version for individual scores
-  Widget _buildScoreRangeRow(ColorScheme cs, TextTheme tt, String range,
-      String description, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: color.withOpacity(0.5)),
-            ),
-            child: Text(range,
-                style: tt.bodyMedium
-                    ?.copyWith(color: color, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              description,
-              style: tt.bodyMedium,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

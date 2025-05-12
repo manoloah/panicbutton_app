@@ -98,9 +98,9 @@ class SettingsScreen extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 elevation: 4,
-                shadowColor: cs.shadow.withOpacity(0.5),
+                shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                 side: BorderSide(
-                  color: cs.primary.withOpacity(0.4),
+                  color: cs.primary.withAlpha((0.4 * 255).toInt()),
                   width: 1.5,
                 ),
               ),
@@ -174,12 +174,12 @@ class _SettingsItem extends StatelessWidget {
             title,
             style: tt.bodyLarge,
           ),
-          trailing: Icon(Icons.chevron_right, color: cs.onBackground),
+          trailing: Icon(Icons.chevron_right, color: cs.onSurface),
           onTap: onTap,
         ),
         if (showDivider)
           Divider(
-            color: cs.onSurface.withOpacity(0.1),
+            color: cs.onSurface.withAlpha((0.1 * 255).toInt()),
             height: 1,
             indent: 16,
             endIndent: 16,

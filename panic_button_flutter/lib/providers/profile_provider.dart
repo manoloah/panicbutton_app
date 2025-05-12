@@ -66,11 +66,8 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
       final user = _client.auth.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final data = await _client
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .single() as Map<String, dynamic>;
+      final data =
+          await _client.from('profiles').select().eq('id', user.id).single();
 
       String? raw = data['avatar_url'] as String?;
       String? signedAvatar;

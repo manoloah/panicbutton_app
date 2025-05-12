@@ -35,7 +35,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
               width: 40,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: cs.onSurface.withOpacity(0.2),
+                color: cs.onSurface.withAlpha(20),
                 borderRadius: BorderRadius.circular(5),
               ),
             ),
@@ -67,7 +67,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                           Icon(
                             Icons.sports_gymnastics,
                             size: 48,
-                            color: cs.onSurface.withOpacity(0.4),
+                            color: cs.onSurface.withAlpha(40),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -124,7 +124,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
               'Patrones de respiración',
               style: tt.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: cs.onSurface.withOpacity(0.8),
+                color: cs.onSurface.withAlpha(80),
               ),
             ),
           ),
@@ -259,7 +259,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                   Icon(
                     Icons.air_rounded,
                     size: 48,
-                    color: cs.onSurface.withOpacity(0.4),
+                    color: cs.onSurface.withAlpha(40),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -267,7 +267,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                     textAlign: TextAlign.center,
                     style: tt.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: cs.onSurface.withOpacity(0.6),
+                      color: cs.onSurface.withAlpha(60),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -387,7 +387,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                 height: 50,
                 width: 50,
                 decoration: BoxDecoration(
-                  color: cs.primary.withOpacity(0.2),
+                  color: cs.primary.withAlpha(20),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -413,7 +413,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                       Text(
                         pattern.description!,
                         style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withOpacity(0.6),
+                          color: cs.onSurfaceVariant.withAlpha(60),
                         ),
                       ),
                   ],

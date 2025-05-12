@@ -35,7 +35,7 @@ class CustomNavBar extends StatelessWidget {
                     color: cs.surface,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withAlpha((0.2 * 255).toInt()),
                         blurRadius: 10,
                         offset: const Offset(0, -2),
                       ),
@@ -74,7 +74,7 @@ class CustomNavBar extends StatelessWidget {
                       color: Colors.transparent,
                       child: InkWell(
                         customBorder: const CircleBorder(),
-                        splashColor: cs.primary.withOpacity(0.3),
+                        splashColor: cs.primary.withAlpha((0.3 * 255).toInt()),
                         onTap: () {
                           // Navigate without autoStart flag
                           context.go('/breath');
@@ -90,28 +90,31 @@ class CustomNavBar extends StatelessWidget {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  cs.primary.withOpacity(0.9),
+                                  cs.primary.withAlpha((0.9 * 255).toInt()),
                                   cs.primary,
                                 ],
                               ),
                               boxShadow: [
                                 // Outer glow
                                 BoxShadow(
-                                  color: cs.primary.withOpacity(0.5),
+                                  color:
+                                      cs.primary.withAlpha((0.5 * 255).toInt()),
                                   blurRadius: 20,
                                   spreadRadius: 4,
                                   offset: const Offset(0, 4),
                                 ),
                                 // Deeper shadow for 3D effect
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.4),
+                                  color: Colors.black
+                                      .withAlpha((0.4 * 255).toInt()),
                                   blurRadius: 12,
                                   spreadRadius: 1,
                                   offset: const Offset(0, 8),
                                 ),
                                 // Top highlight for 3D effect
                                 BoxShadow(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white
+                                      .withAlpha((0.3 * 255).toInt()),
                                   blurRadius: 10,
                                   spreadRadius: 1,
                                   offset: const Offset(0, -2),
@@ -181,7 +184,9 @@ class _NavBarItem extends StatelessWidget {
           Icon(
             icon,
             size: 24,
-            color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.6),
+            color: isSelected
+                ? cs.primary
+                : cs.onSurface.withAlpha((0.6 * 255).toInt()),
           ),
           const SizedBox(height: 4),
           Text(
@@ -189,7 +194,9 @@ class _NavBarItem extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.6),
+              color: isSelected
+                  ? cs.primary
+                  : cs.onSurface.withAlpha((0.6 * 255).toInt()),
             ),
           ),
         ],

@@ -128,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: cs.error.withOpacity(0.1),
+                      color: cs.error.withAlpha((0.1 * 255).toInt()),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -187,9 +187,9 @@ class _AuthScreenState extends State<AuthScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           elevation: 4,
-                          shadowColor: cs.shadow.withOpacity(0.5),
+                          shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                           side: BorderSide(
-                            color: cs.primary.withOpacity(0.4),
+                            color: cs.primary.withAlpha((0.4 * 255).toInt()),
                             width: 1.5,
                           ),
                         ),

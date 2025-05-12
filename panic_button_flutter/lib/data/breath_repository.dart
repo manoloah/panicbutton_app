@@ -63,7 +63,7 @@ class BreathRepository {
             for (final stepData in item['breathing_pattern_steps'] as List) {
               if (stepData != null && stepData['breathing_steps'] != null) {
                 final stepsData =
-                    stepData['breathing_steps'] as Map<String, dynamic>;
+                    Map<String, dynamic>.from(stepData['breathing_steps']);
 
                 try {
                   // Create the step with safe defaults
@@ -157,7 +157,8 @@ class BreathRepository {
         if (match != null) {
           int inhaleTime = int.tryParse(match.group(1) ?? '4') ?? 4;
           int exhaleTime =
-              int.tryParse(match.group(2) ?? '${inhaleTime}') ?? inhaleTime;
+              int.tryParse(match.group(2) ?? inhaleTime.toString()) ??
+                  inhaleTime;
           int holdInTime = int.tryParse(match.group(3) ?? '0') ?? 0;
           int holdOutTime = int.tryParse(match.group(4) ?? '0') ?? 0;
 
@@ -191,18 +192,18 @@ class BreathRepository {
         for (final stepData in patternSteps) {
           if (stepData != null && stepData['breathing_steps'] != null) {
             try {
-              final stepMap =
+              final stepsData =
                   Map<String, dynamic>.from(stepData['breathing_steps']);
               // Add safe defaults for any missing values
-              stepMap['inhale_secs'] ??= 4;
-              stepMap['exhale_secs'] ??= 4;
-              stepMap['hold_in_secs'] ??= 0;
-              stepMap['hold_out_secs'] ??= 0;
-              stepMap['inhale_method'] ??= 'nose';
-              stepMap['exhale_method'] ??= 'nose';
-              stepMap['cue_text'] ??= 'Respira';
+              stepsData['inhale_secs'] ??= 4;
+              stepsData['exhale_secs'] ??= 4;
+              stepsData['hold_in_secs'] ??= 0;
+              stepsData['hold_out_secs'] ??= 0;
+              stepsData['inhale_method'] ??= 'nose';
+              stepsData['exhale_method'] ??= 'nose';
+              stepsData['cue_text'] ??= 'Respira';
 
-              final step = StepModel.fromJson(stepMap);
+              final step = StepModel.fromJson(stepsData);
               final stepRepetitions = stepData['repetitions'] as int? ?? 1;
 
               for (var r = 0; r < stepRepetitions; r++) {
@@ -308,7 +309,7 @@ class BreathRepository {
         debugPrint('⚠️ Error inserting breathing activity: $insertError');
         // Log full error details to help debug RLS issues
         if (insertError is PostgrestException) {
-          final pgError = insertError as PostgrestException;
+          final pgError = insertError;
           debugPrint('  - Message: ${pgError.message}');
           debugPrint('  - Code: ${pgError.code}');
           debugPrint('  - Details: ${pgError.details}');
@@ -397,7 +398,7 @@ class BreathRepository {
           .eq('slug', slug)
           .limit(1);
 
-      if (response == null || (response as List).isEmpty) {
+      if ((response as List).isEmpty) {
         return null;
       }
 
@@ -423,7 +424,8 @@ class BreathRepository {
 
       for (final stepData in patternSteps) {
         if (stepData != null && stepData['breathing_steps'] != null) {
-          final stepsData = stepData['breathing_steps'] as Map<String, dynamic>;
+          final stepsData =
+              Map<String, dynamic>.from(stepData['breathing_steps']);
 
           try {
             // Create the step with safe defaults

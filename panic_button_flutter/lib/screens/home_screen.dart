@@ -14,55 +14,66 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       // backgroundColor omitted → uses scaffoldBackgroundColor (#132737)
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding:
-                  const EdgeInsets.only(bottom: 70), // Add padding for navbar
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        'Encuentra la calma',
-                        style: tt.displayMedium,
-                        textAlign: TextAlign.center,
-                      ),
+      extendBody: true, // Important for bottom nav bar to overlay content
+      body: Stack(
+        children: [
+          // Safe area for the main content
+          SafeArea(
+            bottom: false, // Don't add padding at the bottom
+            child: Stack(
+              children: [
+                // Main content
+                Center(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.only(bottom: 80), // Space for navbar
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Text(
+                            'Encuentra la calma',
+                            style: tt.displayMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 36), // Reduced from 48
+                        const PanicButton(),
+                        const SizedBox(height: 24), // Reduced from 32
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Text(
+                            'Está comprobado científicamente que practicar ejercicios de respiración reduce significativamente tu ansiedad y aumenta tu capacidad para manejar el estrés, reduciendo la probabilidad de ataques de pánico, asma o ansiedad.',
+                            style: tt.bodyLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 36), // Reduced from 48
-                    const PanicButton(),
-                    const SizedBox(height: 24), // Reduced from 32
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Text(
-                        'Está comprobado científicamente que practicar ejercicios de respiración reduce significativamente tu ansiedad y aumenta tu capacidad para manejar el estrés, reduciendo la probabilidad de ataques de pánico, asma o ansiedad.',
-                        style: tt.bodyLarge,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                // Settings button
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: IconButton(
+                    icon: Icon(Icons.settings, color: cs.onSurface),
+                    onPressed: () => context.push('/settings'),
+                  ),
+                ),
+              ],
             ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: IconButton(
-                icon: Icon(Icons.settings, color: cs.onSurface),
-                onPressed: () => context.push('/settings'),
-              ),
-            ),
-            const Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: CustomNavBar(currentIndex: 1),
-            ),
-          ],
-        ),
+          ),
+
+          // Navigation bar fixed to bottom with correct positioning
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: CustomNavBar(currentIndex: 1),
+          ),
+        ],
       ),
     );
   }

@@ -84,9 +84,9 @@ class WavePainter extends CustomPainter {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        oceanSurface.withOpacity(0.95),
-        oceanMid.withOpacity(0.75),
-        oceanDeep.withOpacity(0.55),
+        oceanSurface.withAlpha((0.95 * 255).toInt()),
+        oceanMid.withAlpha((0.75 * 255).toInt()),
+        oceanDeep.withAlpha((0.55 * 255).toInt()),
       ],
       stops: const [0.0, 0.5, 1.0],
     ).createShader(rect);

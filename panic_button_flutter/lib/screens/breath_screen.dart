@@ -214,66 +214,42 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         ],
       ),
       body: SafeArea(
-        // Completely restructured layout for better centering
-        child: Column(
-          children: [
-            // This is the scrollable main content area
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height -
-                        bottomNavHeight -
-                        viewPadding.top -
-                        viewPadding.bottom -
-                        kToolbarHeight, // Account for AppBar height
-                  ),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+        bottom: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                // Breathing circle centered
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: BreathCircle(
+                    onTap: _toggleBreathing,
+                    phaseIndicator: const Stack(
+                      alignment: Alignment.center,
                       children: [
-                        // Breathing circle centered
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: BreathCircle(
-                            onTap: _toggleBreathing,
-                            phaseIndicator: const Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                CircleWaveOverlay(),
-                                PhaseCountdownDisplay(),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Timer display
-                        _buildTimerDisplay(playbackState),
-
-                        // Control buttons row wrapped for better layout on small screens
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildControlsRow(),
-                        ),
+                        CircleWaveOverlay(),
+                        PhaseCountdownDisplay(),
                       ],
                     ),
                   ),
                 ),
-              ),
+                // Timer display
+                _buildTimerDisplay(playbackState),
+                // Control buttons row wrapped for better layout on small screens
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildControlsRow(),
+                ),
+              ],
             ),
-
-            // Fixed navbar at the bottom spanning full width
-            const SizedBox(
-              width: double.infinity,
-              child: CustomNavBar(currentIndex: 1),
-            ),
-          ],
+          ),
         ),
       ),
+      bottomNavigationBar: const CustomNavBar(currentIndex: 1),
     );
   }
 
@@ -334,9 +310,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                     horizontal: isSmallScreen ? 10 : 14,
                     vertical: isSmallScreen ? 8 : 10),
                 elevation: 4,
-                shadowColor: cs.shadow.withOpacity(0.5),
+                shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
                 side: BorderSide(
-                  color: cs.primary.withOpacity(0.4),
+                  color: cs.primary.withAlpha((0.4 * 255).toInt()),
                   width: 1.5,
                 ),
               ),

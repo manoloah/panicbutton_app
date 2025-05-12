@@ -365,12 +365,12 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                           shadowColor: Theme.of(context)
                               .colorScheme
                               .shadow
-                              .withOpacity(0.5),
+                              .withAlpha((0.5 * 255).toInt()),
                           side: BorderSide(
                             color: Theme.of(context)
                                 .colorScheme
                                 .primary
-                                .withOpacity(0.4),
+                                .withAlpha((0.4 * 255).toInt()),
                             width: 1.5,
                           ),
                         ),
