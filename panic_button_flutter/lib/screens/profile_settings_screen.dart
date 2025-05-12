@@ -225,7 +225,20 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuración de Perfil'),
+        title: LayoutBuilder(
+          builder: (context, constraints) {
+            // Get screen width
+            final screenWidth = MediaQuery.of(context).size.width;
+
+            // Use different font sizes or text based on available width
+            if (screenWidth < 360) {
+              return const Text('Perfil', overflow: TextOverflow.visible);
+            } else {
+              return const Text('Configuración de Perfil',
+                  overflow: TextOverflow.visible);
+            }
+          },
+        ),
         actions: [
           IconButton(icon: const Icon(Icons.logout), onPressed: _handleSignOut),
         ],

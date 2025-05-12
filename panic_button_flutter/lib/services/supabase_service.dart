@@ -138,11 +138,16 @@ class SupabaseService {
   /// Generates a signed URL and appends a cache‑busting parameter **safely**
   /// (uses `&` when a query string already exists).
   static Future<String> getSignedAvatarUrl(String filePath) async {
-    final signed = await _client.storage
-        .from(_avatarBucketName)
-        .createSignedUrl(filePath, _avatarUrlExpirySeconds);
+    try {
+      final signed = await _client.storage
+          .from(_avatarBucketName)
+          .createSignedUrl(filePath, _avatarUrlExpirySeconds);
 
-    final cacheBust = 'v=${DateTime.now().millisecondsSinceEpoch}';
-    return signed.contains('?') ? '$signed&$cacheBust' : '$signed?$cacheBust';
+      final cacheBust = 'v=${DateTime.now().millisecondsSinceEpoch}';
+      return signed.contains('?') ? '$signed&$cacheBust' : '$signed?$cacheBust';
+    } catch (e) {
+      debugPrint('Error getting signed avatar URL: $e');
+      throw e; // Rethrow to allow the caller to handle it
+    }
   }
 }

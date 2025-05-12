@@ -64,7 +64,11 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
   Future<void> _loadProfile() async {
     try {
       final user = _client.auth.currentUser;
-      if (user == null) throw Exception('User not authenticated');
+      if (user == null) {
+        // Set empty state when no user is authenticated instead of throwing an exception
+        state = const AsyncData(Profile(id: ''));
+        return;
+      }
 
       final data =
           await _client.from('profiles').select().eq('id', user.id).single();
@@ -110,8 +114,13 @@ class ProfileNotifier extends StateNotifier<AsyncValue<Profile>> {
       );
     } catch (e, st) {
       debugPrint('Error loading profile: $e');
-      state = AsyncError(e, st);
-      rethrow;
+      // Don't rethrow if it's a "not found" error which can happen during logout
+      if (e is StorageException && e.statusCode == 404) {
+        state = const AsyncData(Profile(id: ''));
+      } else {
+        state = AsyncError(e, st);
+        rethrow;
+      }
     }
   }
 
