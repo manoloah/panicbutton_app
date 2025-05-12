@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:panic_button_flutter/widgets/breath_circle.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -194,15 +195,18 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                         ),
                   child: _isLoading
-                      ? SizedBox(
-                          height: 20,
-                          width: 20,
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
                           child: CircularProgressIndicator(
-                            color: cs.onPrimary,
-                            strokeWidth: 2,
+                            strokeWidth: 2.0,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : Text(_isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'),
+                      : Text(_isLogin ? 'Iniciar Sesión' : 'Registrarse',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 16),
                 TextButton(

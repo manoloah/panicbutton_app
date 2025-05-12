@@ -11,6 +11,7 @@ import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
 import '../widgets/bolt_chart.dart' as bolt_chart;
 import '../constants/images.dart';
+import '../widgets/delayed_loading_animation.dart';
 
 /// How we bucket your raw BOLT scores:
 enum Aggregation { day, week, month, quarter, year }
@@ -618,7 +619,13 @@ class _BoltScreenState extends State<BoltScreen>
 
                       // Chart or loader
                       if (_isLoading)
-                        const Center(child: CircularProgressIndicator())
+                        SizedBox(
+                            height: 200,
+                            child: DelayedLoadingAnimation(
+                              loadingText: 'Cargando datos...',
+                              showQuote: false,
+                              delayMilliseconds: 300,
+                            ))
                       else if (periodScores.isNotEmpty) ...[
                         Text('Tu progreso', style: tt.headlineMedium),
                         const SizedBox(height: 16),

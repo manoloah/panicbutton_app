@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
+import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
+import 'package:panic_button_flutter/widgets/breath_circle.dart';
 
 class GoalPatternSheet extends ConsumerStatefulWidget {
   const GoalPatternSheet({super.key});
@@ -86,7 +88,14 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(16.0),
-                  child: CircularProgressIndicator(),
+                  child: SizedBox(
+                    height: 150,
+                    child: DelayedLoadingAnimation(
+                      loadingText: 'Cargando metas...',
+                      showQuote: false,
+                      delayMilliseconds: 300,
+                    ),
+                  ),
                 ),
               ),
               error: (error, stack) => Center(
@@ -309,13 +318,13 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
       loading: () => const Center(
         child: Padding(
           padding: EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Cargando patrones...'),
-            ],
+          child: SizedBox(
+            height: 200,
+            child: DelayedLoadingAnimation(
+              loadingText: 'Cargando patrones...',
+              showQuote: false,
+              delayMilliseconds: 300,
+            ),
           ),
         ),
       ),

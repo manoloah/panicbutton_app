@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 
 import '../providers/profile_provider.dart';
 import '../services/supabase_service.dart';
+import '../widgets/delayed_loading_animation.dart';
 
 class ProfileSettingsScreen extends ConsumerStatefulWidget {
   const ProfileSettingsScreen({Key? key}) : super(key: key);
@@ -244,7 +245,13 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
         ],
       ),
       body: profileAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SafeArea(
+          child: DelayedLoadingAnimation(
+            loadingText: 'Cargando tu perfil...',
+            showQuote: true,
+            delayMilliseconds: 500,
+          ),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (profile) => SingleChildScrollView(
           padding: const EdgeInsets.all(16),

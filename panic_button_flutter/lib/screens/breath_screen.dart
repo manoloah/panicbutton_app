@@ -7,6 +7,7 @@ import 'package:panic_button_flutter/widgets/goal_pattern_sheet.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/providers/breathing_playback_controller.dart';
+import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -173,17 +174,10 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('PanicButton', style: tt.displayLarge),
-                const SizedBox(height: 40),
-                const CircularProgressIndicator(),
-                const SizedBox(height: 20),
-                Text('Cargando ejercicios...', style: tt.bodyLarge),
-              ],
-            ),
+          child: const DelayedLoadingAnimation(
+            loadingText: 'Cargando ejercicios...',
+            showQuote: true,
+            delayMilliseconds: 500,
           ),
         ),
       );

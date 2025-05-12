@@ -5,6 +5,7 @@ import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/models/journey_level.dart';
 import 'package:panic_button_flutter/screens/breath_screen.dart';
+import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 
 class JourneyScreen extends StatefulWidget {
   const JourneyScreen({super.key});
@@ -91,8 +92,12 @@ class _JourneyScreenState extends State<JourneyScreen> {
               child: provider_pkg.Consumer<JourneyProvider>(
                 builder: (context, journeyProvider, child) {
                   if (journeyProvider.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
+                    return const SafeArea(
+                      child: DelayedLoadingAnimation(
+                        loadingText: 'Cargando tu camino...',
+                        showQuote: true,
+                        delayMilliseconds: 500,
+                      ),
                     );
                   }
 
