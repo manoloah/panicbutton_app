@@ -1,12 +1,11 @@
 {
-    "name": "panic_button_flutter",
-    "short_name": "panic_button_flutter",
+    "name": "PanicButton",
+    "short_name": "PanicButton",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#132737",
+    "theme_color": "#00B383",
+    "description": "Reduce tu ansiedad y ataques de pánico/asma/ansiedad entrenando tu respiración",
     "prefer_related_applications": false,
     "icons": [
         {
