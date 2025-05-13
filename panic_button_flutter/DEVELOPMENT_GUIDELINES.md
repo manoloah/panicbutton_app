@@ -771,3 +771,113 @@ Notes:
 
 *These guidelines ensure that our PanicButton app remains performant, accessible, and easy to maintain as it grows.*
 
+### App Icon Management
+
+- **Icon Creation & Format**
+  - Create square icons with 1024x1024px resolution minimum
+  - Use PNG format with clear background (transparency will be handled by the generator)
+  - Place icons in the `assets/icons/` directory
+  - Follow the PanicButton design system for colors and styling
+  - Avoid text in app icons as they'll be too small to read
+
+- **Configuration**
+  - Use `flutter_launcher_icons` package for icon generation:
+    ```yaml
+    flutter_icons:
+      android: "launcher_icon"    # Name for Android icon
+      ios: true                   # Generate iOS icons
+      remove_alpha_ios: true      # Remove transparency for iOS
+      image_path: "assets/icons/app_icon_3d.png"  # Path to your icon
+      min_sdk_android: 21         # Android min SDK version
+      adaptive_icon_background: "#FFFFFF"  # Background color for adaptive icons
+      
+      # Web icons configuration
+      web:
+        generate: true
+        image_path: "assets/icons/app_icon_3d.png"
+        background_color: "#FFFFFF"
+        theme_color: "#FFFFFF"
+        
+      # Windows configuration (requires Windows setup)
+      windows:
+        generate: true
+        image_path: "assets/icons/app_icon_3d.png"
+        icon_size: 48  # Size in pixels (min 48, max 256)
+    ```
+
+- **Generation Process**
+  - Generate icons with command:
+    ```bash
+    flutter pub run flutter_launcher_icons
+    ```
+  - Verify outputs in platform-specific directories:
+    - Android: `android/app/src/main/res/mipmap-*/`
+    - iOS: `ios/Runner/Assets.xcassets/AppIcon.appiconset/`
+    - Web: `web/icons/` and `web/favicon.png`
+  - Commit generated files to git
+
+- **Guidelines for Icon Design**
+  - Use a simple, recognizable shape that works at small sizes
+  - Ensure good contrast for visibility on different backgrounds
+  - Test on both light and dark device themes
+  - Follow platform-specific guidelines (especially for adaptive icons on Android)
+
+---
+
+### TestFlight & App Store Deployment
+
+- **Pre-deployment Checklist**
+  - Version number updated in `pubspec.yaml`
+  - Screenshots captured for all required device sizes
+  - App icons generated and verified
+  - Required usage descriptions added to Info.plist
+  - Build version incremented for each submission
+
+- **Code Signing Setup**
+  1. Open Xcode → Preferences → Accounts → Add Apple ID
+  2. Select Runner project → Runner target → Signing & Capabilities
+  3. Enable "Automatically manage signing"
+  4. Select your Development Team 
+  5. Ensure Bundle Identifier is unique (e.g., `com.panicbutton.app`)
+
+- **Build Process**
+  1. Create a release build:
+     ```bash
+     flutter build ios --release
+     ```
+  2. Open Xcode and select a physical device (or "Any iOS Device")
+  3. Go to Product → Archive
+  4. When Archive completes, click "Distribute App"
+  5. Select "App Store Connect" → "Upload" → follow prompts
+
+- **TestFlight Configuration**
+  1. Log into [App Store Connect](https://appstoreconnect.apple.com)
+  2. Go to "My Apps" → select your app → TestFlight tab
+  3. Wait for build processing (typically 15-30 minutes)
+  4. Complete required compliance information
+  5. Add test information (what to test, instructions)
+  6. Configure testers:
+     - Internal testers (limited to your development team)
+     - External testers (require email invitation and Beta App Review)
+
+- **Beta App Review Guidelines**
+  - Allow 1-2 days for Beta App Review process
+  - Provide clear testing instructions
+  - If using External TestFlight, ensure your app follows App Store Guidelines
+  - If rejected, fix issues and upload a new build with incremented build number
+
+- **Common TestFlight Issues**
+  - Privacy declarations missing in Info.plist
+  - App crashes on launch (test thoroughly before submission)
+  - Missing export compliance information
+  - Sensitive API usage without justification
+  - Unable to test core functionality
+
+- **Troubleshooting**
+  - If upload fails, check Apple Developer account status and certificates
+  - For processing issues, verify app size and try an .ipa export (Product → Archive → "Export" → "Export as .ipa")
+  - For binary validation errors, check build logs for details
+  - For TestFlight rejections, carefully read the resolution steps in the review notes
+
+---
+
