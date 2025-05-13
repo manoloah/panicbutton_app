@@ -708,6 +708,131 @@ Notes:
 
 ---
 
+### Code Modernization & Best Practices
+
+- **Color Opacity Handling**
+  - ❌ Avoid using deprecated `.withOpacity(x)` method:
+    ```dart
+    // Deprecated approach
+    color.withOpacity(0.5)
+    ```
+  
+  - ✅ Use `.withAlpha((x * 255).toInt())` instead:
+    ```dart
+    // Modern approach
+    color.withAlpha((0.5 * 255).toInt())  // 128 alpha value
+    ```
+  
+  - Common alpha value conversions:
+    | Opacity | Alpha Value (int) |
+    |---------|------------------|
+    | 0.1     | 25               |
+    | 0.2     | 51               |
+    | 0.4     | 102              |
+    | 0.5     | 128              |
+    | 0.6     | 153              |
+    | 0.8     | 204              |
+    | 1.0     | 255              |
+
+- **Theme Color Scheme Updates**
+  - ❌ Avoid using deprecated `onBackground` in color schemes:
+    ```dart
+    // Deprecated approach
+    Theme.of(context).colorScheme.onBackground
+    ```
+  
+  - ✅ Use `onSurface` instead:
+    ```dart
+    // Modern approach
+    Theme.of(context).colorScheme.onSurface
+    ```
+
+- **Type Casting Best Practices**
+  - ❌ Avoid unnecessary type casting when type is already inferred:
+    ```dart
+    // Unnecessary cast
+    final data = await client.from('table').select().single() as Map<String, dynamic>;
+    ```
+  
+  - ✅ Let Dart inference handle simple cases:
+    ```dart
+    // Better approach
+    final data = await client.from('table').select().single();
+    ```
+  
+  - ✅ When conversion is needed, use safer methods:
+    ```dart
+    // Safe conversion
+    final stepsData = Map<String, dynamic>.from(stepData['breathing_steps']);
+    ```
+
+- **Logging Best Practices**
+  - ❌ Avoid using `print()` statements:
+    ```dart
+    // Not recommended
+    print("User logged in: $userId");
+    ```
+  
+  - ✅ Use `debugPrint()` for improved handling:
+    ```dart
+    // Better approach
+    debugPrint("User logged in: ${userId.substring(0, 8)}...");
+    ```
+  
+  - ✅ Conditional logging in production:
+    ```dart
+    // Best practice
+    if (kDebugMode) {
+      debugPrint("Session details: $sessionData");
+    }
+    ```
+
+- **Layout Structure for Responsive UI**
+  - ❌ Avoid fixed positioning with `Stack` and `Positioned` for basic layouts:
+    ```dart
+    // Less flexible approach
+    Stack(
+      children: [
+        // Main content
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: CustomNavBar(),
+        ),
+      ],
+    )
+    ```
+  
+  - ✅ Use standard Scaffold properties for common UI elements:
+    ```dart
+    // Better approach
+    Scaffold(
+      body: /* main content */,
+      bottomNavigationBar: const CustomNavBar(currentIndex: 1),
+    )
+    ```
+  
+  - ✅ Center content for better responsiveness:
+    ```dart
+    // Responsive layout
+    Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 600),
+            child: /* content */,
+          ),
+        ),
+      ),
+      bottomNavigationBar: const CustomNavBar(currentIndex: 0),
+    )
+    ```
+
+Following these practices ensures our app remains compatible with the latest Flutter versions, performs better, and maintains a clean and maintainable codebase.
+
+---
+
 ## Additional Guidelines for Performance & Quality
 
 ### Widget & Build Optimization

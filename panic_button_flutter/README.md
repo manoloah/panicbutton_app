@@ -431,3 +431,32 @@ For future migrations, you can:
    ```
 
 3. Or use direct SQL in the Supabase dashboard's SQL Editor to make changes.
+
+## Code Modernization & Best Practices
+
+As Flutter evolves, we've updated our codebase to follow modern best practices:
+
+### Recent Refactors
+
+1. **Color Opacity Handling**:
+   - ✅ Use `.withAlpha((x * 255).toInt())` instead of deprecated `.withOpacity(x)`
+   - Example: `color.withAlpha((0.5 * 255).toInt())` instead of `color.withOpacity(0.5)`
+
+2. **Theme Color Scheme Updates**:
+   - ✅ Use `cs.onSurface` instead of deprecated `cs.onBackground`
+   - The `onBackground` property is deprecated in newer Flutter versions
+
+3. **Type Casting Best Practices**:
+   - ✅ Avoid unnecessary casts when types are already inferred
+   - ✅ Use `Map<String, dynamic>.from()` for safer type conversion when needed
+   - Example: `Map<String, dynamic>.from(jsonData)` instead of `jsonData as Map<String, dynamic>`
+
+4. **Logging Best Practices**:
+   - ✅ Use `debugPrint()` instead of `print()` for better performance in Flutter
+   - Debug output is properly truncated and doesn't block the main thread
+
+5. **Code Cleanup**:
+   - Regular removal of unused imports and methods to maintain a clean codebase
+   - Proper layout structuring for responsiveness across device sizes
+
+Following these practices ensures the app remains compatible with the latest Flutter versions and maintains high code quality.
