@@ -1,6 +1,6 @@
 # PanicButton Flutter App
 
-A calming app for anxiety relief with breathing exercises, built with Flutter.
+A calming app for anxiety and panic relief with breathing exercises.
 
 ## Features
 
