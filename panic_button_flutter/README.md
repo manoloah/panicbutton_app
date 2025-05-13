@@ -63,6 +63,37 @@ A calming app for anxiety and panic relief with breathing exercises.
    flutter run -d ios
    ```
 
+## App Identity Management
+
+The app uses a centralized configuration system for managing app identity (name, bundle ID, etc.):
+
+1. **Centralized Configuration**
+   - All app identity values are defined in `lib/config/app_config.dart`
+   - This serves as the single source of truth for app name, bundle ID, etc.
+
+2. **Updating App Identity**
+   - To change the app name or bundle ID, use the provided script:
+     ```bash
+     # Change app name and bundle ID
+     ./scripts/update_app_name.sh "NewAppName" "com.company.newbundleid"
+     ```
+   - The script updates all necessary files automatically:
+     - Updates `AppConfig` class
+     - Updates iOS Info.plist
+     - Updates Android manifest and build.gradle
+     - Updates health descriptions in Info.plist
+
+3. **Manual Verification**
+   - After running the script, verify changes in:
+     - `lib/config/app_config.dart`
+     - `ios/Runner/Info.plist`
+     - `android/app/src/main/AndroidManifest.xml`
+     - `android/app/build.gradle.kts`
+   - Run a build to confirm changes: `flutter build ios --debug`
+
+4. **App Identity Locations**
+   - Refer to `APP_IDENTITY_LOCATIONS.md` for a comprehensive list of all files containing app identity information
+
 ## Secure Setup for Production
 
 For production deployments, follow these additional security steps:

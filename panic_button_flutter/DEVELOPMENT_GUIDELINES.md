@@ -33,6 +33,62 @@
 
 ---
 
+### App Identity Management
+
+- **Centralized Configuration Approach**
+  - All app identity information is centralized in `lib/config/app_config.dart`
+  - This class contains constants for:
+    ```dart
+    class AppConfig {
+      static const String appDisplayName = "Calme";  // App name shown on device
+      static const String appName = "Calme";         // Short name for general use
+      static const String appDescription = "...";    // Description for app stores
+      static const String bundleId = "com.breathmanu.calme";  // Bundle/application ID
+      static const String companyName = "breathmanu.com";     // Company name
+      // ... other app identity values
+    }
+    ```
+  - Always reference these constants in code, never hardcode app name or identity values
+
+- **App Identity Change Process**
+  1. Update values in `lib/config/app_config.dart` first
+  2. Run the update script to propagate changes:
+     ```bash
+     ./scripts/update_app_name.sh "NewAppName" "com.company.newappid"
+     ```
+  3. Verify changes were applied correctly to:
+     - iOS Info.plist (`CFBundleDisplayName`, `CFBundleName`)
+     - Android Manifest (`android:label`)
+     - Android build.gradle (`applicationId`, `namespace`)
+  4. Update any usage descriptions containing the app name
+  5. Run a build and visually verify the changes
+
+- **Manual Updates (when necessary)**
+  - iOS Info.plist modifications:
+    ```bash
+    plutil -replace CFBundleDisplayName -string "NewName" ios/Runner/Info.plist
+    plutil -replace CFBundleName -string "newname" ios/Runner/Info.plist
+    ```
+  - Android manifest modifications:
+    ```bash
+    sed -i '' "s/android:label=\".*\"/android:label=\"NewName\"/" android/app/src/main/AndroidManifest.xml
+    ```
+  - Build.gradle modifications:
+    ```bash
+    sed -i '' "s/applicationId = \".*\"/applicationId = \"com.company.newapp\"/" android/app/build.gradle.kts
+    ```
+
+- **App Identity Documentation**
+  - All locations containing app identity info are documented in `APP_IDENTITY_LOCATIONS.md`
+  - Refer to this document when implementing new features that display the app name
+  - When adding new locations that use app identity, update this document
+
+- **Future Improvements**
+  - Next phase: Implement Flutter flavor system for environment-based configuration
+  - Use xcconfig files for iOS to simplify variable substitution
+  - Set up product flavors in Android build.gradle
+  - Implement CI/CD automation for app identity management
+
 ### Responsive UI Guidelines
 
 - **Device Size Detection**

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>PanicButton</string>
+	<string>Calme</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>panicbutton</string>
+	<string>calme</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -36,9 +36,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Necesitamos acceso a tu cámara para tomar tu foto de perfil.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>PanicButton requiere acceso a tus datos de ritmo cardíaco para optimizar los ejercicios de respiración.</string>
+	<string>Calme requiere acceso a tus datos de ritmo cardíaco para optimizar los ejercicios de respiración.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>PanicButton requiere acceso a tus datos de salud para personalizar los ejercicios de respiración.</string>
+	<string>Calme requiere acceso a tus datos de salud para personalizar los ejercicios de respiración.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Necesitamos acceso a tu galería para seleccionar tu foto de perfil.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

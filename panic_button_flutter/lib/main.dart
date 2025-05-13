@@ -17,6 +17,7 @@ import 'package:panic_button_flutter/screens/bolt_screen.dart';
 import 'package:panic_button_flutter/theme/app_theme.dart';
 import 'package:panic_button_flutter/config/supabase_config.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
+import 'package:panic_button_flutter/config/app_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,7 +76,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Tu botón para calmar un ataque de pánico',
+      title: '${AppConfig.appName} - ${AppConfig.appDescription}',
       theme: AppTheme.dark(),
       routerConfig: _router,
     );
