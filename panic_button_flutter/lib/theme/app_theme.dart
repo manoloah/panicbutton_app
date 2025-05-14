@@ -75,8 +75,6 @@ class AppTheme {
       onPrimary: _bg, // text/icon on green buttons
       secondary: _purpleAccent, // optional purple accent
       onSecondary: _bg,
-      background: _bg,
-      onBackground: _white,
       surface: Color(0xFF1E3244), // card/dialog surface
       onSurface: _white,
       error: _error,
@@ -135,7 +133,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colors,
-      scaffoldBackgroundColor: colors.background,
+      scaffoldBackgroundColor: colors.surface,
       textTheme: textTheme,
 
       // Green CTA buttons
@@ -189,15 +187,15 @@ class AppTheme {
 
       // AppBar
       appBarTheme: AppBarTheme(
-        backgroundColor: colors.background,
-        foregroundColor: colors.onBackground,
+        backgroundColor: colors.surface,
+        foregroundColor: colors.onSurface,
         elevation: 0,
         titleTextStyle: GoogleFonts.unbounded(
           fontWeight: FontWeight.bold,
           fontSize: 20,
           color: _white,
         ),
-        iconTheme: IconThemeData(color: colors.onBackground),
+        iconTheme: IconThemeData(color: colors.onSurface),
       ),
 
       // Inputs

@@ -167,19 +167,35 @@
 
 - **Environment Variables**
   - **NEVER hardcode credentials** in the codebase
-  - Use `flutter_dotenv` to load credentials from `.env` file
-  - Add `.env` files to `.gitignore` to prevent accidental commits
+  - Use `String.fromEnvironment()` with build-time injection via `--dart-define` flags
+  - Maintain a local `.env` file for development (add to `.gitignore`)
+  - Use the `build_ios.sh` script which securely passes credentials at build time
   - Example implementation:
     ```dart
-    // Configuration
-    static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
-    static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-    ```
-  - Add validation for missing environment variables:
-    ```dart
-    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-      throw Exception('Configuration not found. Make sure your .env file is properly set up.');
+    // Secure configuration using build-time injection
+    static const String _envSupabaseUrl = String.fromEnvironment(
+      'SUPABASE_URL',
+      defaultValue: '',
+    );
+    
+    static String get supabaseUrl {
+      // First check build-time environment variables (production approach)
+      if (_envSupabaseUrl.isNotEmpty) {
+        return _envSupabaseUrl;
+      }
+      
+      // Then try to get from .env file (development approach)
+      final envValue = dotenv.env['SUPABASE_URL'];
+      if (envValue != null && envValue.isNotEmpty) {
+        return envValue;
+      }
+      
+      return '';
     }
+    ```
+  - For production builds, always use:
+    ```bash
+    ./scripts/build_ios.sh --distribution=testflight
     ```
 
 - **Secure Logging**
@@ -201,6 +217,17 @@
     
     // Good:
     debugPrint('User ID: ${userId.substring(0, 8)}...');
+    ```
+  - When displaying credentials in logs, mask them properly:
+    ```dart
+    // Bad:
+    debugPrint('Using key: $apiKey');
+    
+    // Good:
+    final maskedKey = apiKey.length > 8 
+      ? "${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}" 
+      : "***";
+    debugPrint('Using key: $maskedKey');
     ```
 
 - **Secure Storage**

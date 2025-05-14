@@ -18,6 +18,14 @@ import 'package:panic_button_flutter/theme/app_theme.dart';
 import 'package:panic_button_flutter/config/supabase_config.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/config/app_config.dart';
+import 'package:flutter/foundation.dart';
+
+// Global variables to track initialization
+bool isInitialized = false;
+bool isAuthenticated = false;
+
+// Router key for refreshing navigation state
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,40 +40,115 @@ void main() async {
         try {
           await appLinks.getInitialAppLink();
         } catch (e) {
-          debugPrint(
-              'App links initial link error (safe to ignore in debug): $e');
+          if (kDebugMode) {
+            debugPrint(
+              'App links initial link error (safe to ignore in debug): $e',
+            );
+          }
         }
       });
     } catch (e) {
-      debugPrint(
-          'App links initialization error (safe to ignore in debug): $e');
+      if (kDebugMode) {
+        debugPrint(
+          'App links initialization error (safe to ignore in debug): $e',
+        );
+      }
     }
 
     // Load environment variables in development
-    if (const bool.fromEnvironment('dart.vm.product') == false) {
+    try {
       await dotenv.load(fileName: '.env');
-      SupabaseConfig.initializeForDev();
-      debugPrint('Environment variables loaded successfully');
-      // Debug print statements that exposed credentials have been removed
+      if (kDebugMode) {
+        debugPrint('Environment variables loaded successfully');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Failed to load .env file: $e');
+        debugPrint('This is expected in production environments');
+      }
+    }
+
+    // Verify Supabase credentials are available
+    // In production, these should be provided via --dart-define
+    if (SupabaseConfig.supabaseUrl.isEmpty ||
+        SupabaseConfig.supabaseAnonKey.isEmpty) {
+      if (kReleaseMode) {
+        throw Exception(
+            'Missing Supabase configuration in production build. Make sure to include --dart-define arguments.');
+      } else {
+        debugPrint(
+            'WARNING: Supabase credentials not found. App may not function correctly.');
+      }
     }
 
     // Initialize Supabase
     await Supabase.initialize(
       url: SupabaseConfig.supabaseUrl,
       anonKey: SupabaseConfig.supabaseAnonKey,
-      debug: !const bool.fromEnvironment('dart.vm.product'),
+      debug: kDebugMode,
     );
-    debugPrint('Supabase initialized successfully');
+
+    isInitialized = true;
+
+    // Setup auth state listener to track authentication changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+
+      // Update authentication status
+      isAuthenticated = Supabase.instance.client.auth.currentUser != null;
+
+      if (kDebugMode) {
+        debugPrint('Auth state changed: $event');
+        debugPrint(
+            'User is now: ${isAuthenticated ? 'logged in' : 'logged out'}');
+      }
+
+      // Force router to reconsider navigation
+      if (_rootNavigatorKey.currentState != null) {
+        // Refresh navigation (will trigger redirect)
+        _router.refresh();
+      }
+    });
+
+    // Initial auth check
+    isAuthenticated = Supabase.instance.client.auth.currentUser != null;
+
+    if (kDebugMode) {
+      debugPrint('Supabase initialized successfully');
+      debugPrint(
+          'Auth status: ${isAuthenticated ? 'Logged in' : 'Not logged in'}');
+    }
   } catch (e) {
     debugPrint('Error during initialization: $e');
+    // In production, show a user-friendly error message
+    if (kReleaseMode) {
+      // This could be improved with a proper error UI, but for now
+      // we'll let the app crash in a controlled way to help diagnose the issue
+      runApp(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  'Ocurrió un error al iniciar la aplicación. '
+                  'Por favor, intenta de nuevo más tarde.',
+                  style: TextStyle(fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
   }
 
   runApp(
     provider_pkg.ChangeNotifierProvider(
       create: (_) => JourneyProvider(),
-      child: const ProviderScope(
-        child: MyApp(),
-      ),
+      child: const ProviderScope(child: MyApp()),
     ),
   );
 }
@@ -84,10 +167,23 @@ class MyApp extends StatelessWidget {
 }
 
 final _router = GoRouter(
+  navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   redirect: (context, state) {
+    // First check if Supabase is initialized
+    if (!isInitialized) {
+      // Return to home and let error handling take care of it
+      return '/';
+    }
+
+    // Always check current auth state directly - don't rely on cached value
     final isAuth = Supabase.instance.client.auth.currentUser != null;
     final isAuthRoute = state.matchedLocation == '/auth';
+
+    if (kDebugMode) {
+      debugPrint(
+          'Router redirect check - auth: $isAuth, route: ${state.matchedLocation}');
+    }
 
     if (!isAuth && !isAuthRoute) {
       return '/auth';
@@ -98,22 +194,13 @@ final _router = GoRouter(
     return null;
   },
   routes: [
-    GoRoute(
-      path: '/auth',
-      builder: (context, state) => const AuthScreen(),
-    ),
-    GoRoute(
-      path: '/',
-      builder: (context, state) => const HomeScreen(),
-    ),
+    GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+    GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
     GoRoute(
       path: '/breathwork',
       builder: (context, state) => const BreathScreen(),
     ),
-    GoRoute(
-      path: '/breath',
-      builder: (context, state) => const BreathScreen(),
-    ),
+    GoRoute(path: '/breath', builder: (context, state) => const BreathScreen()),
     GoRoute(
       path: '/breath/:patternSlug',
       builder: (context, state) {
@@ -144,9 +231,6 @@ final _router = GoRouter(
       path: '/journey',
       builder: (context, state) => const JourneyScreen(),
     ),
-    GoRoute(
-      path: '/bolt',
-      builder: (context, state) => const BoltScreen(),
-    ),
+    GoRoute(path: '/bolt', builder: (context, state) => const BoltScreen()),
   ],
 );

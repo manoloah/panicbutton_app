@@ -156,7 +156,7 @@ class BoltChart extends StatelessWidget {
           HorizontalRangeAnnotation(
             y1: clampedBottom,
             y2: clampedTop,
-            color: zoneColors[i].withAlpha((zoneColors[i].alpha * 255).toInt()),
+            color: zoneColors[i].withValues(alpha: 0.7),
           ),
         );
       }
@@ -168,8 +168,7 @@ class BoltChart extends StatelessWidget {
         HorizontalRangeAnnotation(
           y1: mentalStateLines.last['y'] as double,
           y2: effectiveMaxY,
-          color:
-              zoneColors.last.withAlpha((zoneColors.last.alpha * 255).toInt()),
+          color: zoneColors.last.withOpacity(0.7),
         ),
       );
     }
@@ -235,14 +234,13 @@ class BoltChart extends StatelessWidget {
             borderData: FlBorderData(show: false),
             lineTouchData: LineTouchData(
               touchTooltipData: LineTouchTooltipData(
-                tooltipBgColor:
-                    cs.surface.withAlpha((cs.surface.alpha * 255).toInt()),
+                tooltipBgColor: cs.surface.withOpacity(0.7),
                 tooltipRoundedRadius: 8,
                 getTooltipItems: (List<LineBarSpot> touchedSpots) {
                   return touchedSpots.map((spot) {
                     return LineTooltipItem(
                       // Format with only one decimal place
-                      '${spot.y.toStringAsFixed(1)}',
+                      spot.y.toStringAsFixed(1),
                       TextStyle(
                         color: cs.primary,
                         fontWeight: FontWeight.bold,
@@ -337,7 +335,7 @@ class BoltChart extends StatelessWidget {
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: cs.primary.withAlpha((cs.primary.alpha * 255).toInt()),
+                  color: cs.primary.withOpacity(0.7),
                 ),
               ),
             ],

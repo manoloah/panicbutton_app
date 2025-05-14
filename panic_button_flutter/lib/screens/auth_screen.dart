@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/breath_circle.dart';
+import 'package:panic_button_flutter/config/supabase_config.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:math' as math;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -18,6 +21,32 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
   bool _isLogin = true;
   String? _errorMessage;
+  bool _configError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if Supabase is properly configured
+    _checkSupabaseConfig();
+  }
+
+  void _checkSupabaseConfig() {
+    if (SupabaseConfig.supabaseUrl.isEmpty ||
+        SupabaseConfig.supabaseAnonKey.isEmpty ||
+        SupabaseConfig.supabaseUrl == "https://xyzcompany.supabase.co") {
+      setState(() {
+        _configError = true;
+        _errorMessage =
+            'Configuración de Supabase incorrecta. Verifica tus credenciales.';
+      });
+      if (kDebugMode) {
+        debugPrint('⚠️ Supabase configuration error:');
+        debugPrint('URL: ${SupabaseConfig.supabaseUrl}');
+        debugPrint(
+            'Anon Key: ${SupabaseConfig.supabaseAnonKey.isNotEmpty ? "Present (length: ${SupabaseConfig.supabaseAnonKey.length})" : "Empty"}');
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -40,6 +69,10 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   String _getReadableError(String error) {
+    if (_configError) {
+      return 'Error de configuración. Contacte al soporte.';
+    }
+
     if (error.contains('Invalid login credentials')) {
       return 'Email o contraseña incorrectos';
     } else if (error.contains('User already registered')) {
@@ -48,11 +81,28 @@ class _AuthScreenState extends State<AuthScreen> {
       return 'Email inválido';
     } else if (error.contains('Password should be at least 6 characters')) {
       return 'La contraseña debe tener al menos 6 caracteres';
+    } else if (error.contains('socket') ||
+        error.contains('network') ||
+        error.contains('connection') ||
+        error.contains('timeout')) {
+      return 'Error de conexión. Revisa tu conexión a internet.';
+    } else if (error.contains('JWT') || error.contains('token')) {
+      return 'Error de autenticación. Contacte al soporte.';
     }
+
+    if (kDebugMode) {
+      debugPrint('Unhandled auth error: $error');
+    }
+
     return 'Ha ocurrido un error. Por favor intenta de nuevo.';
   }
 
   Future<void> _handleSubmit() async {
+    if (_configError) {
+      _showError('Error de configuración. Contacte al soporte.');
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -62,20 +112,46 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (_isLogin) {
+        // Add debug info
+        if (kDebugMode) {
+          debugPrint(
+              'Attempting login with email: ${_emailController.text.trim()}');
+          debugPrint('Using Supabase URL: ${SupabaseConfig.supabaseUrl}');
+        }
+
         final response = await Supabase.instance.client.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+
         if (response.user != null && mounted) {
-          context.go('/');
+          if (kDebugMode) {
+            debugPrint('Login successful for user: ${response.user!.id}');
+          }
+
+          // Force navigation to home screen
+          if (mounted) {
+            // Short delay to allow auth state to propagate
+            await Future.delayed(const Duration(milliseconds: 300));
+            context.go('/');
+          }
         } else {
+          if (kDebugMode) {
+            debugPrint('Login failed: No user returned');
+          }
           _showError('No se pudo iniciar sesión');
         }
       } else {
+        if (kDebugMode) {
+          debugPrint(
+              'Attempting signup with email: ${_emailController.text.trim()}');
+        }
+
         final response = await Supabase.instance.client.auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+
         if (response.user != null && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -89,8 +165,14 @@ class _AuthScreenState extends State<AuthScreen> {
         }
       }
     } on AuthException catch (e) {
+      if (kDebugMode) {
+        debugPrint('Auth exception: ${e.message}');
+      }
       _showError(_getReadableError(e.message));
     } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Unexpected error: $e');
+      }
       _showError(_getReadableError(e.toString()));
     } finally {
       if (mounted) {
@@ -176,8 +258,8 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSubmit,
-                  style: _isLoading
+                  onPressed: _configError || _isLoading ? null : _handleSubmit,
+                  style: (_configError || _isLoading)
                       ? null
                       : ElevatedButton.styleFrom(
                           backgroundColor: cs.primaryContainer,
@@ -210,7 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: _isLoading
+                  onPressed: _configError || _isLoading
                       ? null
                       : () => setState(() => _isLogin = !_isLogin),
                   child: Text(
@@ -219,6 +301,27 @@ class _AuthScreenState extends State<AuthScreen> {
                         : '¿Ya tienes una cuenta? Inicia sesión',
                   ),
                 ),
+                if (_configError && kDebugMode) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    'Modo desarrollador: Error de configuración Supabase',
+                    style:
+                        TextStyle(color: cs.error, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'URL: ${SupabaseConfig.supabaseUrl}\nAnon Key: ${SupabaseConfig.supabaseAnonKey.substring(0, math.min(10, SupabaseConfig.supabaseAnonKey.length))}...',
+                    style: TextStyle(color: cs.error, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ejecuta el script debug_run.sh con credenciales válidas.',
+                    style: TextStyle(color: cs.error, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ],
             ),
           ),
