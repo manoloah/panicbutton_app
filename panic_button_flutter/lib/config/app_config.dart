@@ -9,7 +9,7 @@ class AppConfig {
 
   /// The app description for stores and SEO
   static const String appDescription =
-      "Una aplicación para manejar la ansiedad con ejercicios de respiración";
+      "Una aplicación para controlar y reducir ataques de pánico con ejercicios de respiración";
 
   /// The bundle ID / application ID
   static const String bundleId = "com.breathmanu.calme";
