@@ -128,6 +128,41 @@ class AppTheme {
       ),
     );
 
+    // Create 3D button style for secondary actions (formerly tertiary)
+    final secondaryButtonStyle = ButtonStyle(
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      backgroundColor: WidgetStatePropertyAll(colors.surface),
+      foregroundColor: const WidgetStatePropertyAll(_white),
+      overlayColor: WidgetStatePropertyAll(colors.primary.withAlpha(40)),
+      iconColor: const WidgetStatePropertyAll(_white),
+      textStyle: WidgetStatePropertyAll(
+        GoogleFonts.cabin(
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+      ),
+      // 3D effect with elevation and shadow
+      elevation: const WidgetStatePropertyAll(4),
+      shadowColor: WidgetStatePropertyAll(
+        const Color(0xFF000000).withAlpha((0.5 * 255).toInt()),
+      ),
+      // Shaped border with subtle gradient effect
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(
+            color: colors.onSurface.withAlpha((0.3 * 255).toInt()),
+            width: 1,
+          ),
+        ),
+      ),
+      surfaceTintColor: WidgetStatePropertyAll(
+        colors.primary.withAlpha((0.1 * 255).toInt()),
+      ),
+    );
+
     // ---- Component themes ----------------------------------------------
     return ThemeData(
       useMaterial3: true,
@@ -152,30 +187,16 @@ class AppTheme {
         ),
       ),
 
-      // White "secondary" buttons (gray text)
+      // 3D secondary buttons with elevation effect (formerly tertiary)
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: _white,
-          foregroundColor: _altText,
-          side: BorderSide(color: _altText.withAlpha((.3 * 255).toInt())),
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textStyle: GoogleFonts.cabin(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
+        style: secondaryButtonStyle,
       ),
 
-      // Text buttons (links)
+      // Text buttons using the same 3D style for non-elevated actions
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: _greenAccent,
-          textStyle: GoogleFonts.cabin(
-            fontWeight: FontWeight.w600,
-          ),
+        style: secondaryButtonStyle.copyWith(
+          // Keep the same style but with different foreground color for text buttons if needed
+          foregroundColor: WidgetStatePropertyAll(colors.onSurface),
         ),
       ),
 
@@ -217,8 +238,8 @@ class AppTheme {
       ),
 
       // Theme extensions
-      extensions: const [
-        BreathColors(
+      extensions: [
+        const BreathColors(
           oceanDeep: _oceanDeep,
           oceanMid: _oceanMid,
           oceanSurface: _oceanSurface,

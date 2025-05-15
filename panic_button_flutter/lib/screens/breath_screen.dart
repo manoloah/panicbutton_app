@@ -146,7 +146,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   @override
   Widget build(BuildContext context) {
     final playbackState = ref.watch(breathingPlaybackControllerProvider);
-    final tt = Theme.of(context).textTheme;
 
     // Setup listeners in the build method
     if (_isFirstBuild) {
@@ -174,8 +173,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     if (!_isInitialized) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: SafeArea(
-          child: const DelayedLoadingAnimation(
+        body: const SafeArea(
+          child: DelayedLoadingAnimation(
             loadingText: 'Cargando ejercicios...',
             showQuote: true,
             delayMilliseconds: 500,
@@ -183,12 +182,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         ),
       );
     }
-
-    // Get device dimensions
-    const bottomNavHeight = 56.0; // Standard navbar height
-    final viewPadding = MediaQuery.of(context).padding;
-    final screenSize = MediaQuery.of(context).size;
-    final isSmallScreen = screenSize.width < 360;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -227,10 +220,10 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                       ),
                       // Timer display
                       _buildTimerDisplay(playbackState),
-                      // Control buttons row wrapped for better layout on small screens
+                      // Control buttons with better layout
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: _buildControlsRow(),
+                        padding: const EdgeInsets.only(bottom: 24, top: 16),
+                        child: _buildControlsLayout(),
                       ),
                     ],
                   ),
@@ -261,91 +254,101 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  Widget _buildControlsRow() {
-    final cs = Theme.of(context).colorScheme;
-    final screenSize = MediaQuery.of(context).size;
-    final isSmallScreen = screenSize.width < 360;
+  // Reorganized layout for controls following the correct hierarchy
+  Widget _buildControlsLayout() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Play button centered - primary action (#1 in hierarchy)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: _buildPlayPauseButton(),
+          ),
 
-    // Get the current selected pattern
-    final pattern = ref.watch(selectedPatternProvider);
-    final patternName = pattern?.name ?? 'Seleccionar patrón';
+          // Pattern selector button (#2 in hierarchy)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: _buildPatternButton(),
+          ),
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        // Duration selector button
-        const DurationSelectorButton(),
-
-        // Row with play button and pattern selector
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Play/pause button
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: _buildPlayPauseButton(),
-            ),
-
-            // Pattern selector button
-            TextButton.icon(
-              onPressed: () => showGoalPatternSheet(context),
-              style: TextButton.styleFrom(
-                backgroundColor: cs.primaryContainer,
-                foregroundColor: cs.onPrimaryContainer,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 10 : 14,
-                    vertical: isSmallScreen ? 8 : 10),
-                elevation: 4,
-                shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
-                side: BorderSide(
-                  color: cs.primary.withAlpha((0.4 * 255).toInt()),
-                  width: 1.5,
-                ),
-              ),
-              icon: Icon(Icons.air,
-                  size: isSmallScreen ? 24 : 30, color: cs.onPrimaryContainer),
-              label: Text(
-                patternName,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: cs.onPrimaryContainer,
-                      fontSize: isSmallScreen ? 12 : 14,
-                    ),
-                maxLines: 1,
-              ),
-            ),
-          ],
-        ),
-      ],
+          // Duration selector button (#3 in hierarchy)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _buildDurationButton(),
+          ),
+        ],
+      ),
     );
   }
 
+  // Play/pause button - primary action
   Widget _buildPlayPauseButton() {
     final isPlaying = ref.watch(breathingPlaybackControllerProvider).isPlaying;
-    final cs = Theme.of(context).colorScheme;
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
 
-    // Use a regular material button instead of FloatingActionButton
     return ElevatedButton(
       onPressed: _toggleBreathing,
       style: ElevatedButton.styleFrom(
-        backgroundColor: cs.primaryContainer,
-        foregroundColor: cs.onPrimaryContainer,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         shape: const CircleBorder(),
-        padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
         elevation: 4,
       ),
       child: Icon(
         isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-        size: isSmallScreen ? 24 : 32,
+        size: isSmallScreen ? 32 : 40,
       ),
+    );
+  }
+
+  // Pattern selector button - uses new 3D secondary button style
+  Widget _buildPatternButton() {
+    final pattern = ref.watch(selectedPatternProvider);
+    final patternName = pattern?.name ?? 'Seleccionar patrón';
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
+
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(
+        maxWidth: isSmallScreen ? 280 : 350,
+      ),
+      child: TextButton.icon(
+        onPressed: () => showGoalPatternSheet(context),
+        style: Theme.of(context).outlinedButtonTheme.style,
+        icon: const Icon(
+          Icons.air,
+          size: 24,
+        ),
+        label: Text(
+          patternName,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      ),
+    );
+  }
+
+  // Duration selector - uses the DurationSelectorButton to preserve functionality
+  Widget _buildDurationButton() {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
+
+    // Using a container to apply custom styling to the DurationSelectorButton
+    return Container(
+      width: double.infinity,
+      constraints: BoxConstraints(
+        maxWidth: isSmallScreen ? 280 : 350,
+      ),
+      child: const DurationSelectorButton(),
     );
   }
 

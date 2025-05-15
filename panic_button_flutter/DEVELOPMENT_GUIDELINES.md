@@ -33,6 +33,151 @@
 
 ---
 
+### 8-Point Grid System
+
+The 8-point grid system is a design guideline that establishes consistent spacing, sizing, and alignment throughout the app. All measurements should be multiples of 8 (or 4 in certain cases) to create visual harmony.
+
+See sources: 
+- https://medium.com/design-bootcamp/8-pixel-revolution-transforming-your-design-workflow-with-figma-66053a6ad404
+- https://medium.com/design-bootcamp/designing-in-the-8pt-grid-system-f3c1183ea6e8
+
+**Why We Use the 8-Point Grid System:**
+- Creates consistent visual rhythm and spacing
+- Makes scaling for different devices easier and more predictable
+- Improves communication between designers and developers
+- Most screen sizes are divisible by 8, making layouts more predictable
+- Reduces decision fatigue during design and implementation
+
+**Core Principles:** 
+- Use multiples of 8 for spacing, padding, margins, and component dimensions
+- For smaller elements or fine-tuning, use multiples of 4 when necessary
+- Always align to the grid - avoid arbitrary values like 13px or 27px
+
+**Practical Guidelines:**
+
+1. **Spacing**:
+   - Use the following values for padding and margins:
+     - 8px, 16px, 24px, 32px, 40px, 48px, 56px, etc.
+   - For tighter spacing, use multiples of 4:
+     - 4px, 8px, 12px, 16px, 20px, etc.
+   - Between major sections: 24px or 32px
+   - Between related elements: 8px or 16px
+   - Inside containers (padding): 16px or 24px
+
+2. **Component Sizing**:
+   - Button heights: 32px, 40px, 48px, 56px
+   - Icon sizes: 16px, 24px, 32px, 40px
+   - Input field heights: 40px, 48px
+   - Cards and containers: widths and heights in multiples of 8px
+   - Touch targets: minimum 48px x 48px
+
+3. **Typography**:
+   - Line heights should be multiples of 8 (or 4 for tighter control)
+   - Text blocks should have vertical margins in multiples of 8
+   - Text field padding should be in multiples of 8
+
+4. **Implementation Tips**:
+   - Define spacing constants to reuse throughout the app:
+     ```dart
+     class Spacing {
+       static const double xs = 4;    // Extra small
+       static const double s = 8;     // Small
+       static const double m = 16;    // Medium
+       static const double l = 24;    // Large
+       static const double xl = 32;   // Extra large
+       static const double xxl = 40;  // 2X large
+       static const double xxxl = 48; // 3X large
+     }
+     ```
+   - Use these constants for all padding and margin values
+   - For vertical layouts, align content to an 8px baseline grid
+
+5. **Component-Specific Guidelines**:
+   - **Buttons**: 
+     - Height: 40px or 48px
+     - Horizontal padding: 16px or 24px
+     - Corner radius: 8px, 16px, or 24px
+   - **Cards**:
+     - Padding: 16px or 24px
+     - Margin between cards: 16px
+     - Border radius: 8px or 16px
+   - **Lists**:
+     - Item height: multiples of 8px (usually 48px, 56px, or 64px)
+     - Padding between items: 8px or 16px
+   - **Forms**:
+     - Field spacing: 16px or 24px
+     - Field padding: 16px
+
+**Layout Structure:**
+- Use a 12-column grid for horizontal layouts
+- Column gutters should be 16px or 24px (multiples of 8)
+- Maintain 16px or 24px margins on the left and right edges
+
+**Breaking the Rules:**
+- While consistency is important, there are cases where breaking the grid makes sense
+- Visual design may sometimes require values that aren't multiples of 8
+- These exceptions should be deliberate and justified by better UX
+- Document any intentional exceptions
+
+By following the 8-point grid system, we ensure a consistent visual experience across the app while making development and collaboration more efficient.
+
+---
+
+### UI Improvements and Functionality Preservation
+
+When making UI improvements or implementing design changes, it's essential to maintain the app's functionality. Follow these guidelines:
+
+**Core Principles:**
+- **Preserve all existing functionality** when updating the UI
+- **Test thoroughly** after visual changes to ensure no features are broken
+- **Maintain user workflows** even if the visual presentation changes
+- **Document any intentional changes** to user interactions
+
+**Best Practices:**
+1. **Understand Before Modifying:**
+   - Analyze how the existing UI components work before changing them
+   - Identify event handlers, callbacks, and state management
+   - Map out the user flow and interaction patterns
+
+2. **Component Refactoring:**
+   - When replacing a component, ensure all original behavior is transferred
+   - Preserve all event handlers and callbacks
+   - Maintain the same state management approach
+   - Test all edge cases and interactions
+
+3. **Visual vs. Functional Changes:**
+   - Separate visual changes (styling, layout) from functional changes
+   - Make visual changes in small, testable increments
+   - Avoid changing both appearance and behavior in the same update
+
+4. **Handling Dependencies:**
+   - Check for dependencies on the component you're modifying
+   - Ensure external components aren't relying on implementation details
+   - Test related features after making changes
+
+5. **Testing After UI Changes:**
+   - Verify all interactive elements still work as expected
+   - Test with different input methods (touch, keyboard)
+   - Confirm that accessibility features are preserved
+   - Validate across different screen sizes
+
+6. **Documentation:**
+   - Document UI changes that affect user interaction
+   - Note any adjustments to component APIs
+   - Explain the rationale for significant UI changes
+
+**Visual Hierarchy Principles:**
+- Maintain clear visual hierarchy for primary, secondary, and tertiary actions
+- Follow consistent button styling based on action importance:
+  - Primary actions: Most prominent, use primary color
+  - Secondary actions: Less prominent, use secondary styling
+  - Tertiary actions: Least prominent, use minimal styling
+- Apply consistent interaction patterns across similar components
+
+By following these guidelines, we ensure that UI improvements enhance the user experience without disrupting functionality or creating confusion.
+
+---
+
 ### App Identity Management
 
 - **Centralized Configuration Approach**

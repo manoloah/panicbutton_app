@@ -10,20 +10,18 @@ class DurationSelectorButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedDuration = ref.watch(selectedDurationProvider);
 
-    return GestureDetector(
-      onTap: () => _showDurationPicker(context, ref),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primaryContainer,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          'Duración: $selectedDuration min',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimaryContainer,
-            fontWeight: FontWeight.w500,
-          ),
+    return TextButton.icon(
+      onPressed: () => _showDurationPicker(context, ref),
+      style: Theme.of(context).outlinedButtonTheme.style,
+      icon: const Icon(
+        Icons.timer,
+        size: 24,
+      ),
+      label: Text(
+        'Duración: $selectedDuration min',
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -63,7 +61,6 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
     return SafeArea(
@@ -94,7 +91,6 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
             Text(
               '$_selectedDuration minutos',
               style: tt.displaySmall?.copyWith(
-                color: cs.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -105,7 +101,7 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
               min: 1,
               max: 30,
               divisions: 29,
-              activeColor: cs.primary,
+              activeColor: Theme.of(context).colorScheme.primary,
               onChanged: (value) {
                 setState(() {
                   _selectedDuration = value.round();
@@ -137,8 +133,8 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: cs.primary,
-                foregroundColor: cs.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -153,7 +149,6 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
   }
 
   Widget _buildDurationChip(int minutes) {
-    final cs = Theme.of(context).colorScheme;
     final isSelected = _selectedDuration == minutes;
 
     return GestureDetector(
@@ -165,13 +160,17 @@ class _DurationPickerSheetState extends ConsumerState<_DurationPickerSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? cs.primary : cs.surfaceVariant,
+          color: isSelected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.surfaceVariant,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
           '$minutes',
           style: TextStyle(
-            color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+            color: isSelected
+                ? Theme.of(context).colorScheme.onPrimary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
