@@ -5,6 +5,7 @@ import 'package:panic_button_flutter/widgets/breath_circle.dart';
 import 'package:panic_button_flutter/widgets/duration_selector_button.dart';
 import 'package:panic_button_flutter/widgets/goal_pattern_sheet.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
+import 'package:panic_button_flutter/widgets/custom_sliver_app_bar.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/providers/breathing_playback_controller.dart';
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
@@ -191,56 +192,52 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: _navigateToJourney,
-        ),
-        title: null,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/settings'),
-          ),
-        ],
-      ),
       body: SafeArea(
         bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                // Breathing circle centered
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: BreathCircle(
-                    onTap: _toggleBreathing,
-                    phaseIndicator: const Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleWaveOverlay(),
-                        PhaseCountdownDisplay(),
-                      ],
-                    ),
+        child: CustomScrollView(
+          slivers: [
+            CustomSliverAppBar(
+              showBackButton: true,
+              onBackPressed: _navigateToJourney,
+              showSettings: true,
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      // Breathing circle centered
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: BreathCircle(
+                          onTap: _toggleBreathing,
+                          phaseIndicator: const Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CircleWaveOverlay(),
+                              PhaseCountdownDisplay(),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // Timer display
+                      _buildTimerDisplay(playbackState),
+                      // Control buttons row wrapped for better layout on small screens
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildControlsRow(),
+                      ),
+                    ],
                   ),
                 ),
-                // Timer display
-                _buildTimerDisplay(playbackState),
-                // Control buttons row wrapped for better layout on small screens
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: _buildControlsRow(),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
       bottomNavigationBar: const CustomNavBar(currentIndex: 1),

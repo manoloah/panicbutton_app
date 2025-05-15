@@ -101,12 +101,12 @@ class AppTheme {
       ),
       headlineMedium: GoogleFonts.unbounded(
         fontWeight: FontWeight.bold,
-        fontSize: 28,
+        fontSize: 30,
         color: _white,
       ),
       headlineSmall: GoogleFonts.unbounded(
         fontWeight: FontWeight.bold,
-        fontSize: 22,
+        fontSize: 26,
         color: _white,
       ),
 

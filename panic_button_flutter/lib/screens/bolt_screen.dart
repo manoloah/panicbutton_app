@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/custom_nav_bar.dart';
+import '../widgets/custom_sliver_app_bar.dart';
 import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
 import '../widgets/bolt_chart.dart' as bolt_chart;
@@ -565,23 +566,9 @@ class _BoltScreenState extends State<BoltScreen>
                 false, // Don't pad the bottom - we'll handle that separately
             child: CustomScrollView(
               slivers: [
-                SliverAppBar(
-                  backgroundColor: const Color(0xFF132737),
-                  foregroundColor: cs.onSurface,
-                  elevation: 0,
-                  // Makes it disappear when you scroll up
-                  pinned: false, // not fixed
-                  floating: true, // re-appears on quick swipe-down
-                  snap: true,
-                  // Kill the "scroll-under" tint/elevation
-                  scrolledUnderElevation: 0,
-                  surfaceTintColor: Colors.transparent,
-                  actions: [
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () => context.go('/settings'),
-                    ),
-                  ],
+                const CustomSliverAppBar(
+                  showBackButton: false,
+                  showSettings: true,
                 ),
 
                 // Everything that used to be in your old Column

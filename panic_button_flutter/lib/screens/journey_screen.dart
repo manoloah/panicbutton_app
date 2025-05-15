@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
+import 'package:panic_button_flutter/widgets/custom_sliver_app_bar.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/models/journey_level.dart';
 import 'package:panic_button_flutter/screens/breath_screen.dart';
@@ -73,17 +74,6 @@ class _JourneyScreenState extends State<JourneyScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       resizeToAvoidBottomInset: false,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/settings'),
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Expanded(
@@ -137,42 +127,46 @@ class _JourneyScreenState extends State<JourneyScreen> {
                     }
                   }
 
-                  return Stack(
-                    children: [
-                      SingleChildScrollView(
-                        padding: EdgeInsets.only(bottom: 80 + bottomPadding),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 32),
-                              Text(
-                                'Camino a la Calma',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .displayLarge
-                                    ?.copyWith(
-                                      fontSize: 32,
-                                    ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Desbloquea nuevas técnicas de respiración y mejora tu sistema nervioso',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
-                                    ?.copyWith(
-                                      color: const Color(0xFFB0B0B0),
-                                    ),
-                              ),
-                              const SizedBox(height: 32),
-                              _buildProgressSection(context, journeyProvider),
-                              const SizedBox(height: 32),
-                              _buildJourneyPath(
-                                  context, allLevels, journeyProvider),
-                            ],
-                          ),
+                  return CustomScrollView(
+                    slivers: [
+                      const CustomSliverAppBar(
+                        showBackButton: false,
+                        showSettings: true,
+                      ),
+                      SliverPadding(
+                        padding: EdgeInsets.only(
+                          bottom: 80 + bottomPadding,
+                          left: 16.0,
+                          right: 16.0,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            const SizedBox(height: 32),
+                            Text(
+                              'Camino a la Calma',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displayLarge
+                                  ?.copyWith(
+                                    fontSize: 32,
+                                  ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Desbloquea nuevas técnicas de respiración y mejora tu sistema nervioso',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    color: const Color(0xFFB0B0B0),
+                                  ),
+                            ),
+                            const SizedBox(height: 32),
+                            _buildProgressSection(context, journeyProvider),
+                            const SizedBox(height: 32),
+                            _buildJourneyPath(
+                                context, allLevels, journeyProvider),
+                          ]),
                         ),
                       ),
                     ],
