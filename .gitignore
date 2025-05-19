@@ -10,7 +10,14 @@
 # Cursor Config
 .cursor/
 
+# Credentials
+app_sounds/.env
 
+
+#Folder with sound files
+app_sounds/normalized_sounds/*
+app_sounds/input_sounds/*
+##app_sounds/elevenlabs_voicesettings/*
 
 # Flutter repo-specific
 /bin/cache/
