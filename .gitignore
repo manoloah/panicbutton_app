@@ -10,7 +10,10 @@
 # Cursor Config
 .cursor/
 
-
+# App sounds
+app_sounds/input_sounds/**
+app_sounds/normalized_sounds/**
+app_sounds/.env
 
 # Flutter repo-specific
 /bin/cache/
