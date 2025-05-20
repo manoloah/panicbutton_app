@@ -10,7 +10,7 @@ import '../widgets/custom_nav_bar.dart';
 import '../widgets/custom_sliver_app_bar.dart';
 import '../widgets/breath_circle.dart';
 import '../widgets/wave_animation.dart';
-import '../widgets/bolt_chart.dart' as bolt_chart;
+import '../widgets/score_chart.dart' show ScoreChart, ScorePeriod;
 import '../constants/images.dart';
 import '../widgets/delayed_loading_animation.dart';
 
@@ -18,10 +18,10 @@ import '../widgets/delayed_loading_animation.dart';
 enum Aggregation { day, week, month, quarter, year }
 
 /// A period + its average score:
-class PeriodScore {
+class BoltPeriodScore {
   final DateTime period;
   final double averageScore;
-  PeriodScore({required this.period, required this.averageScore});
+  BoltPeriodScore({required this.period, required this.averageScore});
 }
 
 class BoltScreen extends StatefulWidget {
@@ -231,8 +231,8 @@ class _BoltScreenState extends State<BoltScreen>
     });
   }
 
-  /// Convert raw [_scores] into averaged [PeriodScore]s by [_aggregation].
-  List<PeriodScore> get _periodScores {
+  /// Convert raw [_scores] into averaged scores by [_aggregation].
+  List<BoltPeriodScore> get _periodScores {
     if (_scores.isEmpty) return [];
     final Map<DateTime, List<BoltScore>> buckets = {};
     for (final s in _scores) {
@@ -263,7 +263,7 @@ class _BoltScreenState extends State<BoltScreen>
     final list = buckets.entries.map((e) {
       final avg = e.value.map((s) => s.scoreSeconds).reduce((a, b) => a + b) /
           e.value.length;
-      return PeriodScore(period: e.key, averageScore: avg);
+      return BoltPeriodScore(period: e.key, averageScore: avg);
     }).toList()
       ..sort((a, b) => a.period.compareTo(b.period));
     return list;
@@ -451,20 +451,10 @@ class _BoltScreenState extends State<BoltScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: cs.primary.withAlpha((0.1 * 255).toInt()),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Icon(
-              icon,
-              color: cs.primary,
-              size: 24,
-            ),
-          ),
+        Icon(
+          icon,
+          color: const Color(0xFFB0B0B0), // _altText from app_theme.dart
+          size: 30,
         ),
         const SizedBox(height: 4),
         Text(
@@ -485,21 +475,11 @@ class _BoltScreenState extends State<BoltScreen>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: cs.primary.withAlpha((0.1 * 255).toInt()),
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Image.asset(
-              imagePath,
-              width: 30,
-              height: 30,
-              color: cs.primary,
-            ),
-          ),
+        Image.asset(
+          imagePath,
+          width: 30,
+          height: 30,
+          color: const Color(0xFFB0B0B0), // _altText from app_theme.dart
         ),
         const SizedBox(height: 4),
         Text(
@@ -714,9 +694,9 @@ class _BoltScreenState extends State<BoltScreen>
                                     textAlign: TextAlign.center,
                                   ),
                                 )
-                              : bolt_chart.BoltChart(
+                              : ScoreChart(
                                   periodScores: periodScores
-                                      .map((p) => bolt_chart.PeriodScore(
+                                      .map((p) => ScorePeriod(
                                           period: p.period,
                                           averageScore: p.averageScore))
                                       .toList(),
