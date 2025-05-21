@@ -865,6 +865,123 @@ Notes:
    - Allow direct navigation from journey to specific patterns via slugs
    - Ensure slugs are unique and follow consistent naming (snake_case)
 
+### Metric Measurement Architecture
+
+The app provides a reusable architecture for implementing different types of breathing metric measurements (like BOLT, CO2 tolerance, etc.). This modular design allows for creating consistent UI experiences while configuring different measurement metrics.
+
+#### Core Components
+
+1. **MetricConfig Model**
+   - Defines a measurement metric with configurable properties
+   - Contains name, description, instructions, zones (for score interpretation)
+   - Provides methods for assessing score values and zone determination
+   - Example implementation:
+     ```dart
+     MetricConfig boltConfig = MetricConfig(
+       name: 'BOLT',
+       description: 'Body Oxygen Level Test',
+       instructions: [
+         // Step-by-step instructions
+       ],
+       zones: [
+         MetricZone(min: 0, max: 20, label: 'Bajo', color: Colors.red),
+         MetricZone(min: 20, max: 30, label: 'Medio', color: Colors.amber),
+         MetricZone(min: 30, max: double.infinity, label: 'Alto', color: Colors.green),
+       ],
+       unitLabel: 'segundos',
+     );
+     ```
+
+2. **MetricScore Models**
+   - Handles storing and processing metric scores
+   - Provides different aggregation options (day, week, month)
+   - Includes historical analysis calculations
+   - Supports both numeric and subjective measurements
+
+3. **Reusable UI Components**
+   - **MetricScreen**: Base screen that adapts to any metric configuration
+   - **MetricInstructionsCard**: Shows 3-step instructions with "COMENZAR" button
+   - **MetricMeasurementUI**: Handles timer and results display
+   - **MetricInstructionOverlay**: Step-by-step guided instructions
+   - **MetricScoreInfoDialog**: Explains score meanings and zones
+   - **ScoreChart**: Visualizes historical scores with configurable time periods
+
+#### Implementation Flow
+
+1. **Create Metric Configuration**
+   - Define a new `MetricConfig` with appropriate parameters
+   - Specify zones, instructions, and scoring methodology
+   - Add any metric-specific parameters
+
+2. **Register Metric Provider**
+   - Create a provider that exposes the metric configuration
+   - Implement data loading/saving logic
+   - Define metric-specific calculations if needed
+
+3. **Create Screen Instance**
+   - Use the `MetricScreen` widget with your configuration
+   - Customize content if needed
+   - Add navigation to your new metric screen
+
+4. **Database Integration**
+   - Create appropriate tables for storing metric scores
+   - Implement repository logic for data access
+   - Use consistent naming conventions
+
+#### Example: BOLT Implementation
+
+The BOLT (Body Oxygen Level Test) implementation serves as the reference:
+
+```dart
+// Metric Configuration
+final boltMetricConfig = MetricConfig(
+  name: 'BOLT',
+  description: 'Body Oxygen Level Test',
+  instructions: [
+    'Siéntate cómodamente y respira normalmente por 2 minutos.',
+    'Toma una respiración normal, luego pinza tu nariz y cronometra.',
+    'Detén el cronómetro cuando sientas el primer deseo de respirar.',
+  ],
+  zones: [
+    MetricZone(min: 0, max: 20, label: 'Bajo', color: Colors.red),
+    MetricZone(min: 20, max: 30, label: 'Medio', color: Colors.amber),
+    MetricZone(min: 30, max: double.infinity, label: 'Alto', color: Colors.green),
+  ],
+  unitLabel: 'segundos',
+);
+
+// Usage in navigation
+GoRoute(
+  path: '/bolt',
+  builder: (context, state) => MetricScreen(
+    metricConfig: boltMetricConfig,
+    repository: ref.read(boltRepositoryProvider),
+  ),
+)
+```
+
+#### Guidelines for Adding New Metrics
+
+1. **Start from Reference Implementation**
+   - Use the BOLT implementation as a starting point
+   - Copy and adapt the metric configuration
+   - Reuse UI components for consistency
+
+2. **Maintain Consistent UX**
+   - Keep the same 3-step instruction pattern
+   - Maintain a similar scoring approach (unless metric requires otherwise)
+   - Use consistent zone coloring for comparable metrics
+
+3. **Testing New Metrics**
+   - Test all instruction phases
+   - Verify score recording and visualization
+   - Check responsiveness on different screen sizes
+
+4. **Documentation**
+   - Add metric-specific documentation
+   - Document any unique scoring properties
+   - Update navigation documentation if needed
+
 ---
 
 ### Route Names
