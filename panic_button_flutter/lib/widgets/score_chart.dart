@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../models/metric_config.dart';
 
 /// A dedicated widget for displaying score charts with mental state zones
 class ScoreChart extends StatelessWidget {
@@ -17,12 +18,16 @@ class ScoreChart extends StatelessWidget {
   /// Minimum score to display (adjusts Y-axis)
   final double? minY;
 
+  /// Score zones to show on the chart
+  final List<ScoreZone>? scoreZones;
+
   const ScoreChart({
     super.key,
     required this.periodScores,
     required this.formatBottomLabel,
     this.maxY,
     this.minY,
+    this.scoreZones,
   });
 
   @override
@@ -41,35 +46,76 @@ class ScoreChart extends StatelessWidget {
       );
     }
 
-    // Define zone boundaries and labels with ranges in text
-    final mentalStateLines = [
-      {'y': 10.0, 'label': '<10 - Pánico Constante'},
-      {'y': 15.0, 'label': '10-15 - Ansioso/Inestable'},
-      {'y': 20.0, 'label': '15-20 - Inquieto/Irregular'},
-      {'y': 25.0, 'label': '20-25 - Calma Parcial'},
-      {'y': 30.0, 'label': '25-30 - Tranquilo/Estable'},
-      {'y': 40.0, 'label': '30-40 - Zen/Inmune'},
-    ];
+    // Use the provided score zones or default zones
+    final zones = scoreZones ??
+        [
+          ScoreZone(
+            maxValue: 10.0,
+            label: '<10 - Pánico Constante',
+            description:
+                'Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.',
+            color: Colors.redAccent.shade200.withAlpha(174),
+            textColor: Colors.white,
+          ),
+          ScoreZone(
+            maxValue: 15.0,
+            label: '10-15 - Ansioso/Inestable',
+            description:
+                'Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.',
+            color: Colors.orange.withAlpha(80),
+          ),
+          ScoreZone(
+            maxValue: 20.0,
+            label: '15-20 - Inquieto/Irregular',
+            description:
+                'Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.',
+            color: Colors.amber.withAlpha(80),
+          ),
+          ScoreZone(
+            maxValue: 25.0,
+            label: '20-25 - Calma Parcial',
+            description:
+                'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.',
+            color: Colors.lightGreen.withAlpha(80),
+          ),
+          ScoreZone(
+            maxValue: 30.0,
+            label: '25-30 - Tranquilo/Estable',
+            description:
+                'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.',
+            color: Colors.teal.shade300.withAlpha(80),
+          ),
+          ScoreZone(
+            maxValue: 40.0,
+            label: '30-40 - Zen/Inmune',
+            description: 'Te sientes tranquilo, seguro y estable.',
+            color: Colors.blue.shade300.withAlpha(80),
+          ),
+          ScoreZone(
+            maxValue: double.infinity,
+            label: '40+ - Beyond Zen',
+            description:
+                'Estás en un estado profundo de calma y control, difícilmente te alteras.',
+            color: Colors.indigo.shade300.withAlpha(80),
+          ),
+        ];
 
-    // Zone colors for different mental states with reduced opacity
-    final zoneColors = [
-      Colors.redAccent.shade200
-          .withAlpha(174), // < 10: Pánico Constante (0.8 opacity)
-      Colors.orange.withAlpha(80), // 10-15: Ansioso/Inestable (0.4 opacity)
-      Colors.amber.withAlpha(80), // 15-20: Inquieto/Irregular (0.4 opacity)
-      Colors.lightGreen.withAlpha(80), // 20-25: Calma Parcial (0.4 opacity)
-      Colors.teal.shade300
-          .withAlpha(80), // 25-30: Tranquilo/Estable (0.4 opacity)
-      Colors.blue.shade300.withAlpha(80), // 30-40: Zen/Inmune (0.4 opacity)
-      Colors.indigo.shade300.withAlpha(80), // 40+: Beyond Zen (0.4 opacity)
-    ];
+    // Define zone boundaries from the score zones
+    final mentalStateLines = zones
+        .map((zone) => {
+              'y': zone.maxValue,
+              'label': zone.label,
+            })
+        .toList();
 
     // Calculate appropriate max/min Y values
     // If not provided, calculate based on data and ensure we show relevant zones
     double effectiveMaxY = maxY ??
         math.max(
             math.max(
-                40.0, // At least show up to 40
+                zones.isNotEmpty
+                    ? zones[zones.length - 2].maxValue
+                    : 40.0, // At least show up to penultimate zone max
                 periodScores.map((e) => e.averageScore).fold(0.0, math.max) *
                     1.1),
             // Ensure we show at least one zone above the highest data point
@@ -92,12 +138,19 @@ class ScoreChart extends StatelessWidget {
 
     // On small screens, only show a subset of lines to avoid clutter
     var linesToShow = mentalStateLines;
-    if (isSmallScreen) {
-      // Show fewer lines on mobile: 10, 20, 30, 40
-      linesToShow = mentalStateLines.where((line) {
-        final y = line['y'] as double;
-        return y == 10.0 || y == 20.0 || y == 30.0 || y == 40.0;
-      }).toList();
+    if (isSmallScreen && mentalStateLines.length > 4) {
+      // Show fewer lines on mobile
+      final step = (mentalStateLines.length / 4).ceil();
+      linesToShow = [];
+      for (int i = 0; i < mentalStateLines.length; i += step) {
+        if (i < mentalStateLines.length) {
+          linesToShow.add(mentalStateLines[i]);
+        }
+      }
+      // Always include the last one
+      if (linesToShow.last != mentalStateLines.last) {
+        linesToShow.add(mentalStateLines.last);
+      }
     }
 
     // Generate horizontal lines with labels for mental states - BUT without labels now
@@ -119,12 +172,11 @@ class ScoreChart extends StatelessWidget {
     final horizontalRangeAnnotations = <HorizontalRangeAnnotation>[];
 
     // Add zones that are within the visible chart area
-    for (int i = 0; i < mentalStateLines.length; i++) {
-      final currentY = mentalStateLines[i]['y'] as double;
+    for (int i = 0; i < zones.length; i++) {
+      final currentY = zones[i].maxValue;
 
       // Determine bottom of zone
-      final double bottomY =
-          i == 0 ? effectiveMinY : (mentalStateLines[i - 1]['y'] as double);
+      final double bottomY = i == 0 ? effectiveMinY : zones[i - 1].maxValue;
 
       // Only add if zone is at least partially visible
       if (bottomY < effectiveMaxY && currentY > effectiveMinY) {
@@ -136,21 +188,10 @@ class ScoreChart extends StatelessWidget {
           HorizontalRangeAnnotation(
             y1: clampedBottom,
             y2: clampedTop,
-            color: zoneColors[i], // Already has opacity
+            color: zones[i].color, // Get color from zone
           ),
         );
       }
-    }
-
-    // Add the highest zone if needed
-    if (mentalStateLines.last['y'] as double < effectiveMaxY) {
-      horizontalRangeAnnotations.add(
-        HorizontalRangeAnnotation(
-          y1: mentalStateLines.last['y'] as double,
-          y2: effectiveMaxY,
-          color: zoneColors.last, // Already has opacity
-        ),
-      );
     }
 
     // Calculate responsive dimensions
@@ -382,6 +423,16 @@ class ScoreChart extends StatelessWidget {
 
     // Create the legend widget as a two-column grid for better space utilization
     Widget buildLegend() {
+      // Only show legend items for zones that are visible in the chart
+      final visibleZones = zones
+          .where((zone) =>
+              zone.maxValue > effectiveMinY &&
+              (zone.maxValue < double.infinity
+                      ? zone.maxValue
+                      : effectiveMaxY * 1.2) >=
+                  effectiveMinY)
+          .toList();
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8), // Follow 8-point grid
@@ -394,23 +445,14 @@ class ScoreChart extends StatelessWidget {
             crossAxisSpacing: 8.0,
             mainAxisSpacing: 8.0,
           ),
-          itemCount: mentalStateLines.length,
+          itemCount: visibleZones.length,
           itemBuilder: (context, index) {
-            // First zone (red) with white text for better visibility
-            if (index == 0) {
-              return _buildLegendItem(
-                zoneColors[0],
-                mentalStateLines[0]['label'] as String,
-                tt,
-                textColor: Colors.white,
-              );
-            }
-
-            // Remaining zones
+            final zone = visibleZones[index];
             return _buildLegendItem(
-              zoneColors[index],
-              mentalStateLines[index]['label'] as String,
+              zone.color,
+              zone.label,
               tt,
+              textColor: zone.textColor,
             );
           },
         ),

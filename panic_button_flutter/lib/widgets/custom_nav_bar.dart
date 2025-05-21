@@ -54,9 +54,10 @@ class CustomNavBar extends StatelessWidget {
                       // spacer for the centre button
                       const SizedBox(width: 80),
 
+                      // Single button for BOLT test
                       _NavBarItem(
                         icon: Icons.analytics_outlined,
-                        label: 'Mídete',
+                        label: 'BOLT',
                         isSelected: currentIndex == 2,
                         onTap: () => context.go('/bolt'),
                       ),
@@ -65,85 +66,52 @@ class CustomNavBar extends StatelessWidget {
                 ),
 
                 // Centre "Calma" button with wider tap area
-                Positioned(
-                  top: -44,
-                  left: 0,
-                  right: 0,
+                Positioned.fill(
                   child: Center(
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
-                        splashColor: cs.primary.withAlpha((0.3 * 255).toInt()),
-                        onTap: () {
-                          // Navigate without autoStart flag
-                          context.go('/breath');
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0), // Expand tap area
-                          child: Container(
-                            width: 88,
-                            height: 88,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  cs.primary.withAlpha((0.9 * 255).toInt()),
-                                  cs.primary,
-                                ],
-                              ),
-                              boxShadow: [
-                                // Outer glow
-                                BoxShadow(
-                                  color:
-                                      cs.primary.withAlpha((0.5 * 255).toInt()),
-                                  blurRadius: 20,
-                                  spreadRadius: 4,
-                                  offset: const Offset(0, 4),
-                                ),
-                                // Deeper shadow for 3D effect
-                                BoxShadow(
-                                  color: Colors.black
-                                      .withAlpha((0.4 * 255).toInt()),
-                                  blurRadius: 12,
-                                  spreadRadius: 1,
-                                  offset: const Offset(0, 8),
-                                ),
-                                // Top highlight for 3D effect
-                                BoxShadow(
-                                  color: Colors.white
-                                      .withAlpha((0.3 * 255).toInt()),
-                                  blurRadius: 10,
-                                  spreadRadius: 1,
-                                  offset: const Offset(0, -2),
-                                ),
-                              ],
-                              border: Border.all(
-                                color: cs.primaryContainer,
-                                width: 3,
-                              ),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.self_improvement,
-                                    color: cs.onPrimary, size: 32),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Calma',
-                                  style: TextStyle(
-                                    color: cs.onPrimary,
-                                    fontSize: 12,
-                                    fontWeight: currentIndex == 1
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                  ),
-                                ),
-                              ],
-                            ),
+                    child: InkWell(
+                      onTap: () => context.go('/breath'),
+                      borderRadius: BorderRadius.circular(40),
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF4AC29A),
+                              Color(0xFF2B7A78),
+                            ],
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF4AC29A)
+                                  .withAlpha((0.5 * 255).toInt()),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.air,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            Text(
+                              'Calma',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -175,31 +143,34 @@ class _NavBarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 24,
-            color: isSelected
-                ? cs.primary
-                : cs.onSurface.withAlpha((0.6 * 255).toInt()),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          width: 64,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.7),
+                size: 28,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: isSelected
+                          ? cs.primary
+                          : cs.onSurface.withOpacity(0.7),
+                    ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              color: isSelected
-                  ? cs.primary
-                  : cs.onSurface.withAlpha((0.6 * 255).toInt()),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

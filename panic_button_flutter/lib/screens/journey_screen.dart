@@ -54,6 +54,10 @@ class _JourneyScreenState extends State<JourneyScreen> {
     context.go('/bolt');
   }
 
+  void _navigateToMbtScreen() {
+    context.go('/mbt');
+  }
+
   // Load pattern name and cache it
   Future<String> _getPatternName(String slug, JourneyProvider provider) async {
     if (_patternNames.containsKey(slug)) {
@@ -556,23 +560,35 @@ class _JourneyScreenState extends State<JourneyScreen> {
                 ),
                 const SizedBox(height: 16),
               ],
-              ElevatedButton(
-                onPressed: () => _startExercise(level),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B383),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _navigateToBoltScreen,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.primaryContainer,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                      child: const Text('BOLT Test'),
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Iniciar Ejercicio',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _navigateToMbtScreen,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            Theme.of(context).colorScheme.secondaryContainer,
+                        foregroundColor:
+                            Theme.of(context).colorScheme.onSecondaryContainer,
+                      ),
+                      child: const Text('MBT Test'),
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ],
