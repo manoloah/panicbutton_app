@@ -27,7 +27,7 @@ class MetricScoreInfoDialog extends StatelessWidget {
     final scrollController = ScrollController();
 
     // Helper method to create a row for the score table
-    TableRow _buildScoreTableRow(
+    TableRow buildScoreTableRow(
       ColorScheme cs,
       TextTheme tt,
       String range,
@@ -91,7 +91,7 @@ class MetricScoreInfoDialog extends StatelessWidget {
         // Get color for this zone
         final color = metricConfig.getScoreColor(midPoint);
 
-        rows.add(_buildScoreTableRow(cs, tt, rangeText, description, color));
+        rows.add(buildScoreTableRow(cs, tt, rangeText, description, color));
       }
 
       return rows;

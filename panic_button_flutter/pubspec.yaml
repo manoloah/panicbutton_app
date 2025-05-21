@@ -118,6 +118,7 @@ flutter:
     ##- assets/animations/
     - assets/data/
     - assets/icons/
+    - .env
     # Don't include .env in production builds, it won't be there
     # Instead use --dart-define arguments during build
 

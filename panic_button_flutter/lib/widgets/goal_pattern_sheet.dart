@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
-import 'package:panic_button_flutter/widgets/breath_circle.dart';
 
 class GoalPatternSheet extends ConsumerStatefulWidget {
   const GoalPatternSheet({super.key});
@@ -184,9 +183,9 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
               ),
               selected: isSelected,
               selectedColor: cs.primary,
-              backgroundColor: cs.surfaceVariant,
+              backgroundColor: cs.surfaceContainerHighest,
               labelStyle: TextStyle(
-                color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+                color: isSelected ? cs.onPrimary : cs.onSurface,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -371,7 +370,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: cs.surfaceVariant,
+      color: cs.surfaceContainerHighest,
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
@@ -422,7 +421,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                       Text(
                         pattern.description!,
                         style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant.withAlpha(60),
+                          color: cs.onSurface.withAlpha(60),
                         ),
                       ),
                   ],
@@ -433,7 +432,7 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: cs.onSurfaceVariant,
+                color: cs.onSurface,
               ),
             ],
           ),

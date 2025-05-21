@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
+
 import '../models/metric_score.dart';
 import '../models/metric_config.dart';
 
@@ -58,34 +58,35 @@ class ScoreChart extends StatelessWidget {
             })
         .toList();
 
-    // Get zone colors from the metric config
-    final zoneColors = scoreZones.map((zone) => zone.color).toList();
-
     // Calculate appropriate max/min Y values
     // If not provided, calculate based on data and ensure we show relevant zones
+    double maximumScore = periodScores.isEmpty
+        ? 0.0
+        : periodScores.map((e) => e.averageScore).fold(0.0, math.max);
+
     double effectiveMaxY = maxY ??
         math.max(
             math.max(
                 40.0, // At least show up to 40
-                periodScores.map((e) => e.averageScore).fold(0.0, math.max) *
-                    1.1),
+                maximumScore * 1.1),
             // Ensure we show at least one zone above the highest data point
             mentalStateLines
                 .map((e) => e['y'] as double)
-                .where((y) =>
-                    y >
-                    periodScores.map((e) => e.averageScore).fold(0.0, math.max))
+                .where((y) => y > maximumScore)
                 .fold(0.0, (a, b) => a == 0 ? b : math.min(a, b)));
+
+    double minimumScore = periodScores.isEmpty
+        ? 0.0
+        : periodScores
+            .map((e) => e.averageScore)
+            .fold(double.infinity, math.min);
 
     double effectiveMinY = minY ??
         math.max(
             0.0,
             math.min(
                 5.0, // Default minimum
-                periodScores
-                        .map((e) => e.averageScore)
-                        .fold(double.infinity, math.min) *
-                    0.9));
+                minimumScore == double.infinity ? 0.0 : minimumScore * 0.9));
 
     // On small screens, only show a subset of lines to avoid clutter
     var linesToShow = mentalStateLines;
@@ -345,7 +346,7 @@ class ScoreChart extends StatelessWidget {
     }
 
     // Helper method to build a legend item
-    Widget _buildLegendItem(Color color, String label, TextTheme tt,
+    Widget buildLegendItem(Color color, String label, TextTheme tt,
         {Color? textColor}) {
       return Container(
         constraints: BoxConstraints(
@@ -387,7 +388,7 @@ class ScoreChart extends StatelessWidget {
             final zone = scoreZones[index];
             final needsWhiteText = index == 0; // Red zone needs white text
 
-            return _buildLegendItem(
+            return buildLegendItem(
               zone.color,
               zone.label,
               tt,

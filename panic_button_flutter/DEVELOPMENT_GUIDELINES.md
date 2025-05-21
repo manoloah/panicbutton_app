@@ -315,32 +315,60 @@ By following these guidelines, we ensure that UI improvements enhance the user e
   - Use `String.fromEnvironment()` with build-time injection via `--dart-define` flags
   - Maintain a local `.env` file for development (add to `.gitignore`)
   - Use the `build_ios.sh` script which securely passes credentials at build time
-  - Example implementation:
+  - The app uses a centralized environment configuration system:
     ```dart
-    // Secure configuration using build-time injection
-    static const String _envSupabaseUrl = String.fromEnvironment(
-      'SUPABASE_URL',
-      defaultValue: '',
-    );
-    
-    static String get supabaseUrl {
-      // First check build-time environment variables (production approach)
-      if (_envSupabaseUrl.isNotEmpty) {
-        return _envSupabaseUrl;
+    // Environment configuration in lib/config/env_config.dart
+    class EnvConfig {
+      // Private constructor to prevent instantiation
+      EnvConfig._();
+      
+      // Retrieve values from Dart-define with empty defaults - must be const
+      static const String _supabaseUrl = String.fromEnvironment(
+        'SUPABASE_URL',
+        defaultValue: '',
+      );
+      
+      static const String _supabaseAnonKey = String.fromEnvironment(
+        'SUPABASE_ANON_KEY',
+        defaultValue: '',
+      );
+      
+      // Load .env file in debug mode
+      static Future<void> load() async {
+        if (kDebugMode) {
+          try {
+            await dotenv.load(fileName: '.env');
+            debugPrint('🔑 Environment loaded from .env file');
+          } catch (e) {
+            debugPrint('⚠️ No .env file found or error loading it: $e');
+          }
+        }
       }
       
-      // Then try to get from .env file (development approach)
-      final envValue = dotenv.env['SUPABASE_URL'];
-      if (envValue != null && envValue.isNotEmpty) {
-        return envValue;
+      // Getter methods with fallback logic (dart-define → .env → empty)
+      static String get supabaseUrl {
+        // Implementation with fallback logic...
       }
-      
-      return '';
     }
     ```
-  - For production builds, always use:
+  - **Development approaches:**
     ```bash
+    # For VS Code development with .env:
+    # Use the "Flutter (default)" launch configuration
+
+    # For Chrome development:
+    ./scripts/dev_run.sh -d chrome
+
+    # For iOS simulator:
+    ./scripts/dev_run.sh -d "iPhone"
+    ```
+  - **Production builds:**
+    ```bash
+    # For TestFlight:
     ./scripts/build_ios.sh --distribution=testflight
+    
+    # For App Store:
+    ./scripts/build_ios.sh --distribution=appstore
     ```
 
 - **Secure Logging**

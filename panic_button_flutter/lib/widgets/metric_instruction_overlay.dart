@@ -39,8 +39,6 @@ class MetricInstructionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Positioned.fill(
       child: Container(
         color: Colors.black.withAlpha((0.9 * 255).toInt()), // Dim background

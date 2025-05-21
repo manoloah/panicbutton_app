@@ -43,24 +43,46 @@ A calming app for anxiety and panic relief with breathing exercises.
      SUPABASE_ANON_KEY=your_supabase_anon_key
      ```
    - IMPORTANT: Never commit this file to version control
-   - For CI/CD environments, set these variables in your build system
+   - The app uses a centralized environment system in `lib/config/env_config.dart`
+   - For CI/CD environments, use `--dart-define` flags in your build commands
 
-5. Run the app in debug mode:
+5. Development Workflow Options:
+
+   a. Using VS Code:
    ```bash
-   flutter run
-   ```
-   or for running on chrome
-   ```bash
-   flutter run -d chrome
+   # Open project in VS Code and use one of the launch configurations:
+   # - "Flutter (default)" - Uses .env file
+   # - "Flutter (chrome)" - Runs on Chrome browser
+   # - "Flutter (production)" - Uses dart-define values
    ```
 
-6. For iOS development and testing:
+   b. Using command line with helper scripts:
    ```bash
-   # Open iOS simulator
-   open -a Simulator
+   # Run on default iOS device using .env file
+   ./scripts/dev_run.sh
    
-   # Run on iOS simulator
-   flutter run -d ios
+   # Run on Chrome browser
+   ./scripts/dev_run.sh -d chrome
+   
+   # Run on specific iPhone simulator
+   ./scripts/dev_run.sh -d "iPhone"
+   
+   # Run with explicit credentials
+   ./scripts/dev_run.sh --url https://your-project.supabase.co --key your-anon-key
+   ```
+
+6. Building for Production:
+   ```bash
+   # For TestFlight distribution
+   ./scripts/build_ios.sh --distribution=testflight
+   
+   # For App Store distribution
+   ./scripts/build_ios.sh --distribution=appstore
+   
+   # For Android APK with credentials
+   flutter build apk --release \
+     --dart-define=SUPABASE_URL=your_supabase_url \
+     --dart-define=SUPABASE_ANON_KEY=your_anon_key
    ```
 
 ## App Identity Management

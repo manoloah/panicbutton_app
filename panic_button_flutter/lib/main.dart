@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as provider_pkg;
@@ -15,10 +14,10 @@ import 'package:panic_button_flutter/screens/journey_screen.dart';
 import 'package:panic_button_flutter/screens/auth_screen.dart';
 import 'package:panic_button_flutter/screens/bolt_screen.dart';
 import 'package:panic_button_flutter/theme/app_theme.dart';
-import 'package:panic_button_flutter/config/supabase_config.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/config/app_config.dart';
 import 'package:flutter/foundation.dart';
+import 'package:panic_button_flutter/config/env_config.dart';
 
 // Global variables to track initialization
 bool isInitialized = false;
@@ -55,36 +54,24 @@ void main() async {
       }
     }
 
-    // Load environment variables in development
-    try {
-      await dotenv.load(fileName: '.env');
-      if (kDebugMode) {
-        debugPrint('Environment variables loaded successfully');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Failed to load .env file: $e');
-        debugPrint('This is expected in production environments');
-      }
-    }
+    // Load environment configuration
+    await EnvConfig.load();
 
-    // Verify Supabase credentials are available
-    // In production, these should be provided via --dart-define
-    if (SupabaseConfig.supabaseUrl.isEmpty ||
-        SupabaseConfig.supabaseAnonKey.isEmpty) {
-      if (kReleaseMode) {
-        throw Exception(
-            'Missing Supabase configuration in production build. Make sure to include --dart-define arguments.');
-      } else {
-        debugPrint(
-            'WARNING: Supabase credentials not found. App may not function correctly.');
-      }
+    // Verify required environment variables
+    final hasAllKeys = EnvConfig.verifyRequiredKeys([
+      'SUPABASE_URL',
+      'SUPABASE_ANON_KEY',
+    ]);
+
+    if (!hasAllKeys && kReleaseMode) {
+      throw Exception(
+          'Missing Supabase configuration in production build. Make sure to include --dart-define arguments.');
     }
 
     // Initialize Supabase
     await Supabase.initialize(
-      url: SupabaseConfig.supabaseUrl,
-      anonKey: SupabaseConfig.supabaseAnonKey,
+      url: EnvConfig.supabaseUrl,
+      anonKey: EnvConfig.supabaseAnonKey,
       debug: kDebugMode,
     );
 

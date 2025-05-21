@@ -7,8 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../widgets/custom_nav_bar.dart';
 import '../widgets/custom_sliver_app_bar.dart';
-import '../widgets/breath_circle.dart';
-import '../widgets/wave_animation.dart';
+
 import '../widgets/score_chart.dart';
 import '../widgets/delayed_loading_animation.dart';
 import '../widgets/metric_instructions_card.dart';
