@@ -69,6 +69,10 @@ dependencies:
   animations: ^2.0.8
   json_annotation: ^4.9.0
   freezed_annotation: ^3.0.0
+  
+  # Audio
+  just_audio: ^0.9.36
+  audio_session: ^0.1.18
 
 dev_dependencies:
   flutter_test:
@@ -118,6 +122,8 @@ flutter:
     - assets/animations/
     - assets/data/
     - assets/icons/
+    - assets/sounds/music/
+    - .env
     # Don't include .env in production builds, it won't be there
     # Instead use --dart-define arguments during build
 

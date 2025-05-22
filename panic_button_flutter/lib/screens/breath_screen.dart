@@ -5,10 +5,11 @@ import 'package:panic_button_flutter/widgets/breath_circle.dart';
 import 'package:panic_button_flutter/widgets/duration_selector_button.dart';
 import 'package:panic_button_flutter/widgets/goal_pattern_sheet.dart';
 import 'package:panic_button_flutter/widgets/custom_nav_bar.dart';
-import 'package:panic_button_flutter/widgets/custom_sliver_app_bar.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/providers/breathing_playback_controller.dart';
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
+import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
+import 'package:panic_button_flutter/services/audio_service.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -27,6 +28,7 @@ class BreathScreen extends ConsumerStatefulWidget {
 class _BreathScreenState extends ConsumerState<BreathScreen> {
   bool _isInitialized = false;
   bool _isFirstBuild = true;
+  bool _isAudioInitialized = false;
 
   @override
   void initState() {
@@ -35,6 +37,13 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializePattern();
     });
+  }
+
+  @override
+  void dispose() {
+    // Stop audio when screen is closed
+    ref.read(audioServiceProvider).stopAllAudio();
+    super.dispose();
   }
 
   Future<void> _initializePattern() async {
@@ -59,6 +68,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           if (widget.autoStart) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(breathingPlaybackControllerProvider.notifier).play();
+
+              // Start default background music if user hasn't selected anything yet
+              _initializeAudio();
             });
           }
 
@@ -96,6 +108,35 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         _isInitialized = true; // Still mark as initialized to show UI
       });
     }
+  }
+
+  // Initialize audio (only once)
+  void _initializeAudio() {
+    if (!_isAudioInitialized) {
+      // Start default background music if none is playing
+      final currentMusic = ref
+          .read(audioServiceProvider)
+          .getCurrentTrack(AudioType.backgroundMusic);
+      if (currentMusic == null) {
+        // Start the first music track by default (ocean)
+        ref
+            .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
+            .selectTrack('calm_ocean');
+      }
+
+      _isAudioInitialized = true;
+    }
+  }
+
+  // Show the audio selection sheet
+  void _showAudioSelectionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AudioSelectionSheet(),
+    );
   }
 
   // Update breathing controller with the current pattern and duration
@@ -146,6 +187,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   @override
   Widget build(BuildContext context) {
     final playbackState = ref.watch(breathingPlaybackControllerProvider);
+    final cs = Theme.of(context).colorScheme;
 
     // Setup listeners in the build method
     if (_isFirstBuild) {
@@ -162,6 +204,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         ref.listenManual(selectedDurationProvider, (previous, next) {
           if (_isInitialized) {
             _updateBreathingController();
+          }
+        });
+
+        // Setup breathing playback state listener for audio control
+        ref.listenManual(breathingPlaybackControllerProvider, (previous, next) {
+          // Start audio when exercise starts
+          if (previous != null && !previous.isPlaying && next.isPlaying) {
+            _initializeAudio();
           }
         });
 
@@ -189,10 +239,45 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         bottom: false,
         child: CustomScrollView(
           slivers: [
-            CustomSliverAppBar(
-              showBackButton: true,
-              onBackPressed: _navigateToJourney,
-              showSettings: true,
+            // Custom app bar with music button
+            SliverAppBar(
+              floating: true,
+              snap: true,
+              pinned: false,
+              backgroundColor: cs.surface,
+              elevation: 0,
+              leadingWidth: 56,
+              leading: IconButton(
+                icon: Icon(
+                  Icons.music_note,
+                  color: cs.onSurface,
+                  size: 24,
+                ),
+                onPressed: () => _showAudioSelectionSheet(context),
+                tooltip: 'Audio settings',
+              ),
+              actions: [
+                IconButton(
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: cs.onSurface,
+                    size: 24,
+                  ),
+                  onPressed: _navigateToJourney,
+                  tooltip: 'Back to journey',
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.settings,
+                    color: cs.onSurface,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    context.go('/settings');
+                  },
+                  tooltip: 'Settings',
+                ),
+              ],
             ),
             SliverFillRemaining(
               hasScrollBody: false,
@@ -385,6 +470,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
 
       // Always call play
       controller.play();
+
+      // Start background music if it's not already playing
+      _initializeAudio();
     }
   }
 }
