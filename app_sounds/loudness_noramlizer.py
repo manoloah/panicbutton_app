@@ -8,8 +8,8 @@ import numpy as np
 # Filter out UserWarnings from pyloudnorm
 warnings.filterwarnings("ignore", category=UserWarning, module="pyloudnorm")
 
-INPUT_DIR = "app_sounds/input_sounds"
-OUTPUT_DIR = "app_sounds/normalized_sounds"
+INPUT_DIR = "input_sounds"
+OUTPUT_DIR = "normalized_sounds"
 TARGET_LUFS = -12.0
 PEAK_LIMIT = 0.95  # Prevent clipping by ensuring peaks don't exceed this value
 
