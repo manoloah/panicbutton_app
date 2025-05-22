@@ -75,7 +75,7 @@ class AudioService {
     AudioTrack(
       id: 'forest',
       name: "Bosque",
-      path: 'assets/sounds/music/forest_ambience.mp3',
+      path: 'assets/sounds/music/rainforest.mp3',
       icon: Icons.forest,
     ),
     AudioTrack(
@@ -85,10 +85,10 @@ class AudioService {
       icon: Icons.water_rounded,
     ),
     AudioTrack(
-      id: 'drone',
-      name: "Drone",
-      path: 'assets/sounds/music/drone.mp3',
-      icon: Icons.surround_sound,
+      id: 'ocean',
+      name: "Oceano",
+      path: 'assets/sounds/music/ocean.mp3',
+      icon: Icons.waves,
     ),
     AudioTrack(
       id: 'off',
