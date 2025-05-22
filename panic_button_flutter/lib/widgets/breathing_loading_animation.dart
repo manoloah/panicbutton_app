@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:panic_button_flutter/widgets/breath_circle.dart';
-import 'package:panic_button_flutter/widgets/wave_animation.dart';
 
 class BreathingLoadingAnimation extends ConsumerStatefulWidget {
   final String loadingText;
@@ -164,7 +163,8 @@ class _BreathingLoadingAnimationState
                         children: _formatQuote(_quote),
                         style: textTheme.bodyMedium?.copyWith(
                           fontStyle: FontStyle.italic,
-                          color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          color: theme.colorScheme.onSurface
+                              .withAlpha((0.7 * 255).toInt()),
                         ),
                       ),
                     ),

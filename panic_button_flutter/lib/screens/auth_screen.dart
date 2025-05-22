@@ -2,8 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
-import 'package:panic_button_flutter/widgets/breath_circle.dart';
-import 'package:panic_button_flutter/config/supabase_config.dart';
+import 'package:panic_button_flutter/config/env_config.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math' as math;
 
@@ -31,9 +30,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   void _checkSupabaseConfig() {
-    if (SupabaseConfig.supabaseUrl.isEmpty ||
-        SupabaseConfig.supabaseAnonKey.isEmpty ||
-        SupabaseConfig.supabaseUrl == "https://xyzcompany.supabase.co") {
+    if (EnvConfig.supabaseUrl.isEmpty ||
+        EnvConfig.supabaseAnonKey.isEmpty ||
+        EnvConfig.supabaseUrl == "https://xyzcompany.supabase.co") {
       setState(() {
         _configError = true;
         _errorMessage =
@@ -41,9 +40,9 @@ class _AuthScreenState extends State<AuthScreen> {
       });
       if (kDebugMode) {
         debugPrint('⚠️ Supabase configuration error:');
-        debugPrint('URL: ${SupabaseConfig.supabaseUrl}');
+        debugPrint('URL: ${EnvConfig.supabaseUrl}');
         debugPrint(
-            'Anon Key: ${SupabaseConfig.supabaseAnonKey.isNotEmpty ? "Present (length: ${SupabaseConfig.supabaseAnonKey.length})" : "Empty"}');
+            'Anon Key: ${EnvConfig.supabaseAnonKey.isNotEmpty ? "Present (length: ${EnvConfig.supabaseAnonKey.length})" : "Empty"}');
       }
     }
   }
@@ -116,7 +115,7 @@ class _AuthScreenState extends State<AuthScreen> {
         if (kDebugMode) {
           debugPrint(
               'Attempting login with email: ${_emailController.text.trim()}');
-          debugPrint('Using Supabase URL: ${SupabaseConfig.supabaseUrl}');
+          debugPrint('Using Supabase URL: ${EnvConfig.supabaseUrl}');
         }
 
         final response = await Supabase.instance.client.auth.signInWithPassword(
@@ -311,7 +310,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'URL: ${SupabaseConfig.supabaseUrl}\nAnon Key: ${SupabaseConfig.supabaseAnonKey.substring(0, math.min(10, SupabaseConfig.supabaseAnonKey.length))}...',
+                    'URL: ${EnvConfig.supabaseUrl}\nAnon Key: ${EnvConfig.supabaseAnonKey.substring(0, math.min(10, EnvConfig.supabaseAnonKey.length))}...',
                     style: TextStyle(color: cs.error, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),

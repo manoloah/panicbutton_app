@@ -10,9 +10,10 @@
 # Cursor Config
 .cursor/
 
-# Credentials
+# Credentials and App Sounds
 app_sounds/.env
-
+app_sounds/input_sounds/**
+app_sounds/normalized_sounds/**
 
 #Folder with sound files
 app_sounds/normalized_sounds/*
@@ -132,3 +133,4 @@ app.*.symbols
 # Scripts 
 scripts/debug_run.sh
 
+.DS_Store

@@ -43,24 +43,46 @@ A calming app for anxiety and panic relief with breathing exercises.
      SUPABASE_ANON_KEY=your_supabase_anon_key
      ```
    - IMPORTANT: Never commit this file to version control
-   - For CI/CD environments, set these variables in your build system
+   - The app uses a centralized environment system in `lib/config/env_config.dart`
+   - For CI/CD environments, use `--dart-define` flags in your build commands
 
-5. Run the app in debug mode:
+5. Development Workflow Options:
+
+   a. Using VS Code:
    ```bash
-   flutter run
-   ```
-   or for running on chrome
-   ```bash
-   flutter run -d chrome
+   # Open project in VS Code and use one of the launch configurations:
+   # - "Flutter (default)" - Uses .env file
+   # - "Flutter (chrome)" - Runs on Chrome browser
+   # - "Flutter (production)" - Uses dart-define values
    ```
 
-6. For iOS development and testing:
+   b. Using command line with helper scripts:
    ```bash
-   # Open iOS simulator
-   open -a Simulator
+   # Run on default iOS device using .env file
+   ./scripts/dev_run.sh
    
-   # Run on iOS simulator
-   flutter run -d ios
+   # Run on Chrome browser
+   ./scripts/dev_run.sh -d chrome
+   
+   # Run on specific iPhone simulator
+   ./scripts/dev_run.sh -d "iPhone"
+   
+   # Run with explicit credentials
+   ./scripts/dev_run.sh --url https://your-project.supabase.co --key your-anon-key
+   ```
+
+6. Building for Production:
+   ```bash
+   # For TestFlight distribution
+   ./scripts/build_ios.sh --distribution=testflight
+   
+   # For App Store distribution
+   ./scripts/build_ios.sh --distribution=appstore
+   
+   # For Android APK with credentials
+   flutter build apk --release \
+     --dart-define=SUPABASE_URL=your_supabase_url \
+     --dart-define=SUPABASE_ANON_KEY=your_anon_key
    ```
 
 ## App Identity Management
@@ -131,16 +153,20 @@ lib/
   ├── constants/        # App constants including image paths
   ├── data/             # Data repositories and API classes
   │   └── breath_repository.dart  # Repository for breathing patterns
+  │   └── metric_repository.dart  # Base repository for metric scores
   ├── models/           # Data models
-  │   └── breath_models.dart      # Models for breathing patterns and steps
-  │   └── journey_level.dart      # Models for breathing journey levels
+  │   ├── breath_models.dart      # Models for breathing patterns and steps
+  │   ├── journey_level.dart      # Models for breathing journey levels
+  │   ├── metric_config.dart      # Configuration model for breathing metrics
+  │   └── metric_score.dart       # Models for metric scores and aggregation
   ├── providers/        # State management 
   │   ├── breathing_providers.dart        # Providers for breath state
   │   ├── breathing_playback_controller.dart  # Controller for animations
   │   └── journey_provider.dart   # Provider for journey progress and unlocking
   ├── screens/          # App screens
   │   ├── breath_screen.dart      # Main breathing exercise screen
-  │   └── journey_screen.dart     # Breathing journey progression screen
+  │   ├── journey_screen.dart     # Breathing journey progression screen
+  │   └── metric_screen.dart      # Generic screen for metric measurements
   ├── widgets/          # Reusable widgets
   │   ├── breath_circle.dart        # Circular breathing animation container
   │   ├── duration_selector_button.dart  # Duration selection UI
@@ -148,7 +174,12 @@ lib/
   │   ├── wave_animation.dart       # Fluid wave animation using CustomPainter
   │   ├── phase_indicator.dart      # Shows breathing phase and countdown
   │   ├── remaining_time_display.dart # Formatted time remaining display
-  │   └── custom_nav_bar.dart       # App navigation bar
+  │   ├── custom_nav_bar.dart       # App navigation bar
+  │   ├── metric_instructions_card.dart # Instruction card for metrics
+  │   ├── metric_measurement_ui.dart    # UI for metric measurement
+  │   ├── metric_instruction_overlay.dart # Overlay for guided instructions
+  │   ├── metric_score_info_dialog.dart  # Dialog explaining score zones
+  │   └── score_chart.dart          # Chart for metric score visualization
   ├── migrations/       # Database migrations
   │   ├── 20250511_simplify_breathing_schema.sql  # Breathing schema
   │   ├── 20240701_create_breathing_activity_table.sql  # Activity tracking
@@ -389,6 +420,89 @@ The Body Oxygen Level Test (BOLT) feature allows users to measure their CO2 tole
    - Saves BOLT scores to Supabase database
    - Displays historical data with various aggregation options (day, week, month, etc.)
    - Visual progress chart using `fl_chart`
+
+## Metric Measurement Framework
+
+The app includes a reusable framework for implementing different breathing metrics measurements while maintaining consistent UI and functionality:
+
+### Architecture Overview
+
+The Metric Measurement framework was built to allow for easy replication of measurement screens (like BOLT) for various breathing metrics. It uses a modular, configuration-based approach to:
+
+1. **Maintain Consistent UI Across Metrics**
+   - Identical 3-step instruction cards with "COMENZAR" button
+   - Same measurement interface with timer and results
+   - Consistent historical data visualization
+   - Standardized instruction overlays for guided steps
+
+2. **Enable Easy Configuration**
+   - Simple definition of new metrics through configuration objects
+   - Zone-based scoring interpretation (low, medium, high)
+   - Customizable instructions and guidance
+   - Configurable scoring units and visualization
+
+3. **Core Components**
+   - `MetricConfig`: Model for defining a metric with zones and instructions
+   - `MetricScore`: Models for handling score data and aggregation
+   - `MetricScreen`: Configurable screen that adapts to any metric
+   - `ScoreChart`: Reusable chart for visualizing historical scores
+   - Support components for instructions, overlays, and information dialogs
+
+### Implementing a New Metric
+
+To add a new breathing metric measurement to the app:
+
+1. **Create the Metric Configuration**
+   ```dart
+   final myNewMetricConfig = MetricConfig(
+     name: 'New Metric Name',
+     description: 'Description of what this metric measures',
+     instructions: [
+       'First instruction step in Spanish',
+       'Second instruction step in Spanish',
+       'Third instruction step in Spanish',
+     ],
+     zones: [
+       MetricZone(min: 0, max: 10, label: 'Bajo', color: Colors.red),
+       MetricZone(min: 10, max: 20, label: 'Medio', color: Colors.amber),
+       MetricZone(min: 20, max: double.infinity, label: 'Alto', color: Colors.green),
+     ],
+     unitLabel: 'units',
+   );
+   ```
+
+2. **Create a Repository Provider**
+   ```dart
+   final myNewMetricRepositoryProvider = Provider<MetricRepository>((ref) {
+     return MetricRepository(
+       supabase: ref.watch(supabaseProvider),
+       tableName: 'my_new_metric_scores',
+     );
+   });
+   ```
+
+3. **Add the Screen to Navigation**
+   ```dart
+   GoRoute(
+     path: '/my-new-metric',
+     builder: (context, state) => MetricScreen(
+       metricConfig: myNewMetricConfig,
+       repository: ref.read(myNewMetricRepositoryProvider),
+     ),
+   ),
+   ```
+
+4. **Setup the Database Table**
+   ```sql
+   CREATE TABLE my_new_metric_scores (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID REFERENCES auth.users(id) NOT NULL,
+     score NUMERIC NOT NULL,
+     created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+   );
+   ```
+
+The framework handles all the UI presentation, state management, animations, and data visualization, allowing for rapid implementation of new breathing metric measurements while maintaining a consistent user experience.
 
 ## Architecture
 
