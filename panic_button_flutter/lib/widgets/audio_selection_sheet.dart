@@ -32,14 +32,14 @@ class AudioSelectionSheet extends ConsumerWidget {
           children: [
             // Sheet handle and title - fixed part
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              padding: const EdgeInsets.only(top: 16, bottom: 8),
               child: Column(
                 children: [
                   // Sheet handle
                   Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
                       color: cs.onSurface.withAlpha(77), // 30% opacity
                       borderRadius: BorderRadius.circular(2),
@@ -50,11 +50,13 @@ class AudioSelectionSheet extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.music_note, size: 24),
+                      Icon(Icons.music_note, size: 20, color: cs.primary),
                       const SizedBox(width: 8),
                       Text(
                         'Audio',
-                        style: tt.headlineMedium,
+                        style: tt.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -63,59 +65,75 @@ class AudioSelectionSheet extends ConsumerWidget {
               ),
             ),
 
+            const Divider(),
+
             // Scrollable content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                physics: const BouncingScrollPhysics(),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Background Music Section
-                    _buildSectionTitle(context, 'Tono de Inhalar / Exhalar'),
-                    const SizedBox(height: 16),
+                    // Tones Section
+                    _buildSectionTitle(context, 'Tonos'),
+                    const SizedBox(height: 8),
                     _AudioSelectionGrid(
                       audioType: AudioType.breathGuide,
                       isSmallScreen: isSmallScreen,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
-                    // Soundscape Section
-                    _buildSectionTitle(context, 'Paisaje Sonoro'),
-                    const SizedBox(height: 16),
+                    // Background Music Section
+                    _buildSectionTitle(context, 'Música de fondo'),
+                    const SizedBox(height: 8),
                     _AudioSelectionGrid(
                       audioType: AudioType.backgroundMusic,
                       isSmallScreen: isSmallScreen,
                     ),
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // Voice Guide Section
                     _buildSectionTitle(context, 'Guía de Voz'),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     _AudioSelectionGrid(
                       audioType: AudioType.ambientSound,
                       isSmallScreen: isSmallScreen,
                     ),
 
-                    const SizedBox(height: 32),
-
-                    // Save button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(32),
-                          ),
-                        ),
-                        child: const Text('Guardar'),
-                      ),
-                    ),
+                    const SizedBox(height: 24),
                   ],
+                ),
+              ),
+            ),
+
+            // Bottom button area with save
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                  ),
+                  child: const Text('Guardar'),
                 ),
               ),
             ),
@@ -126,10 +144,16 @@ class AudioSelectionSheet extends ConsumerWidget {
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.headlineSmall,
-      textAlign: TextAlign.center,
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+        textAlign: TextAlign.left,
+      ),
     );
   }
 }
@@ -149,6 +173,7 @@ class _AudioSelectionGrid extends ConsumerWidget {
     final audioService = ref.watch(audioServiceProvider);
     final selectedTrackId = ref.watch(selectedAudioProvider(audioType));
     final tracks = audioService.getTracksByType(audioType);
+    final cs = Theme.of(context).colorScheme;
 
     // Check if we have enough tracks to show a grid
     if (tracks.length <= 1) {
@@ -163,34 +188,27 @@ class _AudioSelectionGrid extends ConsumerWidget {
       );
     }
 
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context)
-              .colorScheme
-              .surface
-              .withAlpha(77), // 30% opacity
-          borderRadius: BorderRadius.circular(16),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 16,
-          runSpacing: 16,
-          children: tracks.map((track) {
-            final isSelected = selectedTrackId == track.id;
-            return _AudioOptionButton(
-              track: track,
-              isSelected: isSelected,
-              onTap: () {
-                ref
-                    .read(selectedAudioProvider(audioType).notifier)
-                    .selectTrack(track.id);
-              },
-              isSmallScreen: isSmallScreen,
-            );
-          }).toList(),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceVariant.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: tracks.map((track) {
+          final isSelected = selectedTrackId == track.id;
+          return _AudioOptionButton(
+            track: track,
+            isSelected: isSelected,
+            onTap: () {
+              ref
+                  .read(selectedAudioProvider(audioType).notifier)
+                  .selectTrack(track.id);
+            },
+            isSmallScreen: isSmallScreen,
+          );
+        }).toList(),
       ),
     );
   }
@@ -213,7 +231,7 @@ class _AudioOptionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final buttonSize = isSmallScreen ? 64.0 : 80.0;
+    final buttonSize = isSmallScreen ? 50.0 : 60.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -225,30 +243,36 @@ class _AudioOptionButton extends StatelessWidget {
             height: buttonSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.surface,
-              border:
-                  isSelected ? Border.all(color: cs.primary, width: 2) : null,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(40),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: cs.surfaceVariant.withOpacity(0.8),
+              border: Border.all(
+                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.1),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: cs.primary.withOpacity(0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 0),
+                      ),
+                    ]
+                  : null,
             ),
             child: Center(
               child: Icon(
                 track.icon,
-                size: isSmallScreen ? 24 : 32,
-                color: isSelected ? cs.primary : cs.onSurface,
+                size: isSmallScreen ? 20 : 24,
+                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.8),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           track.name,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected ? cs.primary : cs.onSurface,
               ),
           textAlign: TextAlign.center,

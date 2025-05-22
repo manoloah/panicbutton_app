@@ -42,51 +42,81 @@ class AudioService {
   AudioTrack? _currentBreathGuide;
   AudioTrack? _currentAmbientSound;
 
-  // Available audio tracks
-  final List<AudioTrack> _musicTracks = [
-    const AudioTrack(
-      id: 'calm_ocean',
-      name: 'Océano Tranquilo',
-      path: 'assets/sounds/music/calm_ocean.mp3',
-      icon: Icons.water,
+  // Available audio tracks for breathing tones
+  final List<AudioTrack> _breathGuideTracks = const [
+    AudioTrack(
+      id: 'sine',
+      name: "Onda",
+      path: 'assets/sounds/tones/sine.mp3',
+      icon: Icons.waves,
     ),
-    const AudioTrack(
-      id: 'forest_ambience',
-      name: 'Bosque',
+    AudioTrack(
+      id: 'synth',
+      name: "Sintetizador",
+      path: 'assets/sounds/tones/synth.mp3',
+      icon: Icons.piano,
+    ),
+    AudioTrack(
+      id: 'bowl',
+      name: "Cuenco",
+      path: 'assets/sounds/tones/bowl.mp3',
+      icon: Icons.nightlife,
+    ),
+    AudioTrack(
+      id: 'off',
+      name: "Apagado",
+      path: '',
+      icon: Icons.horizontal_rule,
+    ),
+  ];
+
+  // Background music tracks
+  final List<AudioTrack> _musicTracks = const [
+    AudioTrack(
+      id: 'forest',
+      name: "Bosque",
       path: 'assets/sounds/music/forest_ambience.mp3',
       icon: Icons.forest,
     ),
-    const AudioTrack(
-      id: 'meditation_bells',
-      name: 'Campanas',
-      path: 'assets/sounds/music/meditation_bells.mp3',
-      icon: Icons.notifications,
+    AudioTrack(
+      id: 'river',
+      name: "Río",
+      path: 'assets/sounds/music/river.mp3',
+      icon: Icons.water_rounded,
     ),
-    const AudioTrack(
-      id: 'off',
-      name: 'Apagado',
-      path: '',
-      icon: Icons.volume_off,
+    AudioTrack(
+      id: 'drone',
+      name: "Drone",
+      path: 'assets/sounds/music/drone.mp3',
+      icon: Icons.surround_sound,
     ),
-  ];
-
-  // Breath guide audio tracks (stub for future implementation)
-  final List<AudioTrack> _breathGuideTracks = [
-    const AudioTrack(
+    AudioTrack(
       id: 'off',
-      name: 'Apagado',
+      name: "Apagado",
       path: '',
-      icon: Icons.volume_off,
+      icon: Icons.horizontal_rule,
     ),
   ];
 
-  // Ambient sound tracks (stub for future implementation)
-  final List<AudioTrack> _ambientSoundTracks = [
-    const AudioTrack(
+  // Voice guide tracks
+  final List<AudioTrack> _ambientSoundTracks = const [
+    AudioTrack(
+      id: 'davi',
+      name: 'Davi',
+      path: 'assets/sounds/voice/davi.mp3',
+      icon: Icons.person,
+    ),
+    AudioTrack(
+      id: 'bryan',
+      name: 'Bryan',
+      path: 'assets/sounds/voice/bryan.mp3',
+      icon: Icons.person,
+    ),
+    AudioTrack(
       id: 'off',
-      name: 'Apagado',
+      name: "Apagado",
       path: '',
-      icon: Icons.volume_off,
+      icon: Icons.horizontal_rule,
     ),
   ];
 
