@@ -21,6 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
   String? _errorMessage;
   bool _configError = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -49,12 +50,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _showError(String message) {
+    if (_isDisposed) return;
+
     setState(() => _errorMessage = message);
 
     final cs = Theme.of(context).colorScheme;
@@ -123,18 +127,19 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _passwordController.text,
         );
 
-        if (response.user != null && mounted) {
+        if (response.user != null && !_isDisposed) {
           if (kDebugMode) {
             debugPrint('Login successful for user: ${response.user!.id}');
           }
 
-          // Force navigation to home screen
-          if (mounted) {
-            // Short delay to allow auth state to propagate
-            await Future.delayed(const Duration(milliseconds: 300));
+          // Short delay to allow auth state to propagate
+          await Future.delayed(const Duration(milliseconds: 300));
+
+          // Check if widget is still mounted before accessing context
+          if (!_isDisposed && mounted) {
             context.go('/');
           }
-        } else {
+        } else if (!_isDisposed) {
           if (kDebugMode) {
             debugPrint('Login failed: No user returned');
           }
@@ -151,15 +156,17 @@ class _AuthScreenState extends State<AuthScreen> {
           password: _passwordController.text,
         );
 
-        if (response.user != null && mounted) {
+        if (response.user != null && !_isDisposed && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
                   'Cuenta creada exitosamente. Por favor verifica tu email.'),
             ),
           );
-          setState(() => _isLogin = true);
-        } else {
+          if (!_isDisposed) {
+            setState(() => _isLogin = true);
+          }
+        } else if (!_isDisposed) {
           _showError('No se pudo crear la cuenta');
         }
       }
@@ -167,14 +174,18 @@ class _AuthScreenState extends State<AuthScreen> {
       if (kDebugMode) {
         debugPrint('Auth exception: ${e.message}');
       }
-      _showError(_getReadableError(e.message));
+      if (!_isDisposed) {
+        _showError(_getReadableError(e.message));
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Unexpected error: $e');
       }
-      _showError(_getReadableError(e.toString()));
+      if (!_isDisposed) {
+        _showError(_getReadableError(e.toString()));
+      }
     } finally {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         setState(() => _isLoading = false);
       }
     }
