@@ -41,9 +41,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
 
   @override
   void dispose() {
-    // Stop audio when screen is closed
-    ref.read(audioServiceProvider).stopAllAudio();
+    // Get a reference to the audio service before calling super.dispose()
+    final audioService = ref.read(audioServiceProvider);
+
+    // First call super.dispose() to properly cleanup widget resources
     super.dispose();
+
+    // Then stop audio using the reference we saved
+    audioService.stopAllAudio();
   }
 
   Future<void> _initializePattern() async {
