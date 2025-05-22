@@ -124,7 +124,18 @@ flutter:
     - assets/icons/
     - assets/sounds/music/
     - assets/sounds/tones/
-    - assets/sounds/voice/
+    # Guiding voices folder structure
+    - assets/sounds/guiding_voices/
+    - assets/sounds/guiding_voices/manu/
+    - assets/sounds/guiding_voices/manu/inhale/
+    - assets/sounds/guiding_voices/manu/pause_after_inhale/
+    - assets/sounds/guiding_voices/manu/exhale/
+    - assets/sounds/guiding_voices/manu/pause_after_exhale/
+    - assets/sounds/guiding_voices/andrea/
+    - assets/sounds/guiding_voices/andrea/inhale/
+    - assets/sounds/guiding_voices/andrea/pause_after_inhale/
+    - assets/sounds/guiding_voices/andrea/exhale/
+    - assets/sounds/guiding_voices/andrea/pause_after_exhale/
     - .env
     # Don't include .env in production builds, it won't be there
     # Instead use --dart-define arguments during build

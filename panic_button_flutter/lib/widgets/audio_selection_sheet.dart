@@ -96,11 +96,11 @@ class AudioSelectionSheet extends ConsumerWidget {
 
                     const SizedBox(height: 24),
 
-                    // Voice Guide Section
-                    _buildSectionTitle(context, 'Guía de Voz'),
+                    // Guiding Voice Section
+                    _buildSectionTitle(context, 'Voces'),
                     const SizedBox(height: 8),
                     _AudioSelectionGrid(
-                      audioType: AudioType.ambientSound,
+                      audioType: AudioType.guidingVoice,
                       isSmallScreen: isSmallScreen,
                     ),
 

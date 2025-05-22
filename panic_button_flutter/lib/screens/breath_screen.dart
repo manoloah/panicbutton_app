@@ -179,14 +179,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
             .selectTrack('sine');
       }
 
-      // Set default voice guide if none is playing
+      // Set default guiding voice if none is playing
       final currentVoice =
-          _audioService?.getCurrentTrack(AudioType.ambientSound);
+          _audioService?.getCurrentTrack(AudioType.guidingVoice);
       if (currentVoice == null) {
-        // Start davi as default voice
+        // Start manu as default voice
         ref
-            .read(selectedAudioProvider(AudioType.ambientSound).notifier)
-            .selectTrack('davi');
+            .read(selectedAudioProvider(AudioType.guidingVoice).notifier)
+            .selectTrack('manu');
       }
 
       _isAudioInitialized = true;

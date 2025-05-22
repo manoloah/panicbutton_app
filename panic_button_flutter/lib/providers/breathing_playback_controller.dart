@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/data/breath_repository.dart';
+import 'package:panic_button_flutter/services/audio_service.dart';
+
+// Provider to track the last breath phase for voice prompt triggering
+final lastBreathPhaseProvider = StateProvider<BreathPhase?>((ref) => null);
 
 class BreathingPlaybackState {
   final bool isPlaying;
@@ -60,6 +64,22 @@ class BreathingPlaybackState {
 }
 
 enum BreathPhase { inhale, holdIn, exhale, holdOut }
+
+// Helper extension to convert BreathPhase to BreathVoicePhase
+extension BreathPhaseToVoicePhase on BreathPhase {
+  BreathVoicePhase toVoicePhase() {
+    switch (this) {
+      case BreathPhase.inhale:
+        return BreathVoicePhase.inhale;
+      case BreathPhase.holdIn:
+        return BreathVoicePhase.pauseAfterInhale;
+      case BreathPhase.exhale:
+        return BreathVoicePhase.exhale;
+      case BreathPhase.holdOut:
+        return BreathVoicePhase.pauseAfterExhale;
+    }
+  }
+}
 
 class BreathingPlaybackController
     extends StateNotifier<BreathingPlaybackState> {
@@ -280,6 +300,9 @@ class BreathingPlaybackController
     BreathPhase newPhase;
     int phaseSeconds;
 
+    // Remember the current phase before changing it (for voice prompts)
+    final currentPhase = state.currentPhase;
+
     // Determine next phase based on current phase
     switch (state.currentPhase) {
       case BreathPhase.inhale:
@@ -320,11 +343,36 @@ class BreathingPlaybackController
       return;
     }
 
+    // Update state with new phase
     state = state.copyWith(
       currentStepIndex: newIndex,
       currentPhase: newPhase,
       phaseSecondsRemaining: phaseSeconds.toDouble(),
     );
+
+    // Play guiding voice prompt for the new phase
+    _playVoicePromptForPhase(newPhase);
+
+    // Store last phase
+    _ref.read(lastBreathPhaseProvider.notifier).state = currentPhase;
+  }
+
+  // Play the appropriate voice prompt for the current phase
+  void _playVoicePromptForPhase(BreathPhase phase) {
+    try {
+      // Only get audio service when needed
+      final audioService = _ref.read(audioServiceProvider);
+
+      // If we have a voice track selected
+      final voiceTrack = audioService.getCurrentTrack(AudioType.guidingVoice);
+      if (voiceTrack != null && voiceTrack.id != 'off') {
+        // Play the appropriate voice prompt for this phase
+        audioService.playVoicePrompt(phase.toVoicePhase());
+      }
+    } catch (e) {
+      // Log error but don't interfere with breathing exercise
+      debugPrint('Error playing voice prompt: $e');
+    }
   }
 
   String getPhaseDisplayText() {
