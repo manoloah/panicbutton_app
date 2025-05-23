@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -94,7 +95,7 @@ class AudioService {
     AudioTrack(
       id: 'river',
       name: "Río",
-      path: 'assets/sounds/music/river.mp3',
+      path: 'assets/sounds/music/river_new.mp3',
       icon: Icons.water_rounded,
     ),
     AudioTrack(
@@ -111,18 +112,32 @@ class AudioService {
     ),
   ];
 
+  // Fallback tracks if primary ones fail to load
+  final Map<String, String> _fallbackTracks = {
+    'river': 'assets/sounds/music/ocean.mp3', // If river fails, try ocean
+    'ocean':
+        'assets/sounds/music/rainforest.mp3', // If ocean fails, try rainforest
+    'forest': 'assets/sounds/music/river.mp3', // If forest fails, try river
+  };
+
   // Guiding voice tracks - dynamically loaded
   late List<AudioTrack> _guidingVoiceTracks;
 
   AudioService() {
     _initAudioSession();
     _initGuidingVoices();
+    _setupErrorListeners();
+
+    // Preload common audio assets
+    _preloadCommonAudio();
   }
 
   /// Initialize the audio session with proper settings
   Future<void> _initAudioSession() async {
     try {
       final session = await AudioSession.instance;
+
+      // Configure the session with proper settings
       await session.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
         avAudioSessionCategoryOptions:
@@ -135,10 +150,40 @@ class AudioService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         androidWillPauseWhenDucked: true,
       ));
+
+      // Ensure session is active
+      await session.setActive(true);
     } catch (e) {
       // On web or during development, this might fail but we can continue
-      debugPrint('Audio session initialization skipped: $e');
+      debugPrint('Audio session initialization issue: $e');
     }
+  }
+
+  /// Setup error listeners for all players to help diagnose issues
+  void _setupErrorListeners() {
+    _musicPlayer.playbackEventStream.listen((event) {},
+        onError: (Object e, StackTrace st) {
+      // Only log player errors if they're unexpected
+      if (!e.toString().contains('Connection aborted')) {
+        debugPrint('Music player error: $e');
+      }
+    });
+
+    _breathGuidePlayer.playbackEventStream.listen((event) {},
+        onError: (Object e, StackTrace st) {
+      // Only log player errors if they're unexpected
+      if (!e.toString().contains('Connection aborted')) {
+        debugPrint('Breath guide player error: $e');
+      }
+    });
+
+    _guidingVoicePlayer.playbackEventStream.listen((event) {},
+        onError: (Object e, StackTrace st) {
+      // Only log player errors if they're unexpected
+      if (!e.toString().contains('Connection aborted')) {
+        debugPrint('Voice guide player error: $e');
+      }
+    });
   }
 
   /// Initialize guiding voices by dynamically finding available voices
@@ -226,25 +271,75 @@ class AudioService {
       try {
         await player.stop();
       } catch (e) {
-        debugPrint('Error stopping previous audio (non-critical): $e');
         // Continue with setup - this error can be ignored
       }
 
       // Set up the audio source (only for music and tones)
       if (type != AudioType.guidingVoice) {
-        try {
-          await player.setAsset(track.path);
-        } catch (e) {
-          debugPrint('Error loading audio asset: ${track.path} - $e');
-          // If we can't load the asset, we should exit early
-          return;
+        // Try loading the asset with retry logic for common errors
+        bool loaded = false;
+        int attempts = 0;
+        const maxAttempts = 3;
+        String assetPath = track.path;
+
+        while (!loaded && attempts < maxAttempts) {
+          attempts++;
+          try {
+            // Small delay before retry to let resources free up
+            if (attempts > 1) {
+              debugPrint('Retry attempt $attempts for $assetPath');
+              await Future.delayed(const Duration(milliseconds: 300));
+            }
+
+            // Special handling for river.mp3 which often has issues on iOS
+            if (track.id == 'river' && attempts > 1) {
+              // Try loading the asset as a byte array first
+              try {
+                final data = await rootBundle.load(assetPath);
+                await player.setAudioSource(
+                  BytesAudioSource(data.buffer.asUint8List()),
+                );
+                loaded = true;
+                continue;
+              } catch (byteError) {
+                debugPrint('Byte loading failed: $byteError');
+                // Continue to standard loading if byte loading fails
+              }
+            }
+
+            await player.setAsset(assetPath);
+            loaded = true;
+          } catch (e) {
+            // Check if this is a known "Operation Stopped" error that might resolve with retry
+            if (e.toString().contains("Operation Stopped") &&
+                attempts < maxAttempts) {
+              // Continue to retry
+              debugPrint('Operation stopped error, will retry: $e');
+            } else if (attempts >= maxAttempts &&
+                _fallbackTracks.containsKey(track.id)) {
+              // Try fallback track as last resort
+              final fallbackPath = _fallbackTracks[track.id]!;
+              debugPrint('Using fallback track: $fallbackPath');
+              try {
+                await player.setAsset(fallbackPath);
+                loaded = true;
+              } catch (fallbackError) {
+                debugPrint('Fallback also failed: $fallbackError');
+                return; // Give up if fallback also fails
+              }
+            } else if (attempts >= maxAttempts) {
+              // Log only on final failure
+              debugPrint(
+                  'Failed to load audio asset after $attempts attempts: $assetPath - $e');
+              return;
+            }
+          }
         }
 
         // Configure looping
         try {
           await player.setLoopMode(LoopMode.all);
         } catch (e) {
-          debugPrint('Error setting loop mode: $e');
           // Non-critical - we can continue
         }
 
@@ -335,12 +430,14 @@ class AudioService {
           // Check if this file exists by trying to load its bytes
           await rootBundle.load(path);
           validPaths.add(path);
-        } catch (_) {
-          // File doesn't exist, continue
+        } catch (e) {
+          // File doesn't exist, continue silently
         }
       }
 
       if (validPaths.isEmpty) {
+        // Only log when no valid files are found in a folder
+        debugPrint('No valid voice prompts found in: $folderPath');
         return null;
       }
 
@@ -359,6 +456,7 @@ class AudioService {
       final random = Random();
       return promptsToChooseFrom[random.nextInt(promptsToChooseFrom.length)];
     } catch (e) {
+      // Only log unexpected errors
       debugPrint('Error getting random prompt: $e');
       return null;
     }
@@ -388,8 +486,7 @@ class AudioService {
       // Clear current track
       _setCurrentTrack(type, null);
     } catch (e) {
-      debugPrint('Error stopping audio (non-critical): $e');
-      // Still set current track to null even if stop fails
+      // Silent error - non-critical
       _setCurrentTrack(type, null);
     }
   }
@@ -442,6 +539,29 @@ class AudioService {
         break;
     }
   }
+
+  /// Preload common audio assets to improve reliability
+  Future<void> _preloadCommonAudio() async {
+    try {
+      // Preload background music (river is commonly used)
+      final riverPath = 'assets/sounds/music/river.mp3';
+      try {
+        await rootBundle.load(riverPath);
+      } catch (e) {
+        // Ignore errors during preloading
+      }
+
+      // Preload common tone
+      final sinePath = 'assets/sounds/tones/sine.mp3';
+      try {
+        await rootBundle.load(sinePath);
+      } catch (e) {
+        // Ignore errors during preloading
+      }
+    } catch (e) {
+      // Silently ignore preloading errors
+    }
+  }
 }
 
 /// Provider to track the currently selected audio for each type
@@ -461,5 +581,25 @@ class SelectedAudioNotifier extends StateNotifier<String?> {
   Future<void> selectTrack(String trackId) async {
     state = trackId;
     await ref.read(audioServiceProvider).playTrack(type, trackId);
+  }
+}
+
+/// Custom audio source for loading from bytes
+class BytesAudioSource extends StreamAudioSource {
+  final Uint8List _buffer;
+
+  BytesAudioSource(this._buffer);
+
+  @override
+  Future<StreamAudioResponse> request([int? start, int? end]) async {
+    start ??= 0;
+    end ??= _buffer.length;
+    return StreamAudioResponse(
+      sourceLength: _buffer.length,
+      contentLength: end - start,
+      offset: start,
+      stream: Stream.value(_buffer.sublist(start, end)),
+      contentType: 'audio/mpeg',
+    );
   }
 }

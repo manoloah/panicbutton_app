@@ -152,16 +152,14 @@ class BreathingPlaybackController
         final activityId = await _repository.getCurrentBreathingActivity();
         if (activityId != null) {
           state = state.copyWith(currentActivityId: activityId);
-          debugPrint(
-              '🧘 Started tracking activity: $activityId for pattern: ${pattern.name}');
         }
       } catch (e) {
-        debugPrint('❌ Error starting activity tracking: $e');
+        debugPrint('Error starting activity tracking: $e');
       }
-    } else {
-      debugPrint(
-          '▶️ Resuming existing session, accumulated seconds: $_accumulatedSeconds');
     }
+
+    // Play the first voice prompt immediately when starting
+    _playVoicePromptForPhase(state.currentPhase);
   }
 
   Future<void> pause() async {
@@ -370,8 +368,8 @@ class BreathingPlaybackController
         audioService.playVoicePrompt(phase.toVoicePhase());
       }
     } catch (e) {
-      // Log error but don't interfere with breathing exercise
-      debugPrint('Error playing voice prompt: $e');
+      // Only log critical errors
+      debugPrint('Critical error playing voice prompt: $e');
     }
   }
 

@@ -1401,14 +1401,34 @@ The app includes a comprehensive audio system for breathing exercises that follo
      └── sounds/
          ├── music/      # Background ambient sounds
          ├── tones/      # Breathing phase indicator sounds
-         └── voice/      # Voice guidance recordings
+         └── guiding_voices/  # Voice guidance recordings with multiple characters
+             ├── manu/
+             │   ├── inhale/
+             │   ├── pause_after_inhale/
+             │   ├── exhale/
+             │   └── pause_after_exhale/
+             └── andrea/
+                 ├── inhale/
+                 ├── pause_after_inhale/
+                 ├── exhale/
+                 └── pause_after_exhale/
      ```
    - Register sound directories in `pubspec.yaml`:
      ```yaml
      assets:
        - assets/sounds/music/
        - assets/sounds/tones/
-       - assets/sounds/voice/
+       - assets/sounds/guiding_voices/
+       - assets/sounds/guiding_voices/manu/
+       - assets/sounds/guiding_voices/manu/inhale/
+       - assets/sounds/guiding_voices/manu/pause_after_inhale/
+       - assets/sounds/guiding_voices/manu/exhale/
+       - assets/sounds/guiding_voices/manu/pause_after_exhale/
+       - assets/sounds/guiding_voices/andrea/
+       - assets/sounds/guiding_voices/andrea/inhale/
+       - assets/sounds/guiding_voices/andrea/pause_after_inhale/
+       - assets/sounds/guiding_voices/andrea/exhale/
+       - assets/sounds/guiding_voices/andrea/pause_after_exhale/
      ```
 
 3. **Safe Audio Management**
@@ -1461,7 +1481,7 @@ The app includes a comprehensive audio system for breathing exercises that follo
             .selectTrack('river');
        }
        
-       // Similar checks for tones and voice
+       // Similarly for tones and voice guidance
        _isAudioInitialized = true;
      }
    }
@@ -1471,11 +1491,78 @@ The app includes a comprehensive audio system for breathing exercises that follo
    - Preload audio files for key interactions
    - Handle audio focus changes (e.g., phone calls interrupting)
    - Add progressive volume transitions for smoother experience
+   - Implement retry logic for audio loading errors
+   - Reduce excessive logging in production builds
 
 7. **Testing Audio Integration**
    - Test navigation between screens multiple times to verify no leaks
    - Test device sleep/wake behavior with active audio
    - Test with different audio output devices (speaker, headphones)
+
+8. **Guiding Voice Implementation**
+
+   The app features a robust guiding voice system that provides verbal prompts during breathing exercises:
+
+   - **Key Features**:
+     - Support for multiple voice characters (Manu, Andrea, etc.)
+     - Phase-specific voice prompts (inhale, exhale, etc.)
+     - Random selection to avoid repetition
+     - Easy extensibility for adding new voice characters
+
+   - **Implementation Details**:
+     - **AudioService Class**: Central manager for all audio playback
+       - Maintains separate players for music, tones, and voice prompts
+       - Provides methods for random prompt selection
+       - Tracks recently played prompts to avoid repetition
+     
+     - **BreathingPlaybackController**: Triggers voice prompts at phase transitions
+       - Converts BreathPhase to BreathVoicePhase for correct prompt selection
+       - Uses callback methods for phase changes
+       - Extension method for phase conversion:
+         ```dart
+         extension BreathPhaseToVoicePhase on BreathPhase {
+           BreathVoicePhase toVoicePhase() {
+             switch (this) {
+               case BreathPhase.inhale:
+                 return BreathVoicePhase.inhale;
+               case BreathPhase.holdIn:
+                 return BreathVoicePhase.pauseAfterInhale;
+               case BreathPhase.exhale:
+                 return BreathVoicePhase.exhale;
+               case BreathPhase.holdOut:
+                 return BreathVoicePhase.pauseAfterExhale;
+             }
+           }
+         }
+         ```
+     
+     - **Audio Selection UI**: Dedicated section in AudioSelectionSheet
+       - Shows all available voice characters 
+       - Allows selection between different voices or turning voice guidance off
+
+   - **Voice File Organization**:
+     - Each character has their own folder with phase subfolders
+     - Files are named numerically (1.mp3, 2.mp3, etc.) for random selection
+     - Each phase has multiple prompt variations for variety
+
+   - **Adding a New Voice Character**:
+     1. Create folder structure for the new character:
+        ```
+        assets/sounds/guiding_voices/[character_name]/
+          ├── inhale/
+          ├── pause_after_inhale/
+          ├── exhale/
+          └── pause_after_exhale/
+        ```
+     2. Add MP3 files to each phase folder (named 1.mp3, 2.mp3, etc.)
+     3. Register folders in pubspec.yaml
+     4. The character will automatically appear in the audio selection UI
+
+   - **Error Handling and Reliability**:
+     - Proper error logging for debugging file loading issues
+     - Graceful fallbacks when files can't be found
+     - Retry logic for transient audio loading errors
+     - Safe concurrent playback management across different audio types
 
 Following these guidelines ensures audio integration that enhances the user experience while maintaining app stability and performance.
 
@@ -1514,7 +1601,7 @@ This guide explains the complete process for adding new sound files or replacing
       └── sounds/
           ├── music/      # Place background music files here
           ├── tones/      # Place breath guide tone files here
-          └── voice/      # Place voice guidance files here
+          └── guiding_voices/  # Place voice guidance files here
   ```
 
 - **File Naming Conventions**:
@@ -1609,7 +1696,7 @@ flutter:
   assets:
     - assets/sounds/music/
     - assets/sounds/tones/
-    - assets/sounds/voice/
+    - assets/sounds/guiding_voices/
 ```
 
 #### 6. Replacing Existing Sound Files

@@ -10,6 +10,8 @@ A calming app for anxiety and panic relief with breathing exercises.
 - Pattern selection by breathing goals (calming, energizing, etc.)
 - Progressive breathing journey with level unlocking based on BOLT scores
 - Animated breathing circle with wave visualization
+- Voice guidance system with multiple character options
+- Background music and breath guide tones 
 - Session tracking and detailed breathing activity statistics
 - BOLT score measurement for tracking anxiety levels
 - Step-by-step instruction screens with smooth transitions
@@ -213,13 +215,25 @@ The app's breathing exercise feature provides a guided breathing experience with
    - Clear phase indicators (Inhale, Hold, Exhale, Relax)
    - Countdown timers for each phase
 
-4. **Session Tracking**:
+4. **Voice Guidance**:
+   - Verbal prompts synchronized with breathing phases
+   - Multiple voice characters to choose from (Manu, Andrea)
+   - Random selection of prompts to avoid repetition
+   - Option to turn voice guidance off
+
+5. **Audio Customization**:
+   - Background music options (river, forest, ocean, etc.)
+   - Breathing guide tones (sine wave, bowl, etc.)
+   - Independent volume control for each audio layer
+   - All audio settings are preserved between sessions
+
+6. **Session Tracking**:
    - Records completed patterns with accurate duration tracking
    - Supports pause and resume functionality
    - Maintains detailed statistics including total breathing time
    - Tracks cumulative practice across patterns
 
-5. **Auto-Start Behavior**:
+7. **Auto-Start Behavior**:
    - Breathing exercise auto-starts ONLY when initiated from the home screen panic button
    - When accessed from other parts of the app (journey, navbar), manual start is required
    - This prevents accidental exercise starts when navigating the app

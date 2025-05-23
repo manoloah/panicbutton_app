@@ -41,6 +41,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         // Store audio service reference early
         try {
           _audioService = ref.read(audioServiceProvider);
+          // Set default audio selections immediately
+          _setDefaultAudioIfNeeded();
         } catch (e) {
           debugPrint(
               'Error accessing audioServiceProvider during initState: $e');
@@ -155,40 +157,49 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
   }
 
-  // Initialize audio (only once)
-  void _initializeAudio() {
+  // Method to ensure default audio options are set
+  void _setDefaultAudioIfNeeded() {
     if (_isDisposed) return;
 
-    if (!_isAudioInitialized) {
-      // Set default background music if none is playing
-      final currentMusic =
-          _audioService?.getCurrentTrack(AudioType.backgroundMusic);
-      if (currentMusic == null) {
-        // Start river as default background music
-        ref
-            .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
-            .selectTrack('river');
-      }
-
-      // Set default breathing tone if none is playing
-      final currentTone = _audioService?.getCurrentTrack(AudioType.breathGuide);
-      if (currentTone == null) {
-        // Start sine as default tone
-        ref
-            .read(selectedAudioProvider(AudioType.breathGuide).notifier)
-            .selectTrack('sine');
-      }
-
-      // Set default guiding voice if none is playing
+    try {
+      // Set default guiding voice if none is selected
       final currentVoice =
-          _audioService?.getCurrentTrack(AudioType.guidingVoice);
-      if (currentVoice == null) {
-        // Start manu as default voice
+          ref.read(selectedAudioProvider(AudioType.guidingVoice));
+      if (currentVoice == null || currentVoice.isEmpty) {
         ref
             .read(selectedAudioProvider(AudioType.guidingVoice).notifier)
             .selectTrack('manu');
       }
 
+      // Set default background music if none is selected
+      final currentMusic =
+          ref.read(selectedAudioProvider(AudioType.backgroundMusic));
+      if (currentMusic == null || currentMusic.isEmpty) {
+        ref
+            .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
+            .selectTrack('river');
+      }
+
+      // Set default breathing tone if none is selected
+      final currentTone =
+          ref.read(selectedAudioProvider(AudioType.breathGuide));
+      if (currentTone == null || currentTone.isEmpty) {
+        ref
+            .read(selectedAudioProvider(AudioType.breathGuide).notifier)
+            .selectTrack('sine');
+      }
+    } catch (e) {
+      debugPrint('Error setting default audio options: $e');
+    }
+  }
+
+  // Modify the existing _initializeAudio method to use the new method
+  void _initializeAudio() {
+    if (_isDisposed) return;
+
+    if (!_isAudioInitialized) {
+      // Set all default audio options if needed
+      _setDefaultAudioIfNeeded();
       _isAudioInitialized = true;
     }
   }
@@ -216,6 +227,17 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final expandedStepsFuture = ref.read(expandedStepsProvider.future);
     final duration = ref.read(selectedDurationProvider);
 
+    // Save current audio selections before making changes
+    final currentMusicTrackId =
+        ref.read(selectedAudioProvider(AudioType.backgroundMusic));
+    final currentToneTrackId =
+        ref.read(selectedAudioProvider(AudioType.breathGuide));
+    final currentVoiceTrackId =
+        ref.read(selectedAudioProvider(AudioType.guidingVoice));
+
+    // Get audio service to restore tracks later
+    final audioService = ref.read(audioServiceProvider);
+
     // Pause if playing
     if (wasPlaying) {
       controller.pause();
@@ -231,6 +253,25 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
       if (expandedSteps.isNotEmpty) {
         // Initialize controller with new pattern and duration
         controller.initialize(expandedSteps, duration);
+
+        // Restore the audio track selections
+        if (currentMusicTrackId != null && currentMusicTrackId.isNotEmpty) {
+          ref
+              .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
+              .selectTrack(currentMusicTrackId);
+        }
+
+        if (currentToneTrackId != null && currentToneTrackId.isNotEmpty) {
+          ref
+              .read(selectedAudioProvider(AudioType.breathGuide).notifier)
+              .selectTrack(currentToneTrackId);
+        }
+
+        if (currentVoiceTrackId != null && currentVoiceTrackId.isNotEmpty) {
+          ref
+              .read(selectedAudioProvider(AudioType.guidingVoice).notifier)
+              .selectTrack(currentVoiceTrackId);
+        }
 
         // Resume playback if it was playing before
         if (wasPlaying) {
@@ -276,6 +317,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
       // Only add these listeners once
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_isDisposed) return;
+
+        // Ensure default audio is set when returning to screen
+        _setDefaultAudioIfNeeded();
 
         // Setup pattern change listener
         ref.listenManual(selectedPatternProvider, (previous, next) {
@@ -551,17 +595,22 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         return;
       }
 
-      // Check if we're resuming an existing session or starting a new one
-      if (!hasExistingSession) {
-        // Only initialize when starting a new session, not when resuming
-        controller.initialize(expandedSteps, duration);
-      }
-
-      // Always call play
-      controller.play();
-
-      // Start background music if it's not already playing
+      // First initialize audio before starting the exercise
       _initializeAudio();
+
+      // Small delay to ensure audio is preloaded before starting the first breathe
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_isDisposed) return;
+
+        // Check if we're resuming an existing session or starting a new one
+        if (!hasExistingSession) {
+          // Only initialize when starting a new session, not when resuming
+          controller.initialize(expandedSteps, duration);
+        }
+
+        // Always call play
+        controller.play();
+      });
     }
   }
 }

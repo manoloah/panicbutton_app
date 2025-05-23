@@ -1,6 +1,6 @@
 # Guiding Voices for Breathing Exercises
 
-This directory contains voice prompts for the breathing exercises in the app.
+This directory contains voice prompts for the breathing exercises in the app. For complete implementation details, see the "Guiding Voice Implementation" section in `DEVELOPMENT_GUIDELINES.md`.
 
 ## Structure
 
@@ -30,7 +30,7 @@ Files in each phase folder should be named with a number followed by `.mp3`:
 1.mp3, 2.mp3, 3.mp3, etc.
 ```
 
-The app will choose randomly from available prompts in each phase folder.
+The app will choose randomly from available prompts in each phase folder to avoid repetition.
 
 ## Adding a New Voice Character
 
@@ -61,3 +61,33 @@ The character will automatically appear in the audio selection UI.
 - Record in a quiet environment
 - Normalize audio levels before adding
 - Use MP3 format at 128kbps for good quality and reasonable file size 
+
+## Voice Prompt Suggestions
+
+### Inhale
+- "Inhala profundamente"
+- "Respira hondo"
+- "Toma aire lentamente"
+
+### Pause After Inhale
+- "Mantén el aire"
+- "Retén la respiración"
+- "Sostén unos segundos"
+
+### Exhale
+- "Exhala suavemente"
+- "Suelta el aire"
+- "Deja salir la respiración"
+
+### Pause After Exhale
+- "Relájate"
+- "Descansa un momento"
+- "Pausa brevemente"
+
+## Troubleshooting
+
+- If prompts don't play, check that files exist in the correct folders
+- Verify the folder structure matches exactly what's described above
+- Ensure all folders are registered in pubspec.yaml
+- Test with simple placeholder files first, then replace with real recordings
+- Enable debugging in the AudioService class for more detailed error messages 
