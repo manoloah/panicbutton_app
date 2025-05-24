@@ -348,11 +348,86 @@ class BreathingPlaybackController
       phaseSecondsRemaining: phaseSeconds.toDouble(),
     );
 
+    // Handle instrument cues based on phase change
+    _handleInstrumentCuesForPhase(newPhase, phaseSeconds);
+
     // Play guiding voice prompt for the new phase
     _playVoicePromptForPhase(newPhase);
 
     // Store last phase
     _ref.read(lastBreathPhaseProvider.notifier).state = currentPhase;
+  }
+
+  // Handle instrument cues for phase changes
+  void _handleInstrumentCuesForPhase(BreathPhase phase, int durationSeconds) {
+    try {
+      final audioService = _ref.read(audioServiceProvider);
+      final selectedInstrument =
+          _ref.read(selectedAudioProvider(AudioType.instrumentCue));
+
+      if (selectedInstrument == null || selectedInstrument == 'off') {
+        return; // No instrument selected
+      }
+
+      // Map the selected instrument ID to the enum
+      Instrument? instrument;
+      switch (selectedInstrument) {
+        case 'gong':
+          instrument = Instrument.gong;
+          break;
+        case 'synth':
+          instrument = Instrument.synth;
+          break;
+        case 'violin':
+          instrument = Instrument.violin;
+          break;
+        case 'human':
+          instrument = Instrument.human;
+          break;
+      }
+
+      if (instrument == null) {
+        debugPrint('⚠️ Could not map selected instrument: $selectedInstrument');
+        return;
+      }
+
+      // Handle instrument cues based on phase
+      switch (phase) {
+        case BreathPhase.inhale:
+          debugPrint(
+              '🎼 Controller: Starting inhale instrument cue - ${instrument.name} (${durationSeconds}s)');
+          audioService.playInstrumentCue(
+            instrument: instrument,
+            phase: BreathInstrumentPhase.inhale,
+            durationSeconds: durationSeconds,
+          );
+          break;
+
+        case BreathPhase.holdIn:
+          debugPrint(
+              '🔇 Controller: Stopping instrument cues for retention (holdIn)');
+          audioService.stopInstrumentCues();
+          break;
+
+        case BreathPhase.exhale:
+          debugPrint(
+              '🎼 Controller: Starting exhale instrument cue - ${instrument.name} (${durationSeconds}s)');
+          audioService.playInstrumentCue(
+            instrument: instrument,
+            phase: BreathInstrumentPhase.exhale,
+            durationSeconds: durationSeconds,
+          );
+          break;
+
+        case BreathPhase.holdOut:
+          debugPrint(
+              '🔇 Controller: Stopping instrument cues for retention (holdOut)');
+          audioService.stopInstrumentCues();
+          break;
+      }
+    } catch (e) {
+      debugPrint('❌ Error handling instrument cues: $e');
+    }
   }
 
   // Play the appropriate voice prompt for the current phase

@@ -1,10 +1,11 @@
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 
 /// Provider for the audio service
 final audioServiceProvider = Provider<AudioService>((ref) {
@@ -29,8 +30,16 @@ class AudioTrack {
 /// Types of audio that can be played
 enum AudioType {
   backgroundMusic,
-  breathGuide,
-  guidingVoice, // Renamed from ambientSound to better reflect its purpose
+  instrumentCue,
+  guidingVoice,
+}
+
+/// Available instruments for breathing cues
+enum Instrument {
+  gong,
+  synth,
+  violin,
+  human,
 }
 
 /// Phases of breathing for voice prompts
@@ -41,103 +50,167 @@ enum BreathVoicePhase {
   pauseAfterExhale,
 }
 
-/// Service for managing audio playback in the app
+/// Phases of breathing for instrument cues
+enum BreathInstrumentPhase {
+  inhale,
+  exhale,
+  holdIn, // Retention - no sound
+  holdOut, // Retention - no sound
+}
+
+/// Simplified audio service with single responsibility
 class AudioService {
-  // Audio players for different audio types
+  // Single audio player per audio type - much simpler
   final AudioPlayer _musicPlayer = AudioPlayer();
-  final AudioPlayer _breathGuidePlayer = AudioPlayer();
-  final AudioPlayer _guidingVoicePlayer = AudioPlayer();
+  final AudioPlayer _instrumentPlayer = AudioPlayer();
+  final AudioPlayer _voicePlayer = AudioPlayer();
 
-  // Track played prompts to avoid repetition
-  final Map<String, List<String>> _playedPrompts = {};
+  // Simple state tracking
+  bool _disposed = false;
+  String? _currentInstrument;
+  String? _currentVoice;
+  String? _currentMusic;
+  Timer? _instrumentTimer;
 
-  // Track currently playing for each type
-  AudioTrack? _currentMusic;
-  AudioTrack? _currentBreathGuide;
-  AudioTrack? _currentGuidingVoice;
+  // Track configurations
+  late final List<AudioTrack> _musicTracks;
+  late final List<AudioTrack> _instrumentTracks;
+  late final List<AudioTrack> _voiceTracks;
 
-  // Available audio tracks for breathing tones
-  final List<AudioTrack> _breathGuideTracks = const [
-    AudioTrack(
-      id: 'sine',
-      name: "Onda",
-      path: 'assets/sounds/tones/sine.mp3',
-      icon: Icons.waves,
-    ),
-    AudioTrack(
-      id: 'synth',
-      name: "Sintetizador",
-      path: 'assets/sounds/tones/synth.mp3',
-      icon: Icons.piano,
-    ),
-    AudioTrack(
-      id: 'bowl',
-      name: "Cuenco",
-      path: 'assets/sounds/tones/bowl.mp3',
-      icon: Icons.nightlife,
-    ),
-    AudioTrack(
-      id: 'off',
-      name: "Apagado",
-      path: '',
-      icon: Icons.horizontal_rule,
-    ),
-  ];
-
-  // Background music tracks
-  final List<AudioTrack> _musicTracks = const [
-    AudioTrack(
-      id: 'forest',
-      name: "Bosque",
-      path: 'assets/sounds/music/rainforest.mp3',
-      icon: Icons.forest,
-    ),
-    AudioTrack(
-      id: 'river',
-      name: "Río",
-      path: 'assets/sounds/music/river_new.mp3',
-      icon: Icons.water_rounded,
-    ),
-    AudioTrack(
-      id: 'ocean',
-      name: "Oceano",
-      path: 'assets/sounds/music/ocean.mp3',
-      icon: Icons.waves,
-    ),
-    AudioTrack(
-      id: 'off',
-      name: "Apagado",
-      path: '',
-      icon: Icons.horizontal_rule,
-    ),
-  ];
-
-  // Fallback tracks if primary ones fail to load
-  final Map<String, String> _fallbackTracks = {
-    'river': 'assets/sounds/music/ocean.mp3', // If river fails, try ocean
-    'ocean':
-        'assets/sounds/music/rainforest.mp3', // If ocean fails, try rainforest
-    'forest': 'assets/sounds/music/river.mp3', // If forest fails, try river
-  };
-
-  // Guiding voice tracks - dynamically loaded
-  late List<AudioTrack> _guidingVoiceTracks;
+  // Cache available voice files to avoid repeated asset loading attempts
+  final Map<String, List<int>> _availableVoiceFiles = {};
 
   AudioService() {
-    _initAudioSession();
-    _initGuidingVoices();
-    _setupErrorListeners();
-
-    // Preload common audio assets
-    _preloadCommonAudio();
+    _initializeTracks();
+    _setupAudioSession();
+    _setupErrorHandling();
+    _preloadAvailableVoiceFiles();
   }
 
-  /// Initialize the audio session with proper settings
-  Future<void> _initAudioSession() async {
+  /// Initialize track configurations
+  void _initializeTracks() {
+    _musicTracks = [
+      const AudioTrack(
+        id: 'river',
+        name: 'Río',
+        path: 'assets/sounds/music/river.mp3',
+        icon: Icons.water_rounded,
+      ),
+      const AudioTrack(
+        id: 'forest',
+        name: 'Bosque',
+        path: 'assets/sounds/music/rainforest.mp3',
+        icon: Icons.forest,
+      ),
+      const AudioTrack(
+        id: 'ocean',
+        name: 'Océano',
+        path: 'assets/sounds/music/ocean.mp3',
+        icon: Icons.waves,
+      ),
+      const AudioTrack(
+        id: 'off',
+        name: 'Apagado',
+        path: '',
+        icon: Icons.horizontal_rule,
+      ),
+    ];
+
+    _instrumentTracks = [
+      const AudioTrack(
+        id: 'gong',
+        name: 'Gong',
+        path: 'assets/sounds/instrument_cues/gong',
+        icon: Icons.water_drop,
+      ),
+      const AudioTrack(
+        id: 'synth',
+        name: 'Sintetizador',
+        path: 'assets/sounds/instrument_cues/synth',
+        icon: Icons.piano,
+      ),
+      const AudioTrack(
+        id: 'violin',
+        name: 'Violín',
+        path: 'assets/sounds/instrument_cues/violin',
+        icon: Icons.music_note,
+      ),
+      const AudioTrack(
+        id: 'human',
+        name: 'Humano',
+        path: 'assets/sounds/instrument_cues/human',
+        icon: Icons.mic,
+      ),
+      const AudioTrack(
+        id: 'off',
+        name: 'Apagado',
+        path: '',
+        icon: Icons.horizontal_rule,
+      ),
+    ];
+
+    _voiceTracks = [
+      const AudioTrack(
+        id: 'manu',
+        name: 'Manu',
+        path: 'assets/sounds/guiding_voices/manu',
+        icon: Icons.person,
+      ),
+      const AudioTrack(
+        id: 'andrea',
+        name: 'Andrea',
+        path: 'assets/sounds/guiding_voices/andrea',
+        icon: Icons.person,
+      ),
+      const AudioTrack(
+        id: 'off',
+        name: 'Apagado',
+        path: '',
+        icon: Icons.horizontal_rule,
+      ),
+    ];
+  }
+
+  /// Preload information about available voice files to avoid runtime errors
+  Future<void> _preloadAvailableVoiceFiles() async {
+    try {
+      for (final voice in ['manu', 'andrea']) {
+        for (final phase in [
+          'inhale',
+          'exhale',
+          'pause_after_inhale',
+          'pause_after_exhale'
+        ]) {
+          final List<int> availableFiles = [];
+
+          // Check files 1-10 to be safe (though we know the current structure)
+          for (int i = 1; i <= 10; i++) {
+            final path = 'assets/sounds/guiding_voices/$voice/$phase/$i.mp3';
+            try {
+              await rootBundle.load(path);
+              availableFiles.add(i);
+            } catch (e) {
+              // File doesn't exist, skip
+              break; // Stop checking higher numbers if this one doesn't exist
+            }
+          }
+
+          if (availableFiles.isNotEmpty) {
+            _availableVoiceFiles['$voice:$phase'] = availableFiles;
+            debugPrint(
+                '🔍 Found ${availableFiles.length} voice files for $voice/$phase: $availableFiles');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error preloading voice files: $e');
+    }
+  }
+
+  /// Setup audio session for iOS compatibility
+  Future<void> _setupAudioSession() async {
     try {
       final session = await AudioSession.instance;
-
-      // Configure the session with proper settings
       await session.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
         avAudioSessionCategoryOptions:
@@ -150,456 +223,365 @@ class AudioService {
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         androidWillPauseWhenDucked: true,
       ));
-
-      // Ensure session is active
       await session.setActive(true);
+      debugPrint('🔊 Audio session configured');
     } catch (e) {
-      // On web or during development, this might fail but we can continue
-      debugPrint('Audio session initialization issue: $e');
+      debugPrint('⚠️ Audio session setup failed: $e');
     }
   }
 
-  /// Setup error listeners for all players to help diagnose issues
-  void _setupErrorListeners() {
-    _musicPlayer.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace st) {
-      // Only log player errors if they're unexpected
-      if (!e.toString().contains('Connection aborted')) {
-        debugPrint('Music player error: $e');
-      }
-    });
+  /// Simple error handling setup
+  void _setupErrorHandling() {
+    _musicPlayer.playbackEventStream.listen(
+      (event) {},
+      onError: (e, stackTrace) => debugPrint('Music player error: $e'),
+    );
 
-    _breathGuidePlayer.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace st) {
-      // Only log player errors if they're unexpected
-      if (!e.toString().contains('Connection aborted')) {
-        debugPrint('Breath guide player error: $e');
-      }
-    });
+    _instrumentPlayer.playbackEventStream.listen(
+      (event) {},
+      onError: (e, stackTrace) => debugPrint('Instrument player error: $e'),
+    );
 
-    _guidingVoicePlayer.playbackEventStream.listen((event) {},
-        onError: (Object e, StackTrace st) {
-      // Only log player errors if they're unexpected
-      if (!e.toString().contains('Connection aborted')) {
-        debugPrint('Voice guide player error: $e');
-      }
-    });
+    _voicePlayer.playbackEventStream.listen(
+      (event) {},
+      onError: (e, stackTrace) => debugPrint('Voice player error: $e'),
+    );
   }
 
-  /// Initialize guiding voices by dynamically finding available voices
-  Future<void> _initGuidingVoices() async {
-    // Define the basic tracks list with voices first, then "off" option
-    _guidingVoiceTracks = [
-      // Manu is always available and should be first (leftmost)
-      const AudioTrack(
-        id: 'manu',
-        name: "Manu",
-        path: 'assets/sounds/guiding_voices/manu', // Base path only
-        icon: Icons.person,
-      ),
-      // Andrea is second
-      const AudioTrack(
-        id: 'andrea',
-        name: "Andrea",
-        path: 'assets/sounds/guiding_voices/andrea', // Base path only
-        icon: Icons.person,
-      ),
-      // Off option goes last (rightmost)
-      const AudioTrack(
-        id: 'off',
-        name: "Apagado",
-        path: '',
-        icon: Icons.horizontal_rule,
-      ),
-    ];
-
-    // Note: We're hardcoding Manu and Andrea since they're required to be available,
-    // but the implementation supports automatic discovery of new voices if they're
-    // added following the same folder structure:
-    //
-    // To add a new guiding voice character:
-    // 1. Create a folder with the character's name under assets/sounds/guiding_voices/
-    // 2. Inside that folder, create subfolders for each phase: inhale, pause_after_inhale, exhale, pause_after_exhale
-    // 3. Add MP3 files for each phase in their respective folders
-    // 4. Register each subfolder in pubspec.yaml
-    // 5. The new voice will automatically appear in the UI for selection
-  }
-
-  /// Get the list of available tracks by audio type
+  /// Get tracks by audio type
   List<AudioTrack> getTracksByType(AudioType type) {
     switch (type) {
       case AudioType.backgroundMusic:
         return _musicTracks;
-      case AudioType.breathGuide:
-        return _breathGuideTracks;
+      case AudioType.instrumentCue:
+        return _instrumentTracks;
       case AudioType.guidingVoice:
-        return _guidingVoiceTracks;
+        return _voiceTracks;
     }
   }
 
-  /// Get the currently playing track by audio type
-  AudioTrack? getCurrentTrack(AudioType type) {
-    switch (type) {
-      case AudioType.backgroundMusic:
-        return _currentMusic;
-      case AudioType.breathGuide:
-        return _currentBreathGuide;
-      case AudioType.guidingVoice:
-        return _currentGuidingVoice;
-    }
-  }
-
-  /// Play audio track based on type
+  /// Play a track by type and ID
   Future<void> playTrack(AudioType type, String trackId) async {
-    // Get tracks for the requested type
+    if (_disposed) return;
+
     final tracks = getTracksByType(type);
     final track =
         tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
 
-    // If "Off" is selected, stop playback
+    // Handle "off" selection
     if (track.id == 'off') {
       await stopAudio(type);
-      _setCurrentTrack(type, null);
+      // Update current track state for "off"
+      switch (type) {
+        case AudioType.backgroundMusic:
+          _currentMusic = 'off';
+          break;
+        case AudioType.instrumentCue:
+          _currentInstrument = 'off';
+          break;
+        case AudioType.guidingVoice:
+          _currentVoice = 'off';
+          break;
+      }
       return;
     }
 
     try {
-      // Get the appropriate player
-      final player = _getPlayerByType(type);
-
-      // Stop current playback
-      try {
-        await player.stop();
-      } catch (e) {
-        // Continue with setup - this error can be ignored
+      // Only set up audio source for background music (not instrument cues or voices)
+      if (type == AudioType.backgroundMusic) {
+        await _musicPlayer.stop();
+        await _musicPlayer.setAsset(track.path);
+        await _musicPlayer.setLoopMode(LoopMode.all);
+        await _musicPlayer.setVolume(0.7);
+        await _musicPlayer.play();
+        _currentMusic = trackId;
+        debugPrint('🎵 Playing ${track.name}');
       }
 
-      // Set up the audio source (only for music and tones)
-      if (type != AudioType.guidingVoice) {
-        // Try loading the asset with retry logic for common errors
-        bool loaded = false;
-        int attempts = 0;
-        const maxAttempts = 3;
-        String assetPath = track.path;
-
-        while (!loaded && attempts < maxAttempts) {
-          attempts++;
-          try {
-            // Small delay before retry to let resources free up
-            if (attempts > 1) {
-              debugPrint('Retry attempt $attempts for $assetPath');
-              await Future.delayed(const Duration(milliseconds: 300));
-            }
-
-            // Special handling for river.mp3 which often has issues on iOS
-            if (track.id == 'river' && attempts > 1) {
-              // Try loading the asset as a byte array first
-              try {
-                final data = await rootBundle.load(assetPath);
-                await player.setAudioSource(
-                  BytesAudioSource(data.buffer.asUint8List()),
-                );
-                loaded = true;
-                continue;
-              } catch (byteError) {
-                debugPrint('Byte loading failed: $byteError');
-                // Continue to standard loading if byte loading fails
-              }
-            }
-
-            await player.setAsset(assetPath);
-            loaded = true;
-          } catch (e) {
-            // Check if this is a known "Operation Stopped" error that might resolve with retry
-            if (e.toString().contains("Operation Stopped") &&
-                attempts < maxAttempts) {
-              // Continue to retry
-              debugPrint('Operation stopped error, will retry: $e');
-            } else if (attempts >= maxAttempts &&
-                _fallbackTracks.containsKey(track.id)) {
-              // Try fallback track as last resort
-              final fallbackPath = _fallbackTracks[track.id]!;
-              debugPrint('Using fallback track: $fallbackPath');
-              try {
-                await player.setAsset(fallbackPath);
-                loaded = true;
-              } catch (fallbackError) {
-                debugPrint('Fallback also failed: $fallbackError');
-                return; // Give up if fallback also fails
-              }
-            } else if (attempts >= maxAttempts) {
-              // Log only on final failure
-              debugPrint(
-                  'Failed to load audio asset after $attempts attempts: $assetPath - $e');
-              return;
-            }
-          }
-        }
-
-        // Configure looping
-        try {
-          await player.setLoopMode(LoopMode.all);
-        } catch (e) {
-          // Non-critical - we can continue
-        }
-
-        // Set volume and play
-        try {
-          await player.setVolume(0.7);
-          await player.play();
-        } catch (e) {
-          debugPrint('Error playing audio: $e');
-          return;
-        }
+      // For instrument cues, just store the selection
+      if (type == AudioType.instrumentCue) {
+        _currentInstrument = trackId;
+        debugPrint('🎼 Selected instrument: ${track.name}');
       }
 
-      // Update current track
-      _setCurrentTrack(type, track);
+      // For voice tracks, just store the selection
+      if (type == AudioType.guidingVoice) {
+        _currentVoice = trackId;
+        debugPrint('🗣️ Selected voice: ${track.name}');
+      }
     } catch (e) {
-      debugPrint('General error in audio playback: $e');
+      debugPrint('❌ Error playing track ${track.name}: $e');
     }
   }
 
-  /// Play a guiding voice prompt for the specified phase
+  /// Play instrument cue for breathing phase - IMPROVED
+  Future<void> playInstrumentCue({
+    required Instrument instrument,
+    required BreathInstrumentPhase phase,
+    required int durationSeconds,
+  }) async {
+    if (_disposed || _currentInstrument == 'off') return;
+
+    // Stop audio for retention phases
+    if (phase == BreathInstrumentPhase.holdIn ||
+        phase == BreathInstrumentPhase.holdOut) {
+      await _stopInstrumentAudio();
+      return;
+    }
+
+    try {
+      // Cancel any existing timer
+      _instrumentTimer?.cancel();
+
+      // Build file path
+      final phaseName =
+          phase == BreathInstrumentPhase.inhale ? 'inhale' : 'exhale';
+      final instrumentName = instrument.name;
+      final filePath =
+          'assets/sounds/instrument_cues/$instrumentName/${phaseName}_$instrumentName.mp3';
+
+      debugPrint(
+          '🎵 Playing instrument cue: $filePath for ${durationSeconds}s');
+
+      // Use asset-based loading instead of BytesAudioSource to avoid platform conflicts
+      await _instrumentPlayer.stop();
+      await _instrumentPlayer.setAsset(filePath);
+
+      // Get audio duration to decide on looping
+      await _instrumentPlayer.load();
+      final audioDuration = _instrumentPlayer.duration?.inSeconds ?? 1;
+
+      // Loop if audio is shorter than needed duration
+      if (audioDuration < durationSeconds) {
+        await _instrumentPlayer.setLoopMode(LoopMode.all);
+      } else {
+        await _instrumentPlayer.setLoopMode(LoopMode.off);
+      }
+
+      await _instrumentPlayer.setVolume(0.8);
+      await _instrumentPlayer.play();
+
+      // Set timer to stop after duration
+      _instrumentTimer = Timer(Duration(seconds: durationSeconds), () async {
+        await _stopInstrumentAudio();
+      });
+    } catch (e) {
+      debugPrint('❌ Error playing instrument cue: $e');
+      // Don't rethrow - let the breathing continue
+    }
+  }
+
+  /// Play voice prompt - COMPLETELY FIXED
   Future<void> playVoicePrompt(BreathVoicePhase phase) async {
-    // Get current guiding voice
-    final voiceTrack = _currentGuidingVoice;
-    if (voiceTrack == null || voiceTrack.id == 'off') {
-      return; // No voice selected or voice is off
-    }
-
-    // Get the base path for the voice
-    final basePath = voiceTrack.path;
-
-    // Map phase to folder name
-    String phaseFolder;
-    switch (phase) {
-      case BreathVoicePhase.inhale:
-        phaseFolder = 'inhale';
-        break;
-      case BreathVoicePhase.pauseAfterInhale:
-        phaseFolder = 'pause_after_inhale';
-        break;
-      case BreathVoicePhase.exhale:
-        phaseFolder = 'exhale';
-        break;
-      case BreathVoicePhase.pauseAfterExhale:
-        phaseFolder = 'pause_after_exhale';
-        break;
-    }
+    if (_disposed || _currentVoice == 'off' || _currentVoice == null) return;
 
     try {
-      // Get a random prompt that hasn't been played recently
-      final promptPath = await _getRandomPrompt('$basePath/$phaseFolder');
-      if (promptPath == null) {
-        return; // No prompt files found
+      // Get phase folder name
+      String phaseFolder;
+      switch (phase) {
+        case BreathVoicePhase.inhale:
+          phaseFolder = 'inhale';
+          break;
+        case BreathVoicePhase.pauseAfterInhale:
+          phaseFolder = 'pause_after_inhale';
+          break;
+        case BreathVoicePhase.exhale:
+          phaseFolder = 'exhale';
+          break;
+        case BreathVoicePhase.pauseAfterExhale:
+          phaseFolder = 'pause_after_exhale';
+          break;
       }
 
-      // Stop current voice playback
-      await _guidingVoicePlayer.stop();
+      // Get available files for this voice and phase
+      final cacheKey = '$_currentVoice:$phaseFolder';
+      final availableFiles = _availableVoiceFiles[cacheKey];
 
-      // Set up new prompt
-      await _guidingVoicePlayer.setAsset(promptPath);
+      if (availableFiles == null || availableFiles.isEmpty) {
+        debugPrint(
+            '⚠️ No voice files available for $_currentVoice/$phaseFolder');
+        return;
+      }
 
-      // Configure one-time playback
-      await _guidingVoicePlayer.setLoopMode(LoopMode.off);
+      // Select random file from available files
+      final randomIndex = Random().nextInt(availableFiles.length);
+      final selectedFile = availableFiles[randomIndex];
 
-      // Set volume and play
-      await _guidingVoicePlayer.setVolume(1.0);
-      await _guidingVoicePlayer.play();
+      final voiceTrack = _voiceTracks.firstWhere(
+        (track) => track.id == _currentVoice,
+        orElse: () => _voiceTracks.first,
+      );
 
-      // Record this prompt as played
-      _recordPlayedPrompt(phaseFolder, promptPath);
+      if (voiceTrack.id == 'off') return;
+
+      final filePath = '${voiceTrack.path}/$phaseFolder/$selectedFile.mp3';
+
+      // Stop previous voice prompt gently (to avoid Operation Stopped errors)
+      if (_voicePlayer.playing) {
+        await _voicePlayer.stop();
+        // Small delay to let the previous operation complete
+        await Future.delayed(const Duration(milliseconds: 50));
+      }
+
+      await _voicePlayer.setAsset(filePath);
+      await _voicePlayer.setLoopMode(LoopMode.off);
+      await _voicePlayer.setVolume(1.0);
+      await _voicePlayer.play();
+
+      debugPrint(
+          '🗣️ Playing voice prompt: $filePath (file $selectedFile of ${availableFiles.length} available)');
     } catch (e) {
-      // Just log error but don't interrupt breathing exercise
-      debugPrint('Error playing voice prompt: $e');
+      debugPrint('⚠️ Voice prompt error (non-critical): $e');
+      // Don't rethrow - voice prompts are non-critical
     }
   }
 
-  /// Get a random prompt from the specified folder that hasn't been played recently
-  Future<String?> _getRandomPrompt(String folderPath) async {
+  /// Stop instrument audio
+  Future<void> _stopInstrumentAudio() async {
     try {
-      // This would normally use a file system API to list files
-      // For simplicity and safety, we'll use numbered files
-      final validPaths = <String>[];
-
-      // Try files with numbers 1-5 (reasonable number of variations)
-      for (int i = 1; i <= 5; i++) {
-        final path = '$folderPath/${i}.mp3';
-        try {
-          // Check if this file exists by trying to load its bytes
-          await rootBundle.load(path);
-          validPaths.add(path);
-        } catch (e) {
-          // File doesn't exist, continue silently
-        }
-      }
-
-      if (validPaths.isEmpty) {
-        // Only log when no valid files are found in a folder
-        debugPrint('No valid voice prompts found in: $folderPath');
-        return null;
-      }
-
-      // Get a list of played prompts for this folder
-      final playedPrompts = _playedPrompts[folderPath] ?? [];
-
-      // Filter out recently played prompts if possible
-      final unplayedPrompts =
-          validPaths.where((path) => !playedPrompts.contains(path)).toList();
-
-      // If all prompts have been played, use any prompt
-      final promptsToChooseFrom =
-          unplayedPrompts.isNotEmpty ? unplayedPrompts : validPaths;
-
-      // Pick a random prompt
-      final random = Random();
-      return promptsToChooseFrom[random.nextInt(promptsToChooseFrom.length)];
+      _instrumentTimer?.cancel();
+      _instrumentTimer = null;
+      await _instrumentPlayer.stop();
+      await _instrumentPlayer.setLoopMode(LoopMode.off);
+      debugPrint('⏹️ Stopped instrument audio');
     } catch (e) {
-      // Only log unexpected errors
-      debugPrint('Error getting random prompt: $e');
+      debugPrint('⚠️ Error stopping instrument audio: $e');
+    }
+  }
+
+  /// Stop all instrument cues (public method)
+  Future<void> stopInstrumentCues() async {
+    await _stopInstrumentAudio();
+  }
+
+  /// Stop audio by type
+  Future<void> stopAudio(AudioType type) async {
+    if (_disposed) return;
+
+    try {
+      switch (type) {
+        case AudioType.backgroundMusic:
+          await _musicPlayer.stop();
+          break;
+        case AudioType.instrumentCue:
+          await _stopInstrumentAudio();
+          break;
+        case AudioType.guidingVoice:
+          await _voicePlayer.stop();
+          break;
+      }
+      debugPrint('⏹️ Stopped ${type.name} audio');
+    } catch (e) {
+      debugPrint('⚠️ Error stopping ${type.name}: $e');
+    }
+  }
+
+  /// Stop all audio
+  Future<void> stopAllAudio() async {
+    if (_disposed) return;
+
+    await Future.wait([
+      _musicPlayer.stop().catchError((e) => debugPrint('Music stop error: $e')),
+      _stopInstrumentAudio(),
+      _voicePlayer.stop().catchError((e) => debugPrint('Voice stop error: $e')),
+    ]);
+
+    debugPrint('⏹️ Stopped all audio');
+  }
+
+  /// Reset instrument state (for exercise changes) - but preserve selections
+  Future<void> resetInstrumentCueState() async {
+    await _stopInstrumentAudio();
+    debugPrint('🔄 Reset instrument cue state (preserving selections)');
+  }
+
+  /// Get current track for a type - FIXED IMPLEMENTATION
+  AudioTrack? getCurrentTrack(AudioType type) {
+    String? currentId;
+    List<AudioTrack> tracks;
+
+    switch (type) {
+      case AudioType.backgroundMusic:
+        currentId = _currentMusic;
+        tracks = _musicTracks;
+        break;
+      case AudioType.instrumentCue:
+        currentId = _currentInstrument;
+        tracks = _instrumentTracks;
+        break;
+      case AudioType.guidingVoice:
+        currentId = _currentVoice;
+        tracks = _voiceTracks;
+        break;
+    }
+
+    if (currentId == null) return null;
+
+    try {
+      return tracks.firstWhere((track) => track.id == currentId);
+    } catch (e) {
       return null;
     }
   }
 
-  /// Record a prompt as played to avoid repetition
-  void _recordPlayedPrompt(String folder, String path) {
-    if (!_playedPrompts.containsKey(folder)) {
-      _playedPrompts[folder] = [];
-    }
-
-    // Add to played list
-    _playedPrompts[folder]!.add(path);
-
-    // Keep only the 3 most recent prompts to avoid repetition
-    if (_playedPrompts[folder]!.length > 3) {
-      _playedPrompts[folder]!.removeAt(0);
-    }
-  }
-
-  /// Stop audio playback by type
-  Future<void> stopAudio(AudioType type) async {
-    try {
-      final player = _getPlayerByType(type);
-      await player.stop();
-
-      // Clear current track
-      _setCurrentTrack(type, null);
-    } catch (e) {
-      // Silent error - non-critical
-      _setCurrentTrack(type, null);
-    }
-  }
-
-  /// Stop all audio playback
-  Future<void> stopAllAudio() async {
-    try {
-      await stopAudio(AudioType.backgroundMusic);
-      await stopAudio(AudioType.breathGuide);
-      await stopAudio(AudioType.guidingVoice);
-    } catch (e) {
-      debugPrint('Error stopping all audio: $e');
-    }
-  }
-
-  /// Dispose all players to free resources
+  /// Dispose all resources
   Future<void> dispose() async {
-    try {
-      await _musicPlayer.dispose();
-      await _breathGuidePlayer.dispose();
-      await _guidingVoicePlayer.dispose();
-    } catch (e) {
-      debugPrint('Error disposing audio players: $e');
-    }
-  }
+    if (_disposed) return;
+    _disposed = true;
 
-  /// Helper method to get the appropriate player by type
-  AudioPlayer _getPlayerByType(AudioType type) {
-    switch (type) {
-      case AudioType.backgroundMusic:
-        return _musicPlayer;
-      case AudioType.breathGuide:
-        return _breathGuidePlayer;
-      case AudioType.guidingVoice:
-        return _guidingVoicePlayer;
-    }
-  }
+    _instrumentTimer?.cancel();
 
-  /// Helper method to set the current track by type
-  void _setCurrentTrack(AudioType type, AudioTrack? track) {
-    switch (type) {
-      case AudioType.backgroundMusic:
-        _currentMusic = track;
-        break;
-      case AudioType.breathGuide:
-        _currentBreathGuide = track;
-        break;
-      case AudioType.guidingVoice:
-        _currentGuidingVoice = track;
-        break;
-    }
-  }
+    await Future.wait([
+      _musicPlayer
+          .dispose()
+          .catchError((e) => debugPrint('Music dispose error: $e')),
+      _instrumentPlayer
+          .dispose()
+          .catchError((e) => debugPrint('Instrument dispose error: $e')),
+      _voicePlayer
+          .dispose()
+          .catchError((e) => debugPrint('Voice dispose error: $e')),
+    ]);
 
-  /// Preload common audio assets to improve reliability
-  Future<void> _preloadCommonAudio() async {
-    try {
-      // Preload background music (river is commonly used)
-      final riverPath = 'assets/sounds/music/river.mp3';
-      try {
-        await rootBundle.load(riverPath);
-      } catch (e) {
-        // Ignore errors during preloading
-      }
-
-      // Preload common tone
-      final sinePath = 'assets/sounds/tones/sine.mp3';
-      try {
-        await rootBundle.load(sinePath);
-      } catch (e) {
-        // Ignore errors during preloading
-      }
-    } catch (e) {
-      // Silently ignore preloading errors
-    }
+    debugPrint('🗑️ Audio service disposed');
   }
 }
 
-/// Provider to track the currently selected audio for each type
+/// Provider to track selected audio for each type
 final selectedAudioProvider =
     StateNotifierProvider.family<SelectedAudioNotifier, String?, AudioType>(
   (ref, type) => SelectedAudioNotifier(type, ref),
 );
 
-/// Notifier to manage the selected audio state
+/// Provider for persistent instrument cue state
+final persistentInstrumentCueProvider = StateProvider<String?>((ref) => 'gong');
+
+/// Notifier to manage selected audio state
 class SelectedAudioNotifier extends StateNotifier<String?> {
   final AudioType type;
   final Ref ref;
 
-  SelectedAudioNotifier(this.type, this.ref) : super(null);
+  SelectedAudioNotifier(this.type, this.ref) : super(null) {
+    if (type == AudioType.instrumentCue) {
+      state = ref.read(persistentInstrumentCueProvider);
+    }
+  }
 
-  /// Select a track by id and start playback
   Future<void> selectTrack(String trackId) async {
     state = trackId;
+
+    if (type == AudioType.instrumentCue) {
+      ref.read(persistentInstrumentCueProvider.notifier).state = trackId;
+    }
+
     await ref.read(audioServiceProvider).playTrack(type, trackId);
   }
-}
 
-/// Custom audio source for loading from bytes
-class BytesAudioSource extends StreamAudioSource {
-  final Uint8List _buffer;
+  void updateStateOnly(String trackId) {
+    state = trackId;
 
-  BytesAudioSource(this._buffer);
-
-  @override
-  Future<StreamAudioResponse> request([int? start, int? end]) async {
-    start ??= 0;
-    end ??= _buffer.length;
-    return StreamAudioResponse(
-      sourceLength: _buffer.length,
-      contentLength: end - start,
-      offset: start,
-      stream: Stream.value(_buffer.sublist(start, end)),
-      contentType: 'audio/mpeg',
-    );
+    if (type == AudioType.instrumentCue) {
+      ref.read(persistentInstrumentCueProvider.notifier).state = trackId;
+    }
   }
 }

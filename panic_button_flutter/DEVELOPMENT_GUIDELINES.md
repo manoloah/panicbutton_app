@@ -1385,9 +1385,9 @@ The app includes a comprehensive audio system for breathing exercises that follo
 
 1. **Audio Layer Architecture**
    - The audio system uses a three-layer approach:
-     - **Background Music**: Ambient sounds for relaxation (river, rain, forest)
-     - **Breath Guide Tones**: Subtle audio cues for each breathing phase
-     - **Voice Guidance**: Verbal instructions synchronized with breathing
+     - **Background Music**: Ambient sounds for relaxation
+     - **Instrument Cues**: Audio cues for each breathing phase using various instruments
+     - **Guiding Voices**: Personalized voice prompts for breathing guidance
 
 2. **File Format & Organization**
    - **File Format**: Use MP3 over WAV for several advantages:
@@ -1400,36 +1400,12 @@ The app includes a comprehensive audio system for breathing exercises that follo
      assets/
      └── sounds/
          ├── music/      # Background ambient sounds
-         ├── tones/      # Breathing phase indicator sounds
-         └── guiding_voices/  # Voice guidance recordings with multiple characters
-             ├── manu/
-             │   ├── inhale/
-             │   ├── pause_after_inhale/
-             │   ├── exhale/
-             │   └── pause_after_exhale/
-             └── andrea/
-                 ├── inhale/
-                 ├── pause_after_inhale/
-                 ├── exhale/
-                 └── pause_after_exhale/
-     ```
-   - Register sound directories in `pubspec.yaml`:
-     ```yaml
-     assets:
-       - assets/sounds/music/
-       - assets/sounds/tones/
-       - assets/sounds/guiding_voices/
-       - assets/sounds/guiding_voices/manu/
-       - assets/sounds/guiding_voices/manu/inhale/
-       - assets/sounds/guiding_voices/manu/pause_after_inhale/
-       - assets/sounds/guiding_voices/manu/exhale/
-       - assets/sounds/guiding_voices/manu/pause_after_exhale/
-       - assets/sounds/guiding_voices/andrea/
-       - assets/sounds/guiding_voices/andrea/inhale/
-       - assets/sounds/guiding_voices/andrea/pause_after_inhale/
-       - assets/sounds/guiding_voices/andrea/exhale/
-       - assets/sounds/guiding_voices/andrea/pause_after_exhale/
-     ```
+         ├── instrument_cues/  # Breathing phase indicator sounds
+         │   ├── gong/     # Gong instrument cues
+         │   ├── synth/    # Synthesizer instrument cues
+         │   ├── violin/   # Violin instrument cues
+         │   └── human/    # Human vocal instrument cues
+         └── guiding_voices/   # Voice-guided instructions
 
 3. **Safe Audio Management**
    - **Memory Leak Prevention**:
@@ -1476,12 +1452,24 @@ The app includes a comprehensive audio system for breathing exercises that follo
        // Check if music is already playing
        final currentMusic = _audioService?.getCurrentTrack(AudioType.backgroundMusic);
        if (currentMusic == null) {
-         // Start default background music
+         // Change 'river' to your new default music ID
          ref.read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
-            .selectTrack('river');
+            .selectTrack('gentle_forest');
        }
        
-       // Similarly for tones and voice guidance
+       // Similarly for instrument cues and voice guidance
+       final currentInstrumentCue = _audioService?.getCurrentTrack(AudioType.instrumentCue);
+       if (currentInstrumentCue == null) {
+         ref.read(selectedAudioProvider(AudioType.instrumentCue).notifier)
+             .selectTrack('gong');
+       }
+       
+       final currentVoice = _audioService?.getCurrentTrack(AudioType.ambientSound);
+       if (currentVoice == null) {
+         ref.read(selectedAudioProvider(AudioType.ambientSound).notifier)
+             .selectTrack('davi');
+       }
+       
        _isAudioInitialized = true;
      }
    }
@@ -1511,7 +1499,7 @@ The app includes a comprehensive audio system for breathing exercises that follo
 
    - **Implementation Details**:
      - **AudioService Class**: Central manager for all audio playback
-       - Maintains separate players for music, tones, and voice prompts
+       - Maintains separate players for music, instrument cues, and voice prompts
        - Provides methods for random prompt selection
        - Tracks recently played prompts to avoid repetition
      
@@ -1576,11 +1564,11 @@ This guide explains the complete process for adding new sound files or replacing
 
 - **Format Requirements**:
   - Use MP3 format (preferred over WAV for size and performance)
-  - Recommended bitrate: 192kbps for music, 128kbps for voice and tones
-  - Maximum file size: Keep background music under 2MB, tones/voice under 500KB
+  - Recommended bitrate: 192kbps for music, 128kbps for voice and instrument cues
+  - Maximum file size: Keep background music under 2MB, voice/instrument cues under 500KB
   - Recommended duration:
     - Background music: 1-3 minutes (will loop automatically)
-    - Tones: 1-3 seconds
+    - Instrument cues: 1-3 seconds
     - Voice: Short phrases (2-5 seconds)
   
 - **Audio Processing Tips**:
@@ -1600,7 +1588,7 @@ This guide explains the complete process for adding new sound files or replacing
   └── assets/
       └── sounds/
           ├── music/      # Place background music files here
-          ├── tones/      # Place breath guide tone files here
+          ├── instrument_cues/  # Place breath guide tone files here
           └── guiding_voices/  # Place voice guidance files here
   ```
 
@@ -1629,10 +1617,10 @@ This guide explains the complete process for adding new sound files or replacing
     AudioTrackInfo(id: 'gentle_forest', name: 'Bosque Suave', fileName: 'gentle_forest.mp3'),
   ];
   
-  // For breath guide tones
-  static const List<AudioTrackInfo> _breathGuideTracks = [
-    AudioTrackInfo(id: 'sine', name: 'Suave', fileName: 'sine.mp3'),
-    AudioTrackInfo(id: 'bowl', name: 'Cuenco', fileName: 'bowl.mp3'),
+  // For instrument cues
+  static const List<AudioTrackInfo> _instrumentCueTracks = [
+    AudioTrackInfo(id: 'gong', name: 'Gong', fileName: 'gong_inhale.mp3'),
+    AudioTrackInfo(id: 'synth', name: 'Sintetizador', fileName: 'synth_inhale.mp3'),
     // Add your new track here
   ];
   
@@ -1669,11 +1657,11 @@ void _initializeAudio() {
           .selectTrack('gentle_forest');
     }
     
-    // Similar changes for tones and voice if needed
-    final currentTone = _audioService?.getCurrentTrack(AudioType.breathGuide);
-    if (currentTone == null) {
-      ref.read(selectedAudioProvider(AudioType.breathGuide).notifier)
-          .selectTrack('sine');
+    // Similarly for instrument cues and voice guidance
+    final currentInstrumentCue = _audioService?.getCurrentTrack(AudioType.instrumentCue);
+    if (currentInstrumentCue == null) {
+      ref.read(selectedAudioProvider(AudioType.instrumentCue).notifier)
+          .selectTrack('gong');
     }
     
     final currentVoice = _audioService?.getCurrentTrack(AudioType.ambientSound);
@@ -1695,59 +1683,6 @@ Ensure the sound directories are properly registered in your `pubspec.yaml` file
 flutter:
   assets:
     - assets/sounds/music/
-    - assets/sounds/tones/
+    - assets/sounds/instrument_cues/
     - assets/sounds/guiding_voices/
 ```
-
-#### 6. Replacing Existing Sound Files
-
-To replace an existing sound while keeping the same name and functionality:
-
-1. Prepare your new sound file following the format guidelines above
-2. Name the file exactly the same as the file you're replacing
-3. Copy the new file to the appropriate directory, overwriting the existing file:
-
-```bash
-# Example: Replacing the river.mp3 background music
-cp ~/Downloads/new_river_sound.mp3 panic_button_flutter/assets/sounds/music/river.mp3
-```
-
-This approach requires no code changes since the filename stays the same.
-
-#### 7. Testing Your Sound Changes
-
-After adding or replacing sound files:
-
-1. **Clean and rebuild the app**:
-   ```bash
-   flutter clean
-   flutter pub get
-   flutter run
-   ```
-
-2. **Test all audio features**:
-   - Verify that new sounds appear in the audio selection sheet
-   - Test playback of all new and modified sound files
-   - Check that audio controls work correctly for new sounds
-   - Verify that default sounds play when starting a breathing exercise
-
-#### 8. Troubleshooting Common Issues
-
-- **Sound not playing**:
-  - Verify the file is in the correct directory
-  - Check that the filename in code exactly matches the actual file (case-sensitive)
-  - Ensure the MP3 file is valid and playable on other devices
-
-- **Sound not appearing in selection sheet**:
-  - Verify the track is added to the correct track list in `audio_service.dart`
-  - Check that the ID, name, and filename are all properly specified
-
-- **Sound plays but cuts off or sounds distorted**:
-  - Verify the audio quality of the source file
-  - Check that normalization and processing were done correctly
-  - Ensure file is not corrupted during copying
-
-By following these steps, you can easily add new sounds or replace existing ones in the app's breathing exercise feature.
-
----
-

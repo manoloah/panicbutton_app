@@ -123,7 +123,11 @@ flutter:
     - assets/data/
     - assets/icons/
     - assets/sounds/music/
-    - assets/sounds/tones/
+    # Instrument cues folder structure
+    - assets/sounds/instrument_cues/gong/
+    - assets/sounds/instrument_cues/synth/
+    - assets/sounds/instrument_cues/violin/
+    - assets/sounds/instrument_cues/human/
     # Guiding voices folder structure
     - assets/sounds/guiding_voices/
     - assets/sounds/guiding_voices/manu/

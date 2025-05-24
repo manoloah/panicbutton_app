@@ -76,11 +76,11 @@ class AudioSelectionSheet extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tones Section
-                    _buildSectionTitle(context, 'Tonos'),
+                    // Instrument Cues Section
+                    _buildSectionTitle(context, 'Instrumentos'),
                     const SizedBox(height: 8),
                     _AudioSelectionGrid(
-                      audioType: AudioType.breathGuide,
+                      audioType: AudioType.instrumentCue,
                       isSmallScreen: isSmallScreen,
                     ),
 
