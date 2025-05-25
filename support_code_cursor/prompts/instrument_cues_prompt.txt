@@ -1,0 +1,173 @@
+Feature Request: Instrument-Based Breathing Cues (Inhale & Exhale)
+
+**Work In:** `@panic_button_flutter`  
+**Relevant Files:**  
+- `lib/screens/breath_screen.dart`  
+- `lib/widgets/breath_circle.dart`  
+- `lib/widgets/audio_selection_sheet.dart`  
+- `lib/services/audio_service.dart`  
+
+**Follow:** PanicButton Flutter Development Guidelines (`DEVELOPMENT_GUIDELINES.md`) for naming, spacing, asset management, and audio integration patterns.
+
+---
+
+## Build On Existing Implementation
+
+- There is an existing asset folder for speech tones:  
+  `/Users/manuangel/Github/panicbutton_app/panic_button_flutter/assets/sounds/tones/`  
+- The selection UI and placeholders for audio types are already implemented in:  
+  - `audio_selection_sheet.dart`  
+  - `audio_service.dart`  
+- **Do not remove** or rewrite this existing code—**extend** it to support the new instrument cue layer.
+
+---
+
+## Background & Inspiration
+
+- Current audio layers:
+  1. **Background Music** (`assets/sounds/music/`)  
+  2. **Breath Guiding Voices** (`assets/sounds/guiding_voices/`) which will replace current implementation for `assets/sounds/tones/`
+  - Pattern-based asset lookup  
+  - Clean UI integration  
+
+---
+
+## 1. Folder Structure & Asset Registration
+
+Create the following under `assets/sounds/instrument_cues/`:
+
+instrument_cues/
+gong/
+inhale_gong.mp3
+exhale_gong.mp3
+synth/
+inhale_synth.mp3
+exhale_synth.mp3
+violin/
+inhale_violin.mp3
+exhale_violin.mp3
+human/
+inhale_human.mp3
+exhale_human.mp3
+
+swift
+Copy
+
+Register subfolders in `pubspec.yaml`:
+
+```yaml
+flutter:
+  assets:
+    - assets/sounds/instrument_cues/gong/
+    - assets/sounds/instrument_cues/synth/
+    - assets/sounds/instrument_cues/violin/
+    - assets/sounds/instrument_cues/human/
+2. Playback Architecture
+AudioType: Add instrumentCue to enum AudioType in audio_service.dart.
+
+AudioService:
+
+Instantiate _instrumentPlayer alongside existing tone and music players.
+
+Mirror required tone service patterns (preloading, loop, volume) but make sure to replace tones all over the repo because it will not be needed again. 
+
+Instrument Enum:
+
+dart
+Copy
+enum Instrument { gong, synth, violin, human }
+3. Phase Detection & Playback Logic
+In breath_circle.dart, extend phase-change logic:
+
+dart
+Copy
+final playback = ref.watch(breathingPlaybackControllerProvider);
+if (playback.isPlaying && _lastPhase != playback.currentPhase) {
+  _lastPhase = playback.currentPhase;
+  if (playback.currentPhase == BreathPhase.inhale || playback.currentPhase == BreathPhase.exhale) {
+    final duration = playback.phaseDurationSeconds;
+    ref.read(audioServiceProvider).playInstrumentCue(
+      instrument: ref.read(selectedInstrumentProvider),
+      phase: playback.currentPhase,
+      duration: duration,
+    );
+  }
+}
+playInstrumentCue details:
+
+Stop existing _instrumentPlayer audio.
+
+Build asset path:
+assets/sounds/instrument_cues/{instrument.name}/
+{phaseName}_{instrumentName}.mp3
+
+Load into _instrumentPlayer.
+
+If audio length < duration, enable looping and schedule stop at duration.
+
+If ≥ duration, play once and stop at duration.
+
+Preserve other audio layers (layered playback).
+
+4. UI: Instrument Selector Section
+In audio_selection_sheet.dart, beneath other sections:
+
+dart
+Copy
+// Section Title
+_buildSectionTitle(context, 'Instrumentos');
+// Grid of instruments
+AudioGrid<Instrument>(
+  audioType: AudioType.instrumentCue,
+  items: Instrument.values,
+  iconMapper: {
+    Instrument.gong: Icons.sports_martial_arts,
+    Instrument.synth: Icons.music_note,
+    Instrument.violin: Icons.queue_music,
+    Instrument.human: Icons.mic,
+  },
+  labelMapper: {
+    Instrument.gong: 'Gongo',
+    Instrument.synth: 'Sintetizador',
+    Instrument.violin: 'Violín',
+    Instrument.human: 'Humano',
+  },
+),
+Use the existing grid component and styling conventions.
+
+Default selection: gong.
+
+5. Extensibility & Comments
+Scan assets/sounds/instrument_cues/ for subfolders or maintain Instrument.values.
+
+Adding new instrument:
+
+Update Instrument enum.
+
+Add folder + two audio files.
+
+Register in pubspec.yaml.
+
+Document conventions in code comments.
+
+6. Testing & QA
+Test on Android & iOS emulators.
+
+Verify:
+
+Inhale/exhale cues align and cut/loop correctly.
+
+Instrument layer coexists with music/tones.
+
+UI selector works and persists.
+
+Follow existing test patterns.
+
+7. Follow Guidelines
+Naming: snake_case for files; PascalCase for enums and classes.
+
+Spacing: multiples of 8.
+
+Error Handling: graceful fallbacks if asset not found.
+
+Performance: preload critical assets, dispose players properly.

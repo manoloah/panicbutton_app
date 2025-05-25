@@ -351,6 +351,9 @@ class BreathingPlaybackController
     // Play guiding voice prompt for the new phase
     _playVoicePromptForPhase(newPhase);
 
+    // Play instrument cue for inhale and exhale phases
+    _playInstrumentCueForPhase(newPhase, phaseSeconds);
+
     // Store last phase
     _ref.read(lastBreathPhaseProvider.notifier).state = currentPhase;
   }
@@ -370,6 +373,40 @@ class BreathingPlaybackController
     } catch (e) {
       // Only log critical errors
       debugPrint('Critical error playing voice prompt: $e');
+    }
+  }
+
+  // Play the appropriate instrument cue for inhale and exhale phases
+  void _playInstrumentCueForPhase(BreathPhase phase, int phaseSeconds) {
+    try {
+      // Only play instrument cues for inhale and exhale phases
+      if (phase != BreathPhase.inhale && phase != BreathPhase.exhale) {
+        return;
+      }
+
+      // Get the selected instrument
+      final selectedInstrument = _ref.read(selectedInstrumentProvider);
+
+      // If instrument is off, don't play anything
+      if (selectedInstrument == Instrument.off) {
+        return;
+      }
+
+      // Convert BreathPhase to BreathInstrumentPhase
+      final instrumentPhase = phase == BreathPhase.inhale
+          ? BreathInstrumentPhase.inhale
+          : BreathInstrumentPhase.exhale;
+
+      // Get audio service and play the instrument cue
+      final audioService = _ref.read(audioServiceProvider);
+      audioService.playInstrumentCue(
+        selectedInstrument,
+        instrumentPhase,
+        phaseSeconds,
+      );
+    } catch (e) {
+      // Only log critical errors
+      debugPrint('Critical error playing instrument cue: $e');
     }
   }
 

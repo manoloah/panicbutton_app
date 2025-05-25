@@ -76,11 +76,10 @@ class AudioSelectionSheet extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tones Section
-                    _buildSectionTitle(context, 'Tonos'),
+                    // Instrument Cues Section (replacing Tones)
+                    _buildSectionTitle(context, 'Instrumentos'),
                     const SizedBox(height: 8),
-                    _AudioSelectionGrid(
-                      audioType: AudioType.breathGuide,
+                    _InstrumentSelectionGrid(
                       isSmallScreen: isSmallScreen,
                     ),
 
@@ -214,6 +213,60 @@ class _AudioSelectionGrid extends ConsumerWidget {
   }
 }
 
+/// Grid of instrument selection options
+class _InstrumentSelectionGrid extends ConsumerWidget {
+  final bool isSmallScreen;
+
+  const _InstrumentSelectionGrid({
+    this.isSmallScreen = false,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedInstrument = ref.watch(selectedInstrumentProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    // Define available instruments with their display info
+    final instruments = [
+      (Instrument.gong, 'Gongo', Icons.sports_martial_arts),
+      (Instrument.synth, 'Sintetizador', Icons.piano),
+      (Instrument.violin, 'Violín', Icons.queue_music),
+      (Instrument.human, 'Humano', Icons.mic),
+      (Instrument.off, 'Apagado', Icons.horizontal_rule),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceVariant.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: instruments.map((instrumentInfo) {
+          final instrument = instrumentInfo.$1;
+          final name = instrumentInfo.$2;
+          final icon = instrumentInfo.$3;
+          final isSelected = selectedInstrument == instrument;
+
+          return _InstrumentOptionButton(
+            instrument: instrument,
+            name: name,
+            icon: icon,
+            isSelected: isSelected,
+            onTap: () {
+              ref
+                  .read(selectedInstrumentProvider.notifier)
+                  .selectInstrument(instrument);
+            },
+            isSmallScreen: isSmallScreen,
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
 /// Individual audio option button
 class _AudioOptionButton extends StatelessWidget {
   final AudioTrack track;
@@ -271,6 +324,78 @@ class _AudioOptionButton extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           track.name,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? cs.primary : cs.onSurface,
+              ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
+
+/// Individual instrument option button
+class _InstrumentOptionButton extends StatelessWidget {
+  final Instrument instrument;
+  final String name;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final bool isSmallScreen;
+
+  const _InstrumentOptionButton({
+    required this.instrument,
+    required this.name,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+    this.isSmallScreen = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final buttonSize = isSmallScreen ? 50.0 : 60.0;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: buttonSize,
+            height: buttonSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: cs.surfaceVariant.withOpacity(0.8),
+              border: Border.all(
+                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.1),
+                width: isSelected ? 2 : 1,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: cs.primary.withOpacity(0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 0),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Center(
+              child: Icon(
+                icon,
+                size: isSmallScreen ? 20 : 24,
+                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.8),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          name,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 color: isSelected ? cs.primary : cs.onSurface,

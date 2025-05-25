@@ -180,13 +180,12 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
             .selectTrack('river');
       }
 
-      // Set default breathing tone if none is selected
-      final currentTone =
-          ref.read(selectedAudioProvider(AudioType.breathGuide));
-      if (currentTone == null || currentTone.isEmpty) {
+      // Set default instrument if none is selected (gong is default)
+      final currentInstrument = ref.read(selectedInstrumentProvider);
+      if (currentInstrument == Instrument.off) {
         ref
-            .read(selectedAudioProvider(AudioType.breathGuide).notifier)
-            .selectTrack('sine');
+            .read(selectedInstrumentProvider.notifier)
+            .selectInstrument(Instrument.gong);
       }
     } catch (e) {
       debugPrint('Error setting default audio options: $e');
@@ -230,13 +229,9 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     // Save current audio selections before making changes
     final currentMusicTrackId =
         ref.read(selectedAudioProvider(AudioType.backgroundMusic));
-    final currentToneTrackId =
-        ref.read(selectedAudioProvider(AudioType.breathGuide));
     final currentVoiceTrackId =
         ref.read(selectedAudioProvider(AudioType.guidingVoice));
-
-    // Get audio service to restore tracks later
-    final audioService = ref.read(audioServiceProvider);
+    final currentInstrument = ref.read(selectedInstrumentProvider);
 
     // Pause if playing
     if (wasPlaying) {
@@ -261,17 +256,16 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
               .selectTrack(currentMusicTrackId);
         }
 
-        if (currentToneTrackId != null && currentToneTrackId.isNotEmpty) {
-          ref
-              .read(selectedAudioProvider(AudioType.breathGuide).notifier)
-              .selectTrack(currentToneTrackId);
-        }
-
         if (currentVoiceTrackId != null && currentVoiceTrackId.isNotEmpty) {
           ref
               .read(selectedAudioProvider(AudioType.guidingVoice).notifier)
               .selectTrack(currentVoiceTrackId);
         }
+
+        // Restore the instrument selection
+        ref
+            .read(selectedInstrumentProvider.notifier)
+            .selectInstrument(currentInstrument);
 
         // Resume playback if it was playing before
         if (wasPlaying) {

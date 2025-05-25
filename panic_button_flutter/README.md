@@ -11,7 +11,7 @@ A calming app for anxiety and panic relief with breathing exercises.
 - Progressive breathing journey with level unlocking based on BOLT scores
 - Animated breathing circle with wave visualization
 - Voice guidance system with multiple character options
-- Background music and breath guide tones 
+- Background music and instrument cues for precise breathing guidance
 - Session tracking and detailed breathing activity statistics
 - BOLT score measurement for tracking anxiety levels
 - Step-by-step instruction screens with smooth transitions
@@ -223,17 +223,25 @@ The app's breathing exercise feature provides a guided breathing experience with
 
 5. **Audio Customization**:
    - Background music options (river, forest, ocean, etc.)
-   - Breathing guide tones (sine wave, bowl, etc.)
+   - Instrument cues for precise breathing guidance
    - Independent volume control for each audio layer
    - All audio settings are preserved between sessions
 
-6. **Session Tracking**:
+6. **Instrument Cues System (New)**:
+   - **Precise Timing**: Audio cues play only at the start of inhale and exhale phases
+   - **Multiple Instruments**: Choose from gong, synth, violin, human sounds, or turn off
+   - **Smart Timing Control**: Cues automatically stop at phase transitions, even if audio is longer
+   - **No Hold Phase Audio**: Silent during hold phases to maintain focus
+   - **Persistent Preferences**: Your selected instrument is remembered across sessions
+   - **Cross-Platform**: Works seamlessly on Android, iOS, and Web
+
+7. **Session Tracking**:
    - Records completed patterns with accurate duration tracking
    - Supports pause and resume functionality
    - Maintains detailed statistics including total breathing time
    - Tracks cumulative practice across patterns
 
-7. **Auto-Start Behavior**:
+8. **Auto-Start Behavior**:
    - Breathing exercise auto-starts ONLY when initiated from the home screen panic button
    - When accessed from other parts of the app (journey, navbar), manual start is required
    - This prevents accidental exercise starts when navigating the app
@@ -619,3 +627,54 @@ As Flutter evolves, we've updated our codebase to follow modern best practices:
    - Proper layout structuring for responsiveness across device sizes
 
 Following these practices ensures the app remains compatible with the latest Flutter versions and maintains high code quality.
+
+## Instrument Cues Feature (Technical Details)
+
+The app recently migrated from a simple "tones" system to a sophisticated instrument cues system that provides precise audio feedback during breathing exercises.
+
+### Key Improvements
+
+1. **Enhanced Precision**: 
+   - Cues play only at the start of inhale and exhale phases
+   - Automatic timing control stops audio exactly at phase transitions
+   - No audio during hold phases to maintain focus
+
+2. **Better User Experience**:
+   - Multiple instrument options (gong, synth, violin, human)
+   - Visual feedback in the audio selection interface
+   - Persistent user preferences across sessions
+
+3. **Technical Architecture**:
+   ```dart
+   enum Instrument { gong, synth, violin, human, off }
+   enum BreathInstrumentPhase { inhale, exhale }
+   
+   // Precise timing control method
+   Future<void> playInstrumentCue(
+     Instrument instrument,
+     BreathInstrumentPhase phase,
+     int phaseDurationSeconds,
+   )
+   ```
+
+4. **Asset Organization**:
+   ```
+   assets/sounds/instrument_cues/
+   ├── gong/
+   │   ├── inhale_gong.mp3
+   │   └── exhale_gong.mp3
+   ├── synth/
+   │   ├── inhale_synth.mp3
+   │   └── exhale_synth.mp3
+   └── [other instruments...]
+   ```
+
+### Migration from Tones System
+
+- **Removed**: Old `AudioType.breathGuide` and tones directory
+- **Added**: New `AudioType.instrumentCue` with dedicated player
+- **Enhanced**: Audio selection UI with "Instrumentos" section
+- **Improved**: Timing precision with Timer-based control
+- **Maintained**: All existing functionality while adding new capabilities
+
+This implementation ensures that breathing exercises have precise, non-intrusive audio guidance that enhances the meditation experience without disrupting the natural flow of breathing.

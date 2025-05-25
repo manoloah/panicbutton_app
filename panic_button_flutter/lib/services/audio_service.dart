@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -29,8 +29,17 @@ class AudioTrack {
 /// Types of audio that can be played
 enum AudioType {
   backgroundMusic,
-  breathGuide,
-  guidingVoice, // Renamed from ambientSound to better reflect its purpose
+  instrumentCue,
+  guidingVoice,
+}
+
+/// Instrument types for breathing cues
+enum Instrument {
+  gong,
+  synth,
+  violin,
+  human,
+  off,
 }
 
 /// Phases of breathing for voice prompts
@@ -41,11 +50,17 @@ enum BreathVoicePhase {
   pauseAfterExhale,
 }
 
+/// Phases of breathing for instrument cues
+enum BreathInstrumentPhase {
+  inhale,
+  exhale,
+}
+
 /// Service for managing audio playback in the app
 class AudioService {
   // Audio players for different audio types
   final AudioPlayer _musicPlayer = AudioPlayer();
-  final AudioPlayer _breathGuidePlayer = AudioPlayer();
+  final AudioPlayer _instrumentPlayer = AudioPlayer();
   final AudioPlayer _guidingVoicePlayer = AudioPlayer();
 
   // Track played prompts to avoid repetition
@@ -53,28 +68,37 @@ class AudioService {
 
   // Track currently playing for each type
   AudioTrack? _currentMusic;
-  AudioTrack? _currentBreathGuide;
+  AudioTrack? _currentInstrument;
   AudioTrack? _currentGuidingVoice;
 
-  // Available audio tracks for breathing tones
-  final List<AudioTrack> _breathGuideTracks = const [
+  // Timer for stopping instrument cues at precise timing
+  Timer? _instrumentStopTimer;
+
+  // Available audio tracks for instrument cues (replacing breath guide tones)
+  final List<AudioTrack> _instrumentTracks = const [
     AudioTrack(
-      id: 'sine',
-      name: "Onda",
-      path: 'assets/sounds/tones/sine.mp3',
-      icon: Icons.waves,
+      id: 'gong',
+      name: "Gongo",
+      path: 'assets/sounds/instrument_cues/gong',
+      icon: Icons.sports_martial_arts,
     ),
     AudioTrack(
       id: 'synth',
       name: "Sintetizador",
-      path: 'assets/sounds/tones/synth.mp3',
+      path: 'assets/sounds/instrument_cues/synth',
       icon: Icons.piano,
     ),
     AudioTrack(
-      id: 'bowl',
-      name: "Cuenco",
-      path: 'assets/sounds/tones/bowl.mp3',
-      icon: Icons.nightlife,
+      id: 'violin',
+      name: "Violín",
+      path: 'assets/sounds/instrument_cues/violin',
+      icon: Icons.queue_music,
+    ),
+    AudioTrack(
+      id: 'human',
+      name: "Humano",
+      path: 'assets/sounds/instrument_cues/human',
+      icon: Icons.mic,
     ),
     AudioTrack(
       id: 'off',
@@ -169,11 +193,11 @@ class AudioService {
       }
     });
 
-    _breathGuidePlayer.playbackEventStream.listen((event) {},
+    _instrumentPlayer.playbackEventStream.listen((event) {},
         onError: (Object e, StackTrace st) {
       // Only log player errors if they're unexpected
       if (!e.toString().contains('Connection aborted')) {
-        debugPrint('Breath guide player error: $e');
+        debugPrint('Instrument player error: $e');
       }
     });
 
@@ -225,13 +249,74 @@ class AudioService {
     // 5. The new voice will automatically appear in the UI for selection
   }
 
+  /// Play an instrument cue for the specified phase with precise timing
+  Future<void> playInstrumentCue(
+    Instrument instrument,
+    BreathInstrumentPhase phase,
+    int phaseDurationSeconds,
+  ) async {
+    // Stop any currently playing instrument cue
+    _instrumentStopTimer?.cancel();
+    await _instrumentPlayer.stop();
+
+    // If instrument is off, don't play anything
+    if (instrument == Instrument.off) {
+      return;
+    }
+
+    try {
+      // Build the asset path
+      final phaseName =
+          phase == BreathInstrumentPhase.inhale ? 'inhale' : 'exhale';
+      final instrumentName = instrument.name;
+      final assetPath =
+          'assets/sounds/instrument_cues/$instrumentName/${phaseName}_$instrumentName.mp3';
+
+      // Load and play the instrument cue
+      await _instrumentPlayer.setAsset(assetPath);
+      await _instrumentPlayer.setVolume(0.8);
+
+      // Get the duration of the audio file
+      final audioDuration = _instrumentPlayer.duration;
+
+      if (audioDuration != null) {
+        final audioDurationSeconds = audioDuration.inSeconds;
+
+        if (audioDurationSeconds <= phaseDurationSeconds) {
+          // Audio is shorter than or equal to phase duration - play once
+          await _instrumentPlayer.setLoopMode(LoopMode.off);
+        } else {
+          // Audio is longer than phase duration - play and stop at phase end
+          await _instrumentPlayer.setLoopMode(LoopMode.off);
+
+          // Schedule stop at phase end
+          _instrumentStopTimer = Timer(
+            Duration(seconds: phaseDurationSeconds),
+            () async {
+              try {
+                await _instrumentPlayer.stop();
+              } catch (e) {
+                // Ignore errors when stopping
+              }
+            },
+          );
+        }
+      }
+
+      // Start playback
+      await _instrumentPlayer.play();
+    } catch (e) {
+      debugPrint('Error playing instrument cue: $e');
+    }
+  }
+
   /// Get the list of available tracks by audio type
   List<AudioTrack> getTracksByType(AudioType type) {
     switch (type) {
       case AudioType.backgroundMusic:
         return _musicTracks;
-      case AudioType.breathGuide:
-        return _breathGuideTracks;
+      case AudioType.instrumentCue:
+        return _instrumentTracks;
       case AudioType.guidingVoice:
         return _guidingVoiceTracks;
     }
@@ -242,8 +327,8 @@ class AudioService {
     switch (type) {
       case AudioType.backgroundMusic:
         return _currentMusic;
-      case AudioType.breathGuide:
-        return _currentBreathGuide;
+      case AudioType.instrumentCue:
+        return _currentInstrument;
       case AudioType.guidingVoice:
         return _currentGuidingVoice;
     }
@@ -274,8 +359,8 @@ class AudioService {
         // Continue with setup - this error can be ignored
       }
 
-      // Set up the audio source (only for music and tones)
-      if (type != AudioType.guidingVoice) {
+      // Set up the audio source (only for music and guiding voice, not instrument cues)
+      if (type != AudioType.guidingVoice && type != AudioType.instrumentCue) {
         // Try loading the asset with retry logic for common errors
         bool loaded = false;
         int attempts = 0;
@@ -495,8 +580,11 @@ class AudioService {
   Future<void> stopAllAudio() async {
     try {
       await stopAudio(AudioType.backgroundMusic);
-      await stopAudio(AudioType.breathGuide);
+      await stopAudio(AudioType.instrumentCue);
       await stopAudio(AudioType.guidingVoice);
+
+      // Cancel any pending instrument stop timer
+      _instrumentStopTimer?.cancel();
     } catch (e) {
       debugPrint('Error stopping all audio: $e');
     }
@@ -505,8 +593,11 @@ class AudioService {
   /// Dispose all players to free resources
   Future<void> dispose() async {
     try {
+      // Cancel any pending timers
+      _instrumentStopTimer?.cancel();
+
       await _musicPlayer.dispose();
-      await _breathGuidePlayer.dispose();
+      await _instrumentPlayer.dispose();
       await _guidingVoicePlayer.dispose();
     } catch (e) {
       debugPrint('Error disposing audio players: $e');
@@ -518,8 +609,8 @@ class AudioService {
     switch (type) {
       case AudioType.backgroundMusic:
         return _musicPlayer;
-      case AudioType.breathGuide:
-        return _breathGuidePlayer;
+      case AudioType.instrumentCue:
+        return _instrumentPlayer;
       case AudioType.guidingVoice:
         return _guidingVoicePlayer;
     }
@@ -531,8 +622,8 @@ class AudioService {
       case AudioType.backgroundMusic:
         _currentMusic = track;
         break;
-      case AudioType.breathGuide:
-        _currentBreathGuide = track;
+      case AudioType.instrumentCue:
+        _currentInstrument = track;
         break;
       case AudioType.guidingVoice:
         _currentGuidingVoice = track;
@@ -551,10 +642,11 @@ class AudioService {
         // Ignore errors during preloading
       }
 
-      // Preload common tone
-      final sinePath = 'assets/sounds/tones/sine.mp3';
+      // Preload common instrument cue (gong is default)
+      final gongInhalePath =
+          'assets/sounds/instrument_cues/gong/inhale_gong.mp3';
       try {
-        await rootBundle.load(sinePath);
+        await rootBundle.load(gongInhalePath);
       } catch (e) {
         // Ignore errors during preloading
       }
@@ -570,6 +662,12 @@ final selectedAudioProvider =
   (ref, type) => SelectedAudioNotifier(type, ref),
 );
 
+/// Provider to track the currently selected instrument
+final selectedInstrumentProvider =
+    StateNotifierProvider<SelectedInstrumentNotifier, Instrument>(
+  (ref) => SelectedInstrumentNotifier(),
+);
+
 /// Notifier to manage the selected audio state
 class SelectedAudioNotifier extends StateNotifier<String?> {
   final AudioType type;
@@ -581,6 +679,16 @@ class SelectedAudioNotifier extends StateNotifier<String?> {
   Future<void> selectTrack(String trackId) async {
     state = trackId;
     await ref.read(audioServiceProvider).playTrack(type, trackId);
+  }
+}
+
+/// Notifier to manage the selected instrument state
+class SelectedInstrumentNotifier extends StateNotifier<Instrument> {
+  SelectedInstrumentNotifier() : super(Instrument.gong); // Default to gong
+
+  /// Select an instrument
+  void selectInstrument(Instrument instrument) {
+    state = instrument;
   }
 }
 
