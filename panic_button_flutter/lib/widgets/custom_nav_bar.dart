@@ -58,7 +58,7 @@ class CustomNavBar extends StatelessWidget {
                         icon: Icons.analytics_outlined,
                         label: 'Mídete',
                         isSelected: currentIndex == 2,
-                        onTap: () => context.go('/bolt'),
+                        onTap: () => context.go('/measurements'),
                       ),
                     ],
                   ),

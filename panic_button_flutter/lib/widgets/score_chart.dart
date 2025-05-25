@@ -415,8 +415,13 @@ class ScoreChart extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8), // Follow 8-point grid
-          // Legend at the bottom
-          buildLegend(),
+          // Legend at the bottom - constrain height to prevent overflow
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: isSmallScreen ? 120 : 140, // Limit legend height
+            ),
+            child: buildLegend(),
+          ),
         ],
       ),
     );

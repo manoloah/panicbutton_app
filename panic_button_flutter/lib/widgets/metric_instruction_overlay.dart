@@ -76,6 +76,7 @@ class MetricInstructionOverlay extends StatelessWidget {
   Widget _buildInstructionContent(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     // Get the current instruction
     final currentInstruction = instructionStep < instructions.length
@@ -87,7 +88,11 @@ class MetricInstructionOverlay extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * 0.8, // Limit height to prevent overflow
+      ),
+      padding: const EdgeInsets.symmetric(
+          horizontal: 16.0, vertical: 20.0), // Reduced padding
       decoration: BoxDecoration(
         color: cs.surface,
         borderRadius: BorderRadius.circular(20),
@@ -96,16 +101,18 @@ class MetricInstructionOverlay extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Title
+          // Title - more compact
           Text(
             phaseText,
-            style: tt.headlineMedium,
+            style: tt.headlineSmall, // Smaller title
             textAlign: TextAlign.center,
+            maxLines: 2, // Limit lines
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20), // Reduced spacing
 
-          // Main content
-          Expanded(
+          // Main content - use Flexible instead of Expanded to prevent overflow
+          Flexible(
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
@@ -135,36 +142,40 @@ class MetricInstructionOverlay extends StatelessWidget {
       return Column(
         key: const ValueKey('step0'),
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Use minimum space
         children: [
           if (instructionImage != null)
             Image.asset(
               instructionImage,
-              width: 100,
-              height: 100,
+              width: 80, // Smaller image
+              height: 80,
               color: cs.primary,
             )
           else if (currentStep?.icon != null)
             Icon(
               currentStep!.icon,
-              size: 100,
+              size: 80, // Smaller icon
               color: cs.primary,
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'Preparate para hacer una inhalación normal',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
+            maxLines: 2, // Limit lines
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           ElevatedButton(
             onPressed: onNext,
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.primaryContainer,
               foregroundColor: cs.onPrimaryContainer,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16), // Smaller radius
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 10), // Smaller padding
               elevation: 4,
               shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
               side: BorderSide(
@@ -182,29 +193,32 @@ class MetricInstructionOverlay extends StatelessWidget {
       return Column(
         key: ValueKey('step$instructionStep'),
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Use minimum space
         children: [
-          // Countdown
+          // Countdown - more compact
           Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 12), // Reduced margin
+            padding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 6), // Smaller padding
             decoration: BoxDecoration(
               color: cs.primary.withAlpha((0.2 * 255).toInt()),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12), // Smaller radius
             ),
             child: Text(
               instructionCountdown.toString(),
-              style: tt.displayLarge?.copyWith(
+              style: tt.displayMedium?.copyWith(
+                // Smaller font
                 color: cs.primary,
-                fontSize: 48,
+                fontSize: 36, // Reduced from 48
               ),
             ),
           ),
 
-          // Circle
+          // Circle - smaller
           BreathCircle(
             isBreathing: true,
             onTap: () {},
-            size: 150, // Smaller size
+            size: 120, // Smaller size
             phaseIndicator: WaveAnimation(
               waveAnimation: breathAnimation,
               fillLevel: instructionStep % 2 == 1
@@ -212,13 +226,15 @@ class MetricInstructionOverlay extends StatelessWidget {
                   : 1 - breathAnimation.value,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced spacing
           Text(
             instructionStep % 2 == 1
                 ? 'Preparate para exhalar...'
                 : 'Preparate para retener...',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
+            maxLines: 1, // Limit lines
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       );
@@ -228,35 +244,39 @@ class MetricInstructionOverlay extends StatelessWidget {
       return Column(
         key: const ValueKey('step_final'),
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Use minimum space
         children: [
           if (instructionImage != null)
             Image.asset(
               instructionImage,
-              width: 100,
-              height: 100,
+              width: 80, // Smaller image
+              height: 80,
             )
           else if (currentStep?.icon != null)
             Icon(
               currentStep!.icon,
-              size: 100,
+              size: 80, // Smaller icon
               color: cs.primary,
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           Text(
             'Cuando estés listo para comenzar la retención, presiona el botón:',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
+            maxLines: 3, // Limit lines
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16), // Reduced spacing
           ElevatedButton(
             onPressed: onStartMeasurement,
             style: ElevatedButton.styleFrom(
               backgroundColor: cs.primaryContainer,
               foregroundColor: cs.onPrimaryContainer,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16), // Smaller radius
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 10), // Smaller padding
               elevation: 4,
               shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
               side: BorderSide(

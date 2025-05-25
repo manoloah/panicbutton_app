@@ -166,4 +166,179 @@ class MetricConfigs {
       }
     },
   );
+
+  /// The MBT metric configuration
+  static final MetricConfig mbtConfig = MetricConfig(
+    id: 'mbt',
+    displayName: 'MBT',
+    tableName: 'mbt_scores',
+    shortName: 'MBT',
+    description:
+        'La prueba MBT mide tu tolerancia al esfuerzo respiratorio. Camina contando pasos mientras retienes la respiración.',
+    chartTitle: 'Tu progreso MBT',
+    resultTitle: 'Tu puntuación: %s pasos',
+    scoreFieldName: 'steps',
+    recommendationText:
+        'Realiza esta prueba cuando te sientas descansado y en un lugar seguro para caminar.',
+
+    // Score zones for the chart - based on breathing_metrics.xlsx
+    scoreZones: [
+      MetricScoreZone(
+        lowerBound: 0,
+        upperBound: 20,
+        label: '<20 - Pánico Constante',
+        color: Colors.redAccent.shade200.withAlpha(174),
+      ),
+      MetricScoreZone(
+        lowerBound: 20,
+        upperBound: 20,
+        label: '20 - Ansioso/Inestable',
+        color: Colors.orange.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 20,
+        upperBound: 40,
+        label: '20-40 - Inquieto/Irregular',
+        color: Colors.amber.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 40,
+        upperBound: 60,
+        label: '40-60 - Calma Parcial',
+        color: Colors.lightGreen.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 60,
+        upperBound: 70,
+        label: '60-70 - Tranquilo/Estable',
+        color: Colors.teal.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 70,
+        upperBound: 90,
+        label: '70-90 - Zen/Inmune',
+        color: Colors.blue.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 90,
+        upperBound: 110,
+        label: '90-110 - Zen/Inmune',
+        color: Colors.blue.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 110,
+        upperBound: 130,
+        label: '110-130 - Beyond Zen',
+        color: Colors.indigo.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 130,
+        upperBound: 200, // Large upper bound for "beyond zen" category
+        label: '130+ - Beyond Zen',
+        color: Colors.indigo.shade300.withAlpha(80),
+      ),
+    ],
+
+    // Detailed instruction steps
+    detailedInstructions: [
+      MetricInstructionStep(
+        stepNumber: 1,
+        description: 'Inhala normal',
+        isTimedStep: true,
+        durationSeconds: 5,
+      ),
+      MetricInstructionStep(
+        stepNumber: 2,
+        description: 'Exhala normal',
+        isTimedStep: true,
+        durationSeconds: 5,
+      ),
+      MetricInstructionStep(
+        stepNumber: 3,
+        description: 'Pincha tu nariz (retén el aire)',
+        imagePath: Images.pinchNose,
+      ),
+      MetricInstructionStep(
+        stepNumber: 4,
+        description: 'Camina contando tus pasos hasta llegar al máximo',
+        icon: Icons.directions_walk,
+      ),
+      MetricInstructionStep(
+        stepNumber: 5,
+        description: 'Detente cuando sientas un deseo intenso de respirar',
+        icon: Icons.stop_circle,
+      ),
+      MetricInstructionStep(
+        stepNumber: 6,
+        description:
+            'Debes poder recuperar la respiración nasal en máximo dos respiraciones',
+        icon: Icons.air,
+      ),
+    ],
+
+    // Compact steps for summary view
+    compactSteps: [
+      MetricInstructionStep(
+        stepNumber: 1,
+        description: 'Retén\nrespiración',
+        imagePath: Images.pinchNose,
+      ),
+      MetricInstructionStep(
+        stepNumber: 2,
+        description: 'Camina\ncontando',
+        icon: Icons.directions_walk,
+      ),
+      MetricInstructionStep(
+        stepNumber: 3,
+        description: 'Selecciona\npasos',
+        icon: Icons.edit,
+      ),
+    ],
+
+    // Score description function
+    getScoreDescription: (int score) {
+      if (score < 20) {
+        return 'Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.';
+      } else if (score == 20) {
+        return 'Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.';
+      } else if (score < 40) {
+        return 'Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.';
+      } else if (score < 60) {
+        return 'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
+      } else if (score < 70) {
+        return 'Te sientes tranquilo, seguro y estable.';
+      } else if (score < 90) {
+        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else if (score < 110) {
+        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else if (score < 130) {
+        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else {
+        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      }
+    },
+
+    // Score color function
+    getScoreColor: (int score) {
+      if (score < 20) {
+        return const Color(0xFF8D7DAF); // Soft purple
+      } else if (score == 20) {
+        return const Color(0xFF7A97C9); // Soft blue-purple
+      } else if (score < 40) {
+        return const Color(0xFF68B0C1); // Teal-blue
+      } else if (score < 60) {
+        return const Color(0xFF5BBFAD); // Mint green
+      } else if (score < 70) {
+        return const Color(0xFF52A375); // More green than teal
+      } else if (score < 90) {
+        return const Color(0xFF3B7F8C); // Deep teal
+      } else if (score < 110) {
+        return const Color(0xFF3B7F8C); // Deep teal
+      } else if (score < 130) {
+        return const Color(0xFF4265D6); // Brighter blue for better contrast
+      } else {
+        return const Color(0xFF4265D6); // Brighter blue for better contrast
+      }
+    },
+  );
 }

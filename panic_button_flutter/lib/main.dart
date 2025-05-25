@@ -13,6 +13,8 @@ import 'package:panic_button_flutter/screens/preferences_settings_screen.dart';
 import 'package:panic_button_flutter/screens/journey_screen.dart';
 import 'package:panic_button_flutter/screens/auth_screen.dart';
 import 'package:panic_button_flutter/screens/bolt_screen.dart';
+import 'package:panic_button_flutter/screens/mbt_screen.dart';
+import 'package:panic_button_flutter/screens/measurement_menu_screen.dart';
 import 'package:panic_button_flutter/theme/app_theme.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/config/app_config.dart';
@@ -218,6 +220,13 @@ final _router = GoRouter(
       path: '/journey',
       builder: (context, state) => const JourneyScreen(),
     ),
+    // Measurement menu - this is now the main "Mídete" destination
+    GoRoute(
+      path: '/measurements',
+      builder: (context, state) => const MeasurementMenuScreen(),
+    ),
+    // Individual measurement screens
     GoRoute(path: '/bolt', builder: (context, state) => const BoltScreen()),
+    GoRoute(path: '/mbt', builder: (context, state) => const MbtScreen()),
   ],
 );
