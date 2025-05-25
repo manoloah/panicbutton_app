@@ -13,8 +13,11 @@ A calming app for anxiety and panic relief with breathing exercises.
 - Voice guidance system with multiple character options
 - Background music and instrument cues for precise breathing guidance
 - Session tracking and detailed breathing activity statistics
-- BOLT score measurement for tracking anxiety levels
+- **BOLT score measurement** for tracking anxiety levels (breath hold test)
+- **MBT score measurement** for measuring stress tolerance (walking step test)
+- Centralized measurement menu for easy access to all tests
 - Step-by-step instruction screens with smooth transitions
+- Mobile-optimized responsive design with overflow prevention
 - Cross-platform (iOS, Android, Web)
 - Secure credential storage with keychain integration
 - iOS App Store compliant implementation
@@ -526,6 +529,56 @@ To add a new breathing metric measurement to the app:
 
 The framework handles all the UI presentation, state management, animations, and data visualization, allowing for rapid implementation of new breathing metric measurements while maintaining a consistent user experience.
 
+### MBT (Maximum Breathlessness Test) Implementation
+
+The MBT feature demonstrates the framework's flexibility and includes several unique characteristics:
+
+1. **Step-Based Measurement**
+   - Measures walking steps during breath retention (0-200 range)
+   - Custom slider interface for step selection
+   - Visual feedback with enhanced slider styling
+
+2. **Guided Instruction Flow**
+   - 4-step guided process with proper button text and progression:
+     - Step 1: "Inhala" (5-second timed phase)
+     - Step 2: "Exhala" (5-second timed phase)  
+     - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
+     - Step 4: "Camina contando tus pasos" (manual step selection with "Registra pasos" button)
+   - Breathing circle animation synchronized with instructions
+   - Automatic progression through preparation phases with manual control points
+
+3. **Specific Score Ranges**
+   - Research-based scoring zones: `<20`, `20-40`, `40-60`, `60-70`, `70-90`, `90-110`, `110-130`, `130+`
+   - Corresponding anxiety level descriptions for each range
+   - Color-coded visualization in charts and UI
+
+4. **Mobile-Optimized Design**
+   - Compact layout optimized for mobile screens
+   - Responsive instruction overlay to prevent overflow
+   - First-view optimization ensuring CTAs are visible without scrolling
+   - 2-column button layout for better accessibility
+
+5. **Navigation Integration**
+   - Accessible through `/measurements` menu
+   - Proper back navigation flow
+   - Integration with existing metric measurement architecture
+
+**Database Schema:**
+```sql
+CREATE TABLE mbt_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  steps INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+```
+
+**Key Files:**
+- `lib/screens/mbt_screen.dart` - Main MBT measurement screen
+- `lib/constants/metric_configs.dart` - MBT configuration and score ranges
+- `lib/screens/measurement_menu_screen.dart` - Central hub for metric tests
+- `lib/widgets/metric_instruction_overlay.dart` - Responsive instruction overlay
+
 ## Architecture
 
 The app follows a component-based architecture where UI elements are broken down into small, reusable widgets:
@@ -627,6 +680,44 @@ As Flutter evolves, we've updated our codebase to follow modern best practices:
    - Proper layout structuring for responsiveness across device sizes
 
 Following these practices ensures the app remains compatible with the latest Flutter versions and maintains high code quality.
+
+### Recent UI/UX Improvements (MBT Implementation)
+
+During the MBT feature development, several significant improvements were made that benefit the entire app:
+
+1. **Mobile Responsiveness Enhancements**
+   - Fixed chart overflow issues using `ConstrainedBox` with height constraints
+   - Implemented responsive instruction overlays that adapt to screen size
+   - Optimized layouts to ensure CTAs are visible in first view without scrolling
+   - Added dynamic bottom padding calculations for different device types
+
+2. **Navigation Flow Improvements**
+   - Centralized metric tests through `/measurements` menu for better discoverability
+   - Fixed back navigation patterns: metric screens → measurements menu → breath screen
+   - Updated navbar routing to use measurement menu instead of direct metric access
+
+3. **Component Reusability**
+   - Enhanced `MetricInstructionOverlay` with mobile-first design principles
+   - Improved `ScoreChart` component with better legend layout and overflow prevention
+   - Made measurement cards more compact and consistent across the app
+
+4. **User Experience Enhancements**
+   - **Fixed Instruction Sequence**: Implemented proper 4-step flow with correct button text
+     - Step 1: "Inhala" (5-second timed phase with breathing circle animation)
+     - Step 2: "Exhala" (5-second timed phase with breathing circle animation)
+     - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
+     - Step 4: "Camina contando tus pasos" (step selection with "Registra pasos" button)
+   - Added visual feedback for interactive elements (enhanced slider styling)
+   - Implemented automatic instruction flow progression for guided experiences with manual control points
+   - Improved button layouts using 2-column grids for better accessibility
+   - Added contextual help text and instruction labels
+
+5. **Performance Optimizations**
+   - Used `Flexible` instead of `Expanded` to prevent layout overflow issues
+   - Implemented proper disposal patterns for animation controllers
+   - Reduced excessive widget rebuilds through better state management
+
+These improvements demonstrate the app's commitment to mobile-first design and provide a foundation for future feature development.
 
 ## Instrument Cues Feature (Technical Details)
 

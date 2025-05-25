@@ -243,36 +243,25 @@ class MetricConfigs {
     detailedInstructions: [
       MetricInstructionStep(
         stepNumber: 1,
-        description: 'Inhala normal',
+        description: 'Inhala',
         isTimedStep: true,
         durationSeconds: 5,
       ),
       MetricInstructionStep(
         stepNumber: 2,
-        description: 'Exhala normal',
+        description: 'Exhala',
         isTimedStep: true,
         durationSeconds: 5,
       ),
       MetricInstructionStep(
         stepNumber: 3,
-        description: 'Pincha tu nariz (retén el aire)',
+        description: 'Pincha tu nariz',
         imagePath: Images.pinchNose,
       ),
       MetricInstructionStep(
         stepNumber: 4,
-        description: 'Camina contando tus pasos hasta llegar al máximo',
+        description: 'Camina contando tus pasos',
         icon: Icons.directions_walk,
-      ),
-      MetricInstructionStep(
-        stepNumber: 5,
-        description: 'Detente cuando sientas un deseo intenso de respirar',
-        icon: Icons.stop_circle,
-      ),
-      MetricInstructionStep(
-        stepNumber: 6,
-        description:
-            'Debes poder recuperar la respiración nasal en máximo dos respiraciones',
-        icon: Icons.air,
       ),
     ],
 

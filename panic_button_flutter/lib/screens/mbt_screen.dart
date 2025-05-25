@@ -48,7 +48,7 @@ class _MbtScreenState extends State<MbtScreen>
     _loadScores();
     _breathAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 5),
+      duration: const Duration(seconds: 5), // 5 seconds for breathing phases
     )..addListener(() {
         if (mounted) setState(() {}); // Ensure smooth animation updates
       });
@@ -120,12 +120,12 @@ class _MbtScreenState extends State<MbtScreen>
 
           switch (_instructionStep) {
             case 1: // Inhale instruction
-              _instructionCountdownDouble = 3;
+              _instructionCountdownDouble = 5; // 5 seconds as per requirements
               _breathAnimationController.reset();
               _breathAnimationController.forward(from: 0.0);
               break;
             case 2: // Exhale instruction
-              _instructionCountdownDouble = 3;
+              _instructionCountdownDouble = 5; // 5 seconds as per requirements
               _breathAnimationController.reset();
               _breathAnimationController.forward(from: 0.0);
               break;
@@ -133,7 +133,11 @@ class _MbtScreenState extends State<MbtScreen>
               // Cancel the timer - we'll wait for user to click the button
               timer.cancel();
               break;
-            case 4: // This case should only be reached via button click now
+            case 4: // Walk counting steps - STOP here and wait for button click
+              // Cancel the timer - we'll wait for user to click the button
+              timer.cancel();
+              break;
+            case 5: // This case should only be reached via button click now
               _isShowingInstructions = false;
               _showStepSelection();
               timer.cancel();
@@ -148,11 +152,20 @@ class _MbtScreenState extends State<MbtScreen>
   void _advanceToNextInstruction() {
     setState(() {
       _instructionStep = 1; // Explicitly set to step 1 (inhale)
-      _instructionCountdownDouble = 3;
+      _instructionCountdownDouble = 5; // 5 seconds for inhale
       _breathAnimationController.reset();
+      _breathAnimationController.duration =
+          const Duration(seconds: 5); // Set proper duration
       _breathAnimationController.forward(from: 0.0);
       // Now start the timer for automatic progression through remaining steps
       _startInstructionTimer();
+    });
+  }
+
+  // Method to manually advance from step 3 to step 4
+  void _advanceToStep4() {
+    setState(() {
+      _instructionStep = 4; // Move to step 4 (walk counting steps)
     });
   }
 
@@ -660,15 +673,13 @@ class _MbtScreenState extends State<MbtScreen>
                         ),
 
                         const SizedBox(height: 16),
-                        SizedBox(
-                          height: 300,
-                          child: ScoreChart(
-                            periodScores: periodScores,
-                            formatBottomLabel: _formatBottom,
-                            metricConfig: MetricConfigs.mbtConfig,
-                            maxY: 200, // Max steps for MBT
-                            minY: 0,
-                          ),
+                        // Remove fixed height to allow chart to size itself properly
+                        ScoreChart(
+                          periodScores: periodScores,
+                          formatBottomLabel: _formatBottom,
+                          metricConfig: MetricConfigs.mbtConfig,
+                          maxY: 200, // Max steps for MBT
+                          minY: 0,
                         ),
                       ] else ...[
                         const SizedBox(height: 40),
@@ -703,10 +714,16 @@ class _MbtScreenState extends State<MbtScreen>
                 instructions: MetricConfigs.mbtConfig.detailedInstructions,
                 instructionCountdown: _instructionCountdown,
                 onClose: () => setState(() => _isShowingInstructions = false),
-                onNext: _advanceToNextInstruction,
+                onNext: () {
+                  if (_instructionStep == 0) {
+                    _advanceToNextInstruction();
+                  } else if (_instructionStep == 3) {
+                    _advanceToStep4();
+                  }
+                },
                 onStartMeasurement: () {
                   setState(() {
-                    _instructionStep = 4;
+                    _instructionStep = 5;
                     _isShowingInstructions = false;
                     _showStepSelection();
                   });

@@ -78,10 +78,11 @@ class MetricInstructionOverlay extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Get the current instruction
-    final currentInstruction = instructionStep < instructions.length
-        ? instructions[instructionStep]
-        : null;
+    // Get the current instruction (adjust for 0-based indexing)
+    final currentInstruction =
+        instructionStep > 0 && instructionStep <= instructions.length
+            ? instructions[instructionStep - 1]
+            : null;
 
     String phaseText = currentInstruction?.description ?? '';
     String? instructionImage = currentInstruction?.imagePath;
@@ -106,7 +107,7 @@ class MetricInstructionOverlay extends StatelessWidget {
             phaseText,
             style: tt.headlineSmall, // Smaller title
             textAlign: TextAlign.center,
-            maxLines: 2, // Limit lines
+            maxLines: 3, // Allow more lines for longer text
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 20), // Reduced spacing
@@ -188,8 +189,8 @@ class MetricInstructionOverlay extends StatelessWidget {
         ],
       );
     }
-    // Timed steps (inhale/exhale)
-    else if (currentStep?.isTimedStep == true) {
+    // Timed steps (inhale/exhale) - steps 1 and 2
+    else if (instructionStep <= 2 && currentStep?.isTimedStep == true) {
       return Column(
         key: ValueKey('step$instructionStep'),
         mainAxisAlignment: MainAxisAlignment.center,
@@ -229,8 +230,8 @@ class MetricInstructionOverlay extends StatelessWidget {
           const SizedBox(height: 12), // Reduced spacing
           Text(
             instructionStep % 2 == 1
-                ? 'Preparate para exhalar...'
-                : 'Preparate para retener...',
+                ? 'Inhala profundamente...'
+                : 'Exhala completamente...',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
             maxLines: 1, // Limit lines
@@ -239,10 +240,10 @@ class MetricInstructionOverlay extends StatelessWidget {
         ],
       );
     }
-    // Final step (pinch nose / start)
-    else {
+    // Step 3: Pinch nose
+    else if (instructionStep == 3) {
       return Column(
-        key: const ValueKey('step_final'),
+        key: const ValueKey('step3'),
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min, // Use minimum space
         children: [
@@ -260,7 +261,57 @@ class MetricInstructionOverlay extends StatelessWidget {
             ),
           const SizedBox(height: 16), // Reduced spacing
           Text(
-            'Cuando estés listo para comenzar la retención, presiona el botón:',
+            'Pincha tu nariz y retén la respiración',
+            style: tt.bodyMedium,
+            textAlign: TextAlign.center,
+            maxLines: 3, // Limit lines
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 16), // Reduced spacing
+          ElevatedButton(
+            onPressed: onNext,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primaryContainer,
+              foregroundColor: cs.onPrimaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16), // Smaller radius
+              ),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 10), // Smaller padding
+              elevation: 4,
+              shadowColor: cs.shadow.withAlpha((0.5 * 255).toInt()),
+              side: BorderSide(
+                color: cs.primary.withAlpha((0.4 * 255).toInt()),
+                width: 1.5,
+              ),
+            ),
+            child: const Text('SIGUIENTE'),
+          ),
+        ],
+      );
+    }
+    // Step 4: Walk counting steps
+    else {
+      return Column(
+        key: const ValueKey('step4'),
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Use minimum space
+        children: [
+          if (instructionImage != null)
+            Image.asset(
+              instructionImage,
+              width: 80, // Smaller image
+              height: 80,
+            )
+          else if (currentStep?.icon != null)
+            Icon(
+              currentStep!.icon,
+              size: 80, // Smaller icon
+              color: cs.primary,
+            ),
+          const SizedBox(height: 16), // Reduced spacing
+          Text(
+            'Camina contando tus pasos hasta llegar al máximo',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
             maxLines: 3, // Limit lines
@@ -284,7 +335,7 @@ class MetricInstructionOverlay extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: const Text('EMPEZAR MEDICIÓN'),
+            child: const Text('REGISTRA PASOS'),
           ),
         ],
       );

@@ -988,6 +988,65 @@ GoRoute(
 )
 ```
 
+#### Example: MBT Implementation
+
+The MBT (Maximum Breathlessness Test) implementation demonstrates the framework's flexibility for different measurement types:
+
+```dart
+// MBT Metric Configuration
+final mbtMetricConfig = MetricConfig(
+  id: 'mbt',
+  displayName: 'MBT',
+  tableName: 'mbt_scores',
+  description: 'La prueba MBT mide tu tolerancia al esfuerzo respiratorio. Camina contando pasos mientras retienes la respiración.',
+  scoreFieldName: 'steps',
+  
+  // Score zones based on step count (0-200 range)
+  scoreZones: [
+    MetricScoreZone(lowerBound: 0, upperBound: 20, label: '<20 - Pánico Constante', color: Colors.redAccent),
+    MetricScoreZone(lowerBound: 20, upperBound: 40, label: '20-40 - Inquieto/Irregular', color: Colors.amber),
+    MetricScoreZone(lowerBound: 40, upperBound: 60, label: '40-60 - Calma Parcial', color: Colors.lightGreen),
+    MetricScoreZone(lowerBound: 60, upperBound: 90, label: '60-90 - Tranquilo/Estable', color: Colors.teal),
+    MetricScoreZone(lowerBound: 90, upperBound: 130, label: '90-130 - Zen/Inmune', color: Colors.blue),
+    MetricScoreZone(lowerBound: 130, upperBound: 200, label: '130+ - Beyond Zen', color: Colors.indigo),
+  ],
+  
+  // Detailed instruction steps with timed breathing phases
+  detailedInstructions: [
+    MetricInstructionStep(stepNumber: 1, description: 'Inhala normal', isTimedStep: true, durationSeconds: 5),
+    MetricInstructionStep(stepNumber: 2, description: 'Exhala normal', isTimedStep: true, durationSeconds: 5),
+    MetricInstructionStep(stepNumber: 3, description: 'Pincha tu nariz (retén el aire)', imagePath: Images.pinchNose),
+    MetricInstructionStep(stepNumber: 4, description: 'Camina contando tus pasos hasta llegar al máximo', icon: Icons.directions_walk),
+    MetricInstructionStep(stepNumber: 5, description: 'Detente cuando sientas un deseo intenso de respirar', icon: Icons.stop_circle),
+  ],
+  
+  // Compact steps for summary view
+  compactSteps: [
+    MetricInstructionStep(stepNumber: 1, description: 'Retén\nrespiración', imagePath: Images.pinchNose),
+    MetricInstructionStep(stepNumber: 2, description: 'Camina\ncontando', icon: Icons.directions_walk),
+    MetricInstructionStep(stepNumber: 3, description: 'Selecciona\npasos', icon: Icons.edit),
+  ],
+);
+
+// Usage in navigation
+GoRoute(
+  path: '/mbt',
+  builder: (context, state) => MbtScreen(), // Custom screen for step selection UI
+)
+```
+
+**Key MBT Implementation Features:**
+- **Step Selection UI**: Custom slider interface for selecting step count (0-200)
+- **Guided Instructions**: Timed breathing phases with visual countdown
+- **Breathing Circle Animation**: Synchronized with inhale/exhale instructions
+- **Score Interpretation**: Specific ranges based on walking step performance
+- **Responsive Design**: Optimized layout for mobile devices
+- **Instruction Flow**: 4-step guided process with proper button text and progression
+  - Step 1: "Inhala" (5-second timed phase)
+  - Step 2: "Exhala" (5-second timed phase)  
+  - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
+  - Step 4: "Camina contando tus pasos" (manual step selection with "Registra pasos" button)
+
 #### Guidelines for Adding New Metrics
 
 1. **Start from Reference Implementation**
@@ -1009,6 +1068,56 @@ GoRoute(
    - Add metric-specific documentation
    - Document any unique scoring properties
    - Update navigation documentation if needed
+
+#### Recent MBT Implementation Improvements
+
+During the MBT feature development, several key improvements were made to enhance user experience and mobile responsiveness:
+
+1. **Navigation Flow Optimization**
+   - Fixed navbar routing to go through `/measurements` menu instead of direct `/bolt`
+   - Implemented proper back navigation: MBT → measurements menu → breath screen
+   - Added measurement menu as central hub for all metric tests
+
+2. **Mobile-First UI Design**
+   - **Compact Layout**: Reduced spacing and font sizes for better mobile fit
+   - **Responsive Instruction Overlay**: Made instruction screens more compact to prevent overflow
+   - **Chart Overflow Fix**: Added `ConstrainedBox` with height constraints to prevent RenderFlex overflow
+   - **First-View Optimization**: Ensured all CTAs are visible without scrolling
+
+3. **Enhanced Slider Interface**
+   - Added container background with border for better visibility
+   - Enhanced styling with proper colors and thumb design
+   - Added "Desliza para seleccionar" instruction text
+   - Improved visual feedback for step selection
+
+4. **Instruction Flow Improvements**
+   - **Fixed Instruction Sequence**: Implemented proper 4-step flow with correct button text
+     - Step 1: "Inhala" (5-second timed phase with breathing circle animation)
+     - Step 2: "Exhala" (5-second timed phase with breathing circle animation)
+     - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
+     - Step 4: "Camina contando tus pasos" (step selection with "Registra pasos" button)
+   - Fixed `_restartMeasurement()` and `_startMeasurement()` to properly restart instruction flow
+   - Added breathing circle with 5-second countdown for inhale/exhale steps
+   - Made instruction overlay more compact to prevent overflow on mobile
+   - Implemented automatic progression through breathing phases with manual control points
+
+5. **Score Range Accuracy**
+   - Updated MBT score ranges based on provided research data
+   - Implemented specific ranges: `<20`, `20-40`, `40-60`, `60-70`, `70-90`, `90-110`, `110-130`, `130+`
+   - Added corresponding descriptions and color functions for each range
+
+6. **Layout Optimization**
+   - Converted action buttons to 2-column grid layout for better visibility
+   - Made measurement menu cards more compact to fit in first view
+   - Added dynamic bottom padding for different screen sizes
+   - Used `Flexible` instead of `Expanded` to prevent layout issues
+
+**Testing Results:**
+- `flutter analyze`: No new errors introduced
+- `flutter build apk --debug`: Successful build
+- All UI elements fit properly on different screen sizes
+- Chart overflow resolved completely
+- Instruction flow works consistently across devices
 
 ---
 

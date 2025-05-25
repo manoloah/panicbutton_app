@@ -31,6 +31,24 @@ class ScoreChart extends StatelessWidget {
     this.minY,
   });
 
+  /// Calculate appropriate Y-axis interval based on metric type and screen size
+  double _calculateYAxisInterval(double maxY, bool isSmallScreen) {
+    // For MBT (steps), use larger intervals
+    if (metricConfig.id == 'mbt') {
+      if (maxY > 100) {
+        return isSmallScreen ? 40.0 : 20.0; // Show every 40 or 20 steps
+      } else if (maxY > 50) {
+        return isSmallScreen ? 20.0 : 10.0; // Show every 20 or 10 steps
+      } else {
+        return isSmallScreen ? 10.0 : 5.0; // Show every 10 or 5 steps
+      }
+    }
+    // For BOLT (seconds), use smaller intervals
+    else {
+      return isSmallScreen ? 10.0 : 5.0; // Show every 10 or 5 seconds
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -143,8 +161,6 @@ class ScoreChart extends StatelessWidget {
 
     // Calculate responsive dimensions
     final chartPadding = isSmallScreen ? 8.0 : 16.0;
-    // Use a smaller aspect ratio for more vertical space (especially on small screens)
-    final aspectRatio = isSmallScreen ? 0.9 : 1.5;
     // Calculate fixed height for chart based on screen size
     final chartHeight = isSmallScreen ? 250.0 : 300.0;
 
@@ -255,7 +271,7 @@ class ScoreChart extends StatelessWidget {
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                interval: isSmallScreen ? 10 : 5, // Fewer labels on mobile
+                interval: _calculateYAxisInterval(effectiveMaxY, isSmallScreen),
                 reservedSize: isSmallScreen ? 35 : 40, // More space for labels
                 getTitlesWidget: (v, _) => Text(
                   v.toInt().toString(),
@@ -399,30 +415,35 @@ class ScoreChart extends StatelessWidget {
       );
     }
 
-    // Use a Column with mainAxisSize.min to avoid the RenderFlex overflow
-    return Container(
-      padding: EdgeInsets.all(chartPadding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // This is crucial to avoid overflow
-        children: [
-          // Fixed height chart container instead of Expanded
-          SizedBox(
-            height: chartHeight,
-            child: AspectRatio(
-              aspectRatio: aspectRatio,
+    // Use a Column with proper constraints to avoid the RenderFlex overflow
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight:
+            chartHeight + (isSmallScreen ? 180 : 200), // Total max height
+      ),
+      child: Container(
+        padding: EdgeInsets.all(chartPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min, // This is crucial to avoid overflow
+          children: [
+            // Fixed height chart container
+            SizedBox(
+              height: chartHeight,
               child: buildChart(),
             ),
-          ),
-          const SizedBox(height: 8), // Follow 8-point grid
-          // Legend at the bottom - constrain height to prevent overflow
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: isSmallScreen ? 120 : 140, // Limit legend height
+            const SizedBox(height: 8), // Follow 8-point grid
+            // Legend at the bottom - constrain height to prevent overflow
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: isSmallScreen ? 120 : 140, // Limit legend height
+                ),
+                child: buildLegend(),
+              ),
             ),
-            child: buildLegend(),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
