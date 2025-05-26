@@ -9,7 +9,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # - Increment minor (1.x.0) for new features that don't break existing functionality
 # - Increment major (x.0.0) for major redesigns or breaking changes
 # - Always increase build number (+1) for each App Store submission
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: '>=3.2.3 <4.0.0'
