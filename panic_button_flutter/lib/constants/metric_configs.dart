@@ -13,7 +13,7 @@ class MetricConfigs {
     tableName: 'bolt_scores',
     shortName: 'BOLT',
     description:
-        'La prueba BOLT mide tu resistencia al CO2 y refleja tu nivel de calma. A mayor puntaje, menor riesgo de ansiedad o ataques de pánico.',
+        'La prueba BOLT mide tu resistencia al CO2 en reposo y refleja tu nivel de calma en ese momento. A mayor puntaje, menor riesgo de ataques.',
     chartTitle: 'Tu progreso',
     resultTitle: 'Tu puntuación: %s segundos',
     scoreFieldName: 'score_seconds',
@@ -174,8 +174,8 @@ class MetricConfigs {
     tableName: 'mbt_scores',
     shortName: 'MBT',
     description:
-        'La prueba MBT mide tu tolerancia al esfuerzo respiratorio. Camina contando pasos mientras retienes la respiración.',
-    chartTitle: 'Tu progreso MBT',
+        'La prueba MBT mide tu resistencia al CO2 en movimiento y refleja tu nivel de calma a largo plazo. A mayor pasos, menor riesgo de ataques.',
+    chartTitle: 'Tu progreso',
     resultTitle: 'Tu puntuación: %s pasos',
     scoreFieldName: 'steps',
     recommendationText:

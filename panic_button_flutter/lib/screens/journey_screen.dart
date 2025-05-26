@@ -153,7 +153,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Desbloquea nuevas técnicas de respiración y mejora tu sistema nervioso',
+                              'Desbloquea nuevas técnicas de respiración y toma el control remoto de tu sistema nervioso',
                               style: Theme.of(context)
                                   .textTheme
                                   .bodyLarge

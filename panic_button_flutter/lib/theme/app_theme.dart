@@ -94,6 +94,11 @@ class AppTheme {
         fontSize: 32,
         color: _white,
       ),
+      displaySmall: GoogleFonts.unbounded(
+        fontWeight: FontWeight.bold,
+        fontSize: 28,
+        color: _white,
+      ),
       headlineLarge: GoogleFonts.unbounded(
         fontWeight: FontWeight.bold,
         fontSize: 34,

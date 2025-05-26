@@ -21,7 +21,7 @@ class MeasurementMenuScreen extends StatelessWidget {
               showBackButton: true,
               backRoute: '/breath',
               title: Text(
-                'Mídete',
+                '',
                 style: tt.headlineMedium,
               ),
             ),
@@ -32,7 +32,7 @@ class MeasurementMenuScreen extends StatelessWidget {
                   // Title & description - more compact
                   Text(
                     'Selecciona la prueba que quieres realizar:',
-                    style: tt.headlineMedium, // Smaller title
+                    style: tt.headlineSmall, // Smaller title
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20), // Reduced spacing
@@ -43,7 +43,7 @@ class MeasurementMenuScreen extends StatelessWidget {
                     title: 'BOLT',
                     subtitle: 'Límite inferior',
                     description:
-                        'Es tu capacidad para voluntariamente, calmarte, dormir, recuperarte, bajar del pico.',
+                        'Mide tu capacidad en reposo para calmarte, dormir, recuperarte, y manejar el estrés a corto plazo.',
                     onTap: () => context.go('/bolt'),
                     isSelected: false,
                   ),
@@ -54,9 +54,9 @@ class MeasurementMenuScreen extends StatelessWidget {
                   _buildTestCard(
                     context: context,
                     title: 'MBT',
-                    subtitle: 'Ancho de la ventana',
+                    subtitle: 'Umbral de resistencia',
                     description:
-                        'Es tu capacidad de sostener estrés de forma repetida y prolongada a lo largo del tiempo.',
+                        'Evalúa tu capacidad de sostener estrés físico y mental de forma prolongada.',
                     onTap: () => context.go('/mbt'),
                     isSelected: false, // Remove highlight
                   ),

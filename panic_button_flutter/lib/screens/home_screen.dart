@@ -33,7 +33,7 @@ class HomeScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Text(
-                            'Encuentra la calma',
+                            'Tu botón de calma',
                             style: tt.displayMedium,
                             textAlign: TextAlign.center,
                           ),
@@ -44,7 +44,7 @@ class HomeScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 32),
                           child: Text(
-                            'Está comprobado científicamente que practicar ejercicios de respiración reduce significativamente tu ansiedad y aumenta tu capacidad para manejar el estrés, reduciendo la probabilidad de ataques de pánico, asma o ansiedad.',
+                            'Está comprobado científicamente: entrenar tu respiración reduce la ansiedad y el estrés, y evita futuros ataques',
                             style: tt.bodyLarge,
                             textAlign: TextAlign.center,
                           ),

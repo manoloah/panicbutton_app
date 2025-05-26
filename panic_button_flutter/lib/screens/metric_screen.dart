@@ -17,6 +17,7 @@ import '../widgets/metric_score_info_dialog.dart';
 
 import '../models/metric_config.dart';
 import '../models/metric_score.dart';
+import '../theme/app_theme.dart'; // Add this import
 
 /// A generic screen for measuring various metrics
 class MetricScreen extends StatefulWidget {
@@ -312,7 +313,8 @@ class _MetricScreenState extends State<MetricScreen>
             child: CustomScrollView(
               slivers: [
                 const CustomSliverAppBar(
-                  showBackButton: false,
+                  showBackButton: true,
+                  backRoute: '/measurements',
                   showSettings: true,
                 ),
 
@@ -329,8 +331,8 @@ class _MetricScreenState extends State<MetricScreen>
                     delegate: SliverChildListDelegate([
                       // Title & description
                       Text(
-                        'Mide tu nivel de calma',
-                        style: tt.displayMedium,
+                        'Tu nivel de estrés en resposo a corto plazo',
+                        style: tt.headlineSmall,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 12),
@@ -393,37 +395,80 @@ class _MetricScreenState extends State<MetricScreen>
                             // Function to build an aggregation button
                             Widget buildAggregationButton(MetricAggregation a) {
                               final sel = a == _aggregation;
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 4, vertical: 4),
-                                child: InkWell(
-                                  onTap: () => setState(() => _aggregation = a),
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: sel ? cs.primary : cs.surface,
-                                      borderRadius: BorderRadius.circular(20),
-                                      // Add subtle border for non-selected items
-                                      border: !sel
-                                          ? Border.all(
-                                              color: cs.onSurface.withAlpha(
-                                                  (0.5 * 255).toInt()),
-                                              width: 1,
-                                            )
-                                          : null,
-                                    ),
+                              final tt = Theme.of(context).textTheme;
+
+                              if (sel) {
+                                // Selected: OutlinedButton, compact style
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 4),
+                                  child: OutlinedButton(
+                                    onPressed: () =>
+                                        setState(() => _aggregation = a),
+                                    style: Theme.of(context)
+                                        .outlinedButtonTheme
+                                        .style
+                                        ?.copyWith(
+                                          minimumSize:
+                                              const WidgetStatePropertyAll(
+                                                  Size(0, 0)), // compact!
+                                          padding: const WidgetStatePropertyAll(
+                                            EdgeInsets.symmetric(
+                                                horizontal: 20, vertical: 8),
+                                          ),
+                                          shape: WidgetStatePropertyAll(
+                                            RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                      20), // match chips!
+                                            ),
+                                          ),
+                                        ),
                                     child: Text(
                                       a.label,
-                                      style: tt.bodyMedium?.copyWith(
-                                        color:
-                                            sel ? cs.onPrimary : cs.onSurface,
+                                      style: tt.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                // Unselected: ghost style, still compact
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 4),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        setState(() => _aggregation = a),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surface,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withOpacity(0.5),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        a.label,
+                                        style: tt.bodyMedium?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ),
                                   ),
-                                ),
-                              );
+                                );
+                              }
                             }
 
                             return Column(

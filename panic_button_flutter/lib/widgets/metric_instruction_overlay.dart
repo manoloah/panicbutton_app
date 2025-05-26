@@ -229,9 +229,7 @@ class MetricInstructionOverlay extends StatelessWidget {
           ),
           const SizedBox(height: 12), // Reduced spacing
           Text(
-            instructionStep % 2 == 1
-                ? 'Inhala profundamente...'
-                : 'Exhala completamente...',
+            instructionStep % 2 == 1 ? 'Inhala NORMAL...' : 'Exhala NORMAL...',
             style: tt.bodyMedium,
             textAlign: TextAlign.center,
             maxLines: 1, // Limit lines
