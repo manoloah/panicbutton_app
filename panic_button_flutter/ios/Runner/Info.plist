@@ -41,6 +41,8 @@
 	<string>Calme requiere acceso a tus datos de salud para personalizar los ejercicios de respiración.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Necesitamos acceso a tu galería para seleccionar tu foto de perfil.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Calme no utiliza el micrófono. Esta descripción es requerida por las librerías de audio utilizadas en la aplicación.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
