@@ -452,7 +452,7 @@ class _MetricScreenState extends State<MetricScreen>
                                           color: Theme.of(context)
                                               .colorScheme
                                               .onSurface
-                                              .withOpacity(0.5),
+                                              .withValues(alpha: 0.5),
                                           width: 1,
                                         ),
                                       ),

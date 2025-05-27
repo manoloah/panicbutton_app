@@ -116,7 +116,7 @@ class AudioSelectionSheet extends ConsumerWidget {
                 color: cs.surface,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 8,
                     offset: const Offset(0, -4),
                   ),
@@ -189,7 +189,7 @@ class _AudioSelectionGrid extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceVariant.withOpacity(0.4),
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -237,7 +237,7 @@ class _InstrumentSelectionGrid extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: cs.surfaceVariant.withOpacity(0.4),
+        color: cs.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
       ),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
@@ -296,15 +296,17 @@ class _AudioOptionButton extends StatelessWidget {
             height: buttonSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: cs.surfaceVariant.withOpacity(0.8),
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
               border: Border.all(
-                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.1),
+                color: isSelected
+                    ? cs.primary
+                    : cs.onSurface.withValues(alpha: 0.1),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: cs.primary.withOpacity(0.4),
+                        color: cs.primary.withValues(alpha: 0.4),
                         blurRadius: 8,
                         spreadRadius: 1,
                         offset: const Offset(0, 0),
@@ -316,7 +318,9 @@ class _AudioOptionButton extends StatelessWidget {
               child: Icon(
                 track.icon,
                 size: isSmallScreen ? 20 : 24,
-                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.8),
+                color: isSelected
+                    ? cs.primary
+                    : cs.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -368,15 +372,17 @@ class _InstrumentOptionButton extends StatelessWidget {
             height: buttonSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: cs.surfaceVariant.withOpacity(0.8),
+              color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
               border: Border.all(
-                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.1),
+                color: isSelected
+                    ? cs.primary
+                    : cs.onSurface.withValues(alpha: 0.1),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: cs.primary.withOpacity(0.4),
+                        color: cs.primary.withValues(alpha: 0.4),
                         blurRadius: 8,
                         spreadRadius: 1,
                         offset: const Offset(0, 0),
@@ -388,7 +394,9 @@ class _InstrumentOptionButton extends StatelessWidget {
               child: Icon(
                 icon,
                 size: isSmallScreen ? 20 : 24,
-                color: isSelected ? cs.primary : cs.onSurface.withOpacity(0.8),
+                color: isSelected
+                    ? cs.primary
+                    : cs.onSurface.withValues(alpha: 0.8),
               ),
             ),
           ),
