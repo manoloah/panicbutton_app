@@ -105,11 +105,16 @@ class _PanicButtonState extends State<PanicButton>
                 ],
               ),
               child: Center(
-                child: Text(
-                  'EMPEZAR',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: screenSize.width < 360 ? 24 : 28,
-                      ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'EMPEZAR',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                          fontSize: screenSize.width < 360 ? 24 : 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
                 ),
               ),
             ),
