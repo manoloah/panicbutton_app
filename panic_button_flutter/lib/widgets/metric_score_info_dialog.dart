@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/metric_config.dart';
+import '../theme/app_theme.dart';
 
 /// Dialog that shows information about what different score ranges mean
 class MetricScoreInfoDialog extends StatelessWidget {
@@ -42,16 +43,16 @@ class MetricScoreInfoDialog extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
-                color: color.withAlpha((0.2 * 255).toInt()),
+                color: color.withAlpha((0.4 * 255).toInt()),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color: color.withAlpha((0.6 * 255).toInt()), width: 1.5),
+                    color: color.withAlpha((0.9 * 255).toInt()), width: 1.5),
               ),
               child: Text(
                 range,
                 style: tt.bodyMedium?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.normal,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -89,7 +90,7 @@ class MetricScoreInfoDialog extends StatelessWidget {
         final description = metricConfig.getScoreDescription(midPoint);
 
         // Get color for this zone
-        final color = metricConfig.getScoreColor(midPoint);
+        final color = zone.color;
 
         rows.add(buildScoreTableRow(cs, tt, rangeText, description, color));
       }
