@@ -355,8 +355,8 @@ class _BoltScreenState extends State<BoltScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Tu puntuación BOLT',
-              style: tt.titleLarge,
+              'Tu Score de BOLT',
+              style: tt.titleMedium,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

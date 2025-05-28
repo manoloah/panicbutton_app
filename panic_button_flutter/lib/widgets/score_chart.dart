@@ -355,86 +355,78 @@ class ScoreChart extends StatelessWidget {
       );
     }
 
-    // Helper method to build a legend item
+    // Helper method to build a legend item - simple flat tag style
     Widget buildLegendItem(Color color, String label, TextTheme tt,
         {Color? textColor}) {
       return Container(
-        constraints: BoxConstraints(
-          maxWidth: isSmallScreen ? 160 : 180, // Constrain width for better fit
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 0.5),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
-          color: color.withAlpha(230), // ~0.9 opacity
-          borderRadius: BorderRadius.circular(4),
+          color: color.withAlpha(160), // Even more transparent
+          borderRadius: BorderRadius.circular(3), // Even smaller radius
+          // Removed border for flatter look
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Text(
           label,
           style: tt.bodySmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: textColor ?? Colors.black87,
+            fontWeight: FontWeight.w400, // Even less bold
+            fontSize: isSmallScreen ? 10 : 12, // Even smaller font
+            color: textColor ??
+                (color.computeLuminance() > 0.5
+                    ? Colors.black87
+                    : Colors.white),
           ),
           textAlign: TextAlign.center,
         ),
       );
     }
 
-    // Create the legend widget as a two-column grid for better space utilization
+    // Create the legend widget using a simple Wrap for better responsiveness
     Widget buildLegend() {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 8), // Follow 8-point grid
-        child: GridView.builder(
-          shrinkWrap: true, // Important to avoid height issues
-          physics: const NeverScrollableScrollPhysics(), // Disable scrolling
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // Two columns
-            childAspectRatio: 3.0, // Wider than tall for text items
-            crossAxisSpacing: 8.0,
-            mainAxisSpacing: 8.0,
-          ),
-          itemCount: scoreZones.length,
-          itemBuilder: (context, index) {
-            // First zone (red) with white text for better visibility
-            final zone = scoreZones[index];
-            final needsWhiteText = index == 0; // Red zone needs white text
+        padding: const EdgeInsets.symmetric(
+            vertical: 2, horizontal: 2), // Minimal padding
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 2, // Minimal spacing
+          runSpacing: 2, // Minimal spacing
+          children: scoreZones.map((zone) {
+            // Determine text color based on background luminance
+            final needsWhiteText = zone.color.computeLuminance() < 0.5;
 
             return buildLegendItem(
               zone.color,
               zone.label,
               tt,
-              textColor: needsWhiteText ? Colors.white : null,
+              textColor: needsWhiteText ? Colors.white : Colors.black87,
             );
-          },
+          }).toList(),
         ),
       );
     }
 
-    // Use a Column with proper constraints to avoid the RenderFlex overflow
+    // Use a Flexible column to prevent overflow completely
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight:
-            chartHeight + (isSmallScreen ? 180 : 200), // Total max height
+        maxHeight: chartHeight +
+            (isSmallScreen ? 60 : 80), // Even more conservative height
       ),
       child: Container(
         padding: EdgeInsets.all(chartPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min, // This is crucial to avoid overflow
+          mainAxisSize: MainAxisSize.min,
           children: [
             // Fixed height chart container
             SizedBox(
               height: chartHeight,
               child: buildChart(),
             ),
-            const SizedBox(height: 8), // Follow 8-point grid
-            // Legend at the bottom - constrain height to prevent overflow
+            const SizedBox(height: 4), // Minimal space before legend
+            // Legend at the bottom - use Flexible to prevent overflow
             Flexible(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: isSmallScreen ? 120 : 140, // Limit legend height
-                ),
-                child: buildLegend(),
-              ),
+              child: buildLegend(),
             ),
           ],
         ),
