@@ -455,7 +455,9 @@ class _BoltScreenState extends State<BoltScreen>
                     '¿Qué significa tu score?',
                     style: tt.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: stateColor,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface, // or Colors.white,,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -468,7 +470,9 @@ class _BoltScreenState extends State<BoltScreen>
                         child: Text(
                           stateDescription,
                           style: tt.bodyMedium?.copyWith(
-                            color: stateColor,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface, // or Colors.white,,
                             fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
@@ -478,7 +482,9 @@ class _BoltScreenState extends State<BoltScreen>
                       IconButton(
                         icon: Icon(
                           Icons.info_outline,
-                          color: stateColor,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface, // or Colors.white,,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,

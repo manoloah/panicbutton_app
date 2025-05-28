@@ -14,6 +14,7 @@ import '../widgets/metric_instruction_overlay.dart';
 import '../widgets/metric_score_info_dialog.dart';
 import '../constants/metric_configs.dart';
 import '../models/metric_score.dart';
+import '../models/metric_config.dart';
 
 /// Screen for measuring the MBT (Maximum Breathlessness Test) metric
 class MbtScreen extends StatefulWidget {
@@ -41,6 +42,16 @@ class _MbtScreenState extends State<MbtScreen>
 
   // Helper to get integer countdown
   int get _instructionCountdown => _instructionCountdownDouble.ceil();
+
+  Color getColorForScore(double score, MetricConfig config) {
+    for (final zone in config.scoreZones) {
+      if (score >= zone.lowerBound && score < zone.upperBound) {
+        return zone.color;
+      }
+    }
+    // If score exceeds last zone upperBound, use last zone color
+    return config.scoreZones.last.color;
+  }
 
   @override
   void initState() {
@@ -291,7 +302,8 @@ class _MbtScreenState extends State<MbtScreen>
     }
 
     // Get state color and description from the metric config
-    final stateColor = MetricConfigs.mbtConfig.getScoreColor(_selectedSteps);
+    final stateColor =
+        getColorForScore(_selectedSteps.toDouble(), MetricConfigs.mbtConfig);
     final stateDescription =
         MetricConfigs.mbtConfig.getScoreDescription(_selectedSteps);
 
@@ -506,7 +518,9 @@ class _MbtScreenState extends State<MbtScreen>
                     '¿Qué significa tu score?',
                     style: tt.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: stateColor,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface, // or Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -519,7 +533,9 @@ class _MbtScreenState extends State<MbtScreen>
                         child: Text(
                           stateDescription,
                           style: tt.bodyMedium?.copyWith(
-                            color: stateColor,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface, // or Colors.white,
                             fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
