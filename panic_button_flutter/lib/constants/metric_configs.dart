@@ -25,44 +25,50 @@ class MetricConfigs {
       MetricScoreZone(
         lowerBound: 0,
         upperBound: 10,
-        label: '<10 - Pánico Constante',
+        label: '<10: Pánico Constante',
         color: Colors.redAccent.shade200.withAlpha(174),
       ),
       MetricScoreZone(
         lowerBound: 10,
         upperBound: 15,
-        label: '10-15 - Ansioso/Inestable',
+        label: '10-15: Ansiedad Inestable',
         color: Colors.orange.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 15,
         upperBound: 20,
-        label: '15-20 - Inquieto/Irregular',
+        label: '15-20: Inquietud Irregular',
         color: Colors.amber.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 20,
-        upperBound: 25,
-        label: '20-25 - Calma Parcial',
-        color: Colors.lightGreen.withAlpha(80),
-      ),
-      MetricScoreZone(
-        lowerBound: 25,
         upperBound: 30,
-        label: '25-30 - Tranquilo/Estable',
-        color: Colors.teal.shade300.withAlpha(80),
+        label: '20-30: Calma Parcial',
+        color: Colors.lightGreen.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 30,
         upperBound: 40,
-        label: '30-40 - Zen/Inmune',
-        color: Colors.blue.shade300.withAlpha(80),
+        label: '30-40: Tranquilidad Estable',
+        color: Colors.teal.shade300.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 40,
-        upperBound: 100, // Large upper bound for "beyond" category
-        label: '40+ - Beyond Zen',
+        upperBound: 50,
+        label: '40-50: Inmune al estrés',
+        color: Colors.blue.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 50,
+        upperBound: 60, // Large upper bound for "beyond" category
+        label: '50-60: Zen',
         color: Colors.indigo.shade300.withAlpha(80),
+      ),
+      MetricScoreZone(
+        lowerBound: 60,
+        upperBound: 70,
+        label: '60+: Beyond Zen',
+        color: Colors.indigo.shade500.withAlpha(80),
       ),
     ],
 
@@ -141,27 +147,33 @@ class MetricConfigs {
         return 'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
       } else if (score <= 40) {
         return 'Te sientes tranquilo, seguro y estable.';
-      } else {
+      } else if (score <= 50) {
         return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else if (score <= 60) {
+        return 'Estado de tranquilidad total, claridad mental y resistencia al estrés máxima.';
+      } else {
+        return 'Tu control de estrés es óptimo, de elite.';
       }
     },
 
     // Score color function
     getScoreColor: (int score) {
       if (score <= 10) {
-        return const Color(0xFF8D7DAF); // Soft purple
+        return Colors.redAccent.shade200.withAlpha(120); // Red 5%
       } else if (score <= 15) {
-        return const Color(0xFF7A97C9); // Soft blue-purple
+        return Colors.orange.withAlpha(120); // Orange 5%
       } else if (score <= 20) {
-        return const Color(0xFF68B0C1); // Teal-blue
-      } else if (score <= 25) {
-        return const Color(0xFF5BBFAD); // Mint green
+        return Colors.amber.withAlpha(120); // Amber 80%
       } else if (score <= 30) {
-        return const Color(0xFF52A375); // More green than teal
+        return Colors.lightGreen.withAlpha(120); // Mint green
       } else if (score <= 40) {
-        return const Color(0xFF3B7F8C); // Deep teal
+        return Colors.teal.shade300.withAlpha(120); // More green than teal
+      } else if (score <= 50) {
+        return Colors.blue.shade300.withAlpha(120); // Deep Blue
+      } else if (score <= 60) {
+        return Colors.indigo.shade300.withAlpha(120); // Indigo 5%
       } else {
-        return const Color(0xFF4265D6); // Brighter blue for better contrast
+        return Colors.indigo.shade500.withAlpha(120); // Indigo 5%
       }
     },
   );
@@ -180,65 +192,59 @@ class MetricConfigs {
     recommendationText:
         'Realiza esta prueba cuando te sientas descansado y en un lugar seguro para caminar.',
 
-    // Score zones for the chart - based on breathing_metrics.xlsx
+    // Score zones for the chart for MBT
     scoreZones: [
       MetricScoreZone(
         lowerBound: 0,
         upperBound: 20,
-        label: '<20 - Pánico Constante',
+        label: '<20: Pánico Constante',
         color: Colors.redAccent.shade200.withAlpha(174),
       ),
       MetricScoreZone(
         lowerBound: 20,
-        upperBound: 20,
-        label: '20 - Ansioso/Inestable',
+        upperBound: 40,
+        label: '20-40: Ansiedad Inestable',
         color: Colors.orange.withAlpha(80),
       ),
       MetricScoreZone(
-        lowerBound: 20,
-        upperBound: 40,
-        label: '20-40 - Inquieto/Irregular',
+        lowerBound: 40,
+        upperBound: 50,
+        label: '40-50: Inquietud Irregular',
         color: Colors.amber.withAlpha(80),
       ),
       MetricScoreZone(
-        lowerBound: 40,
+        lowerBound: 50,
         upperBound: 60,
-        label: '40-60 - Calma Parcial',
+        label: '50-60: Calma Parcial',
         color: Colors.lightGreen.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 60,
-        upperBound: 70,
-        label: '60-70 - Tranquilo/Estable',
+        upperBound: 80,
+        label: '60-80: Tranquilidad Estable ',
         color: Colors.teal.shade300.withAlpha(80),
       ),
       MetricScoreZone(
-        lowerBound: 70,
-        upperBound: 90,
-        label: '70-90 - Zen/Inmune',
+        lowerBound: 80,
+        upperBound: 100,
+        label: '80-100: Inmune al estrés',
         color: Colors.blue.shade300.withAlpha(80),
       ),
       MetricScoreZone(
-        lowerBound: 90,
-        upperBound: 110,
-        label: '90-110 - Zen/Inmune',
-        color: Colors.blue.shade300.withAlpha(80),
-      ),
-      MetricScoreZone(
-        lowerBound: 110,
+        lowerBound: 100,
         upperBound: 130,
-        label: '110-130 - Beyond Zen',
+        label: '100-130: Zen',
         color: Colors.indigo.shade300.withAlpha(80),
       ),
       MetricScoreZone(
         lowerBound: 130,
-        upperBound: 200, // Large upper bound for "beyond zen" category
-        label: '130+ - Beyond Zen',
-        color: Colors.indigo.shade300.withAlpha(80),
+        upperBound: 140,
+        label: '130+: Beyond Zen',
+        color: Colors.indigo.shade500.withAlpha(80),
       ),
     ],
 
-    // Enhanced instruction steps based on CSV data
+    // Enhanced instruction steps for MBT
     enhancedInstructions: [
       EnhancedInstructionStep(
         stepNumber: 1,
@@ -291,7 +297,7 @@ class MetricConfigs {
       ),
     ],
 
-    // Compact steps for summary view
+    // Compact steps for summary view MBT
     compactSteps: [
       MetricInstructionStep(
         stepNumber: 1,
@@ -310,49 +316,45 @@ class MetricConfigs {
       ),
     ],
 
-    // Score description function
+    // Score description function MBT
     getScoreDescription: (int score) {
-      if (score < 20) {
+      if (score <= 20) {
         return 'Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea.';
-      } else if (score == 20) {
+      } else if (score <= 40) {
         return 'Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza.';
-      } else if (score < 40) {
+      } else if (score <= 50) {
         return 'Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto.';
-      } else if (score < 60) {
+      } else if (score <= 60) {
         return 'La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente.';
-      } else if (score < 70) {
+      } else if (score <= 80) {
         return 'Te sientes tranquilo, seguro y estable.';
-      } else if (score < 90) {
+      } else if (score <= 100) {
         return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
-      } else if (score < 110) {
-        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
-      } else if (score < 130) {
-        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+      } else if (score <= 130) {
+        return 'Estado de tranquilidad total, claridad mental y resistencia al estrés máxima.';
       } else {
-        return 'Estás en un estado profundo de calma y control, difícilmente te alteras.';
+        return 'Tu control de estrés es óptimo, de elite.';
       }
     },
 
-    // Score color function
+    // Score color function for MBT
     getScoreColor: (int score) {
-      if (score < 20) {
-        return const Color(0xFF8D7DAF); // Soft purple
-      } else if (score == 20) {
-        return const Color(0xFF7A97C9); // Soft blue-purple
-      } else if (score < 40) {
-        return const Color(0xFF68B0C1); // Teal-blue
-      } else if (score < 60) {
-        return const Color(0xFF5BBFAD); // Mint green
-      } else if (score < 70) {
-        return const Color(0xFF52A375); // More green than teal
-      } else if (score < 90) {
-        return const Color(0xFF3B7F8C); // Deep teal
-      } else if (score < 110) {
-        return const Color(0xFF3B7F8C); // Deep teal
-      } else if (score < 130) {
-        return const Color(0xFF4265D6); // Brighter blue for better contrast
+      if (score <= 20) {
+        return Colors.redAccent.shade200.withAlpha(120); // Red 5%
+      } else if (score <= 40) {
+        return Colors.orange.withAlpha(120); // Orange 5%
+      } else if (score <= 50) {
+        return Colors.amber.withAlpha(120); // Amber 80%
+      } else if (score <= 60) {
+        return Colors.lightGreen.withAlpha(120); // Mint green
+      } else if (score <= 80) {
+        return Colors.teal.shade300.withAlpha(120); // More green than teal
+      } else if (score <= 100) {
+        return Colors.blue.shade300.withAlpha(120); // Deep Blue
+      } else if (score <= 130) {
+        return Colors.indigo.shade300.withAlpha(120);
       } else {
-        return const Color(0xFF4265D6); // Brighter blue for better contrast
+        return Colors.indigo.shade500.withAlpha(120); // Indigo 5%
       }
     },
   );

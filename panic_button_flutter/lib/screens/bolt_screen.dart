@@ -668,7 +668,7 @@ class _BoltScreenState extends State<BoltScreen>
                           periodScores: periodScores,
                           formatBottomLabel: _formatBottom,
                           metricConfig: MetricConfigs.boltConfig,
-                          maxY: 100,
+                          //maxY: 100,
                           minY: 0,
                         ),
                       ] else ...[

@@ -35,17 +35,11 @@ class ScoreChart extends StatelessWidget {
   double _calculateYAxisInterval(double maxY, bool isSmallScreen) {
     // For MBT (steps), use larger intervals
     if (metricConfig.id == 'mbt') {
-      if (maxY > 100) {
-        return isSmallScreen ? 40.0 : 20.0; // Show every 40 or 20 steps
-      } else if (maxY > 50) {
-        return isSmallScreen ? 20.0 : 10.0; // Show every 20 or 10 steps
-      } else {
-        return isSmallScreen ? 10.0 : 5.0; // Show every 10 or 5 steps
-      }
+      return isSmallScreen ? 30.0 : 20.0; // Show every 30 or 20 steps
     }
     // For BOLT (seconds), use smaller intervals
     else {
-      return isSmallScreen ? 10.0 : 5.0; // Show every 10 or 5 seconds
+      return isSmallScreen ? 20.0 : 10.0; // Show every 20 or 10 seconds
     }
   }
 
@@ -86,7 +80,7 @@ class ScoreChart extends StatelessWidget {
         math.max(
             math.max(
                 40.0, // At least show up to 40
-                maximumScore * 1.1),
+                maximumScore * 1.001),
             // Ensure we show at least one zone above the highest data point
             mentalStateLines
                 .map((e) => e['y'] as double)
@@ -213,7 +207,7 @@ class ScoreChart extends StatelessWidget {
               return const FlLine(strokeWidth: 0);
             },
             horizontalInterval:
-                isSmallScreen ? 10 : 5, // Fewer grid lines on mobile
+                isSmallScreen ? 30 : 20, // Fewer grid lines on mobile
             getDrawingHorizontalLine: (value) {
               // Style regular grid lines
               if (value == effectiveMinY) {

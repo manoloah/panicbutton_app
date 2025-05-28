@@ -722,7 +722,7 @@ class _MbtScreenState extends State<MbtScreen>
                           periodScores: periodScores,
                           formatBottomLabel: _formatBottom,
                           metricConfig: MetricConfigs.mbtConfig,
-                          maxY: 200, // Max steps for MBT
+                          //maxY: 200, // Max steps for MBT
                           minY: 0,
                         ),
                       ] else ...[
