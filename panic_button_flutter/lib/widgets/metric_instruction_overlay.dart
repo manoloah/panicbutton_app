@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/metric_config.dart';
+import '../widgets/breath_circle.dart';
+import '../widgets/wave_animation.dart';
 
 /// An enhanced overlay widget that displays step-by-step instructions for a metric
 /// with all 5 parts: Main Text, Support Text, Animation, Next Step Prep, and Call to Action
@@ -223,39 +225,38 @@ class _MetricInstructionOverlayState extends State<MetricInstructionOverlay>
         mainAxisSize: MainAxisSize.min,
         children: [
           // Breathing circle with animation
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: cs.primary.withAlpha((0.1 * 255).toInt()),
-              border: Border.all(
-                color: cs.primary.withAlpha((0.3 * 255).toInt()),
-                width: 2,
-              ),
-            ),
-            child: Center(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 100),
-                width: 120 + (widget.breathAnimation.value * 40),
-                height: 120 + (widget.breathAnimation.value * 40),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: cs.primary.withAlpha(
-                    ((0.2 + widget.breathAnimation.value * 0.3) * 255).toInt(),
-                  ),
+          BreathCircle(
+            onTap: () {}, // Empty tap handler for instruction overlay
+            isBreathing: true, // Enable breathing animation
+            size: 200,
+            phaseIndicator: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Wave animation for breathing effect
+                WaveAnimation(
+                  waveAnimation: widget.breathAnimation,
+                  fillLevel: widget.instructionStep == 2
+                      ? widget.breathAnimation.value // Inhale: fill up
+                      : 1 - widget.breathAnimation.value, // Exhale: empty out
                 ),
-                child: Center(
+                // Countdown display
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: cs.primary.withAlpha((0.9 * 255).toInt()),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Text(
                     widget.instructionCountdown.toString(),
-                    style: tt.displayLarge?.copyWith(
+                    style: tt.displayMedium?.copyWith(
                       color: cs.onPrimary,
                       fontWeight: FontWeight.bold,
-                      fontSize: 48,
+                      fontSize: 36,
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
