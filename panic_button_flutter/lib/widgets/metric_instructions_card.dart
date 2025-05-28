@@ -65,9 +65,9 @@ class MetricInstructionsCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
-                          children: metricConfig.detailedInstructions
+                          children: metricConfig.enhancedInstructions
                               .map((step) =>
-                                  _buildInstructionStep(context, step))
+                                  _buildEnhancedInstructionStep(context, step))
                               .toList(),
                         ),
                       ),
@@ -199,8 +199,8 @@ class MetricInstructionsCard extends StatelessWidget {
   }
 
   // Helper method to build instruction steps for the detailed dialog
-  Widget _buildInstructionStep(
-      BuildContext context, MetricInstructionStep step) {
+  Widget _buildEnhancedInstructionStep(
+      BuildContext context, EnhancedInstructionStep step) {
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
 
@@ -226,7 +226,7 @@ class MetricInstructionsCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              step.description,
+              '${step.mainText}. ${step.supportText}',
               style: tt.bodyMedium,
             ),
           ),

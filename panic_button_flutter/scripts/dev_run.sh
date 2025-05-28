@@ -2,7 +2,7 @@
 # Script to run the app with Supabase credentials from .env or command line args
 
 # Default device (can be overridden by -d argument)
-DEVICE="ios"
+DEVICE="chrome"
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do

@@ -1,0 +1,9 @@
+Level,Bolt,PausaMax,MBT,Custom Label,Description
+1,10,20,20,<10 - Pánico Constante,"Vives en un estado constante de alerta, sientes que todo es peligroso aunque no lo sea."
+2,15,30,20,10-15 - Ansiedad Inestable,"Todavía te sientes en alerta, pero empiezas a darte cuenta de que no todo es una amenaza."
+3,20,40,40,15-20 - Inquietud Irregular,"Empiezas a relajarte, pero todavía te sientes un poco nervioso o inquieto."
+4,30,50,60,20-25 - Calma Parcial,"La mayor parte del tiempo te sientes en calma, pero a veces puedes ponerte nervioso fácilmente."
+5,35,55,70,25-30 - Estabilidad ,"Te sientes tranquilo, seguro y estable."
+6,45,64,90,30-40 - Inmune al estrés,"Estás en un estado profundo de calma y control, difícilmente te alteras."
+7,55,82.5,110,30-40 - Zen,"Estado de tranquilidad total, claridad mental y resistencia al estrés máxima. "
+8,65,97.5,130,40+ - Beyond Zen,"Tu control de estrés es óptimo, de elite!"

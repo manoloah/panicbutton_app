@@ -1,0 +1,6 @@
+Instruction,Main text,Support Text,Call to action (TEXT),Animation/Icon,Moves to next step automatically,Next Step prep text
+1,Respira por la nariz con calma,"En reposo, sientate o acuestate",Comenzar,WaveIcon,FALSE,Preparate para inhalar
+2,Inhala de forma normal,Por la nariz,None,5 seconds inhale animation ball from breathing_circle.dart widget,TRUE,Preparate para exhalar
+3,Exhala de forma normal,Por la nariz,None,5 seconds exhale animation ball from breathing_circle.dart widget,TRUE,Preparate para retener
+4,Pincha tu nariz,Y reten el aire,Empezar cronometro,PinchNoseIcon,FALSE,Retén hasta la primer sensación de falta de aire
+"*After instructions finish, automatically goes to BOLT measuring screen where the stopwatch starts automatically",,,,,,

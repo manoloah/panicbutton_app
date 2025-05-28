@@ -17,7 +17,6 @@ import '../widgets/metric_score_info_dialog.dart';
 
 import '../models/metric_config.dart';
 import '../models/metric_score.dart';
-import '../theme/app_theme.dart'; // Add this import
 
 /// A generic screen for measuring various metrics
 class MetricScreen extends StatefulWidget {
@@ -535,17 +534,18 @@ class _MetricScreenState extends State<MetricScreen>
           // Full-screen overlay for instruction steps
           if (_isShowingInstructions)
             MetricInstructionOverlay(
+              key: ValueKey('metric_overlay_${widget.metricConfig.id}'),
+              overlayKey: 'metric_overlay_${widget.metricConfig.id}',
               instructionStep: _instructionStep,
-              instructions: widget.metricConfig.detailedInstructions,
+              instructions: widget.metricConfig.enhancedInstructions,
               instructionCountdown: _instructionCountdown,
               onClose: () => setState(() => _isShowingInstructions = false),
               onNext: _advanceToNextInstruction,
               onStartMeasurement: () {
                 setState(() {
-                  _instructionStep = 4;
                   _isShowingInstructions = false;
-                  _actuallyStartMeasurement();
                 });
+                _actuallyStartMeasurement();
               },
               breathAnimation: _breathAnimationController,
             ),

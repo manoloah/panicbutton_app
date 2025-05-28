@@ -15,6 +15,33 @@ class MetricScoreZone {
   });
 }
 
+/// Enhanced instruction step that matches the CSV structure with all 5 parts
+class EnhancedInstructionStep {
+  final int stepNumber;
+  final String mainText;
+  final String supportText;
+  final String callToActionText;
+  final IconData? icon;
+  final String? imagePath;
+  final bool movesToNextStepAutomatically;
+  final String nextStepPrepText;
+  final bool isTimedStep;
+  final int? durationSeconds;
+
+  const EnhancedInstructionStep({
+    required this.stepNumber,
+    required this.mainText,
+    required this.supportText,
+    required this.callToActionText,
+    this.icon,
+    this.imagePath,
+    required this.movesToNextStepAutomatically,
+    required this.nextStepPrepText,
+    this.isTimedStep = false,
+    this.durationSeconds,
+  });
+}
+
 /// Instructions for a metric measurement step
 class MetricInstructionStep {
   final int stepNumber;
@@ -66,10 +93,10 @@ class MetricConfig {
   /// The zones for score visualization in the chart
   final List<MetricScoreZone> scoreZones;
 
-  /// Detailed steps for measurement instructions
-  final List<MetricInstructionStep> detailedInstructions;
+  /// The enhanced instruction steps with all 5 parts from CSV
+  final List<EnhancedInstructionStep> enhancedInstructions;
 
-  /// Compact steps for the summary view (typically 3 steps)
+  /// The compact instruction steps for summary view
   final List<MetricInstructionStep> compactSteps;
 
   /// Function to get a description of what a particular score means
@@ -89,7 +116,7 @@ class MetricConfig {
     required this.scoreFieldName,
     required this.recommendationText,
     required this.scoreZones,
-    required this.detailedInstructions,
+    required this.enhancedInstructions,
     required this.compactSteps,
     required this.getScoreDescription,
     required this.getScoreColor,

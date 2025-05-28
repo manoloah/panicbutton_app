@@ -1,0 +1,7 @@
+Instruction,Main text,Support Text,Call to action (TEXT),Animation/Icon,Moves to next step automatically,Next Step prep text
+1,Respira por la nariz con calma,Parado en un espacio amplio para caminar,Comenzar,WaveIcon,FALSE,Preparate para inhalar
+2,Inhala de forma normal,Por la nariz,None,5 seconds inhale animation ball from breathing_circle.dart widget,TRUE,Preparate para exhalar
+3,Exhala de forma normal por la nariz,Por la nariz,None,5 seconds exhale animation ball from breathing_circle.dart widget,TRUE,Preparate para retener
+4,Pincha tu nariz,Y reten el aire,A caminar,PinchNoseIcon,FALSE,Empieza a caminar contando pasos
+5,Empieza a caminar,Contando tus pasos,Registrar pasos,WalkingIcon,FALSE,Retén hasta el maximo
+"*After instructions, the user can select their step count with slider manually",,,,,,

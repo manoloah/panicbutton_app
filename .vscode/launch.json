@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "panic_button_flutter",
+            "cwd": "panic_button_flutter",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "panic_button_flutter (profile mode)",
+            "cwd": "panic_button_flutter",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "panic_button_flutter (release mode)",
+            "cwd": "panic_button_flutter",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

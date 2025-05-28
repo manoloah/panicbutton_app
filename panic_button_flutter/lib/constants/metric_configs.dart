@@ -66,48 +66,47 @@ class MetricConfigs {
       ),
     ],
 
-    // Detailed instruction steps
-    detailedInstructions: [
-      MetricInstructionStep(
+    // Enhanced instruction steps based on CSV data
+    enhancedInstructions: [
+      EnhancedInstructionStep(
         stepNumber: 1,
-        description:
-            'Respira de forma tranquila por la nariz unas cuantas veces',
+        mainText: 'Respira por la nariz con calma',
+        supportText: 'En reposo, sientate o acuestate',
+        callToActionText: 'Comenzar',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: false,
+        nextStepPrepText: 'Preparate para inhalar',
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 2,
-        description: 'Realiza una inhalación NORMAL durante 5 segundos',
+        mainText: 'Inhala de forma normal',
+        supportText: 'Por la nariz',
+        callToActionText: '',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: true,
+        nextStepPrepText: 'Preparate para exhalar',
         isTimedStep: true,
         durationSeconds: 5,
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 3,
-        description: 'Realiza una exhalación NORMAL durante 5 segundos',
+        mainText: 'Exhala de forma normal',
+        supportText: 'Por la nariz',
+        callToActionText: '',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: true,
+        nextStepPrepText: 'Preparate para retener',
         isTimedStep: true,
         durationSeconds: 5,
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 4,
-        description: 'Pincha tu nariz o retén la respiración',
+        mainText: 'Pincha tu nariz',
+        supportText: 'Y reten el aire',
+        callToActionText: 'Empezar cronómetro',
         imagePath: Images.pinchNose,
-      ),
-      MetricInstructionStep(
-        stepNumber: 5,
-        description: 'Inicia el cronómetro',
-        icon: Icons.timer,
-      ),
-      MetricInstructionStep(
-        stepNumber: 6,
-        description:
-            'Espera hasta sentir la PRIMERA necesidad de respirar o falta de aire',
-      ),
-      MetricInstructionStep(
-        stepNumber: 7,
-        description: 'Detén el cronometro en ese momento',
-      ),
-      MetricInstructionStep(
-        stepNumber: 8,
-        description:
-            'Regresa a respirar como empezaste de forma normal, lenta y controlada',
+        movesToNextStepAutomatically: false,
+        nextStepPrepText: 'Retén hasta la primer sensación de falta de aire',
       ),
     ],
 
@@ -239,29 +238,56 @@ class MetricConfigs {
       ),
     ],
 
-    // Detailed instruction steps
-    detailedInstructions: [
-      MetricInstructionStep(
+    // Enhanced instruction steps based on CSV data
+    enhancedInstructions: [
+      EnhancedInstructionStep(
         stepNumber: 1,
-        description: 'Inhala',
-        isTimedStep: true,
-        durationSeconds: 5,
+        mainText: 'Respira por la nariz con calma',
+        supportText: 'Parado en un espacio amplio para caminar',
+        callToActionText: 'Comenzar',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: false,
+        nextStepPrepText: 'Preparate para inhalar',
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 2,
-        description: 'Exhala',
+        mainText: 'Inhala de forma normal',
+        supportText: 'Por la nariz',
+        callToActionText: '',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: true,
+        nextStepPrepText: 'Preparate para exhalar',
         isTimedStep: true,
         durationSeconds: 5,
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 3,
-        description: 'Pincha tu nariz',
-        imagePath: Images.pinchNose,
+        mainText: 'Exhala de forma normal por la nariz',
+        supportText: 'Por la nariz',
+        callToActionText: '',
+        icon: Icons.air_rounded,
+        movesToNextStepAutomatically: true,
+        nextStepPrepText: 'Preparate para retener',
+        isTimedStep: true,
+        durationSeconds: 5,
       ),
-      MetricInstructionStep(
+      EnhancedInstructionStep(
         stepNumber: 4,
-        description: 'Camina contando tus pasos',
+        mainText: 'Pincha tu nariz',
+        supportText: 'Y reten el aire',
+        callToActionText: 'A caminar',
+        imagePath: Images.pinchNose,
+        movesToNextStepAutomatically: false,
+        nextStepPrepText: 'Empieza a caminar contando pasos',
+      ),
+      EnhancedInstructionStep(
+        stepNumber: 5,
+        mainText: 'Empieza a caminar',
+        supportText: 'Contando tus pasos',
+        callToActionText: 'Registrar pasos',
         icon: Icons.directions_walk,
+        movesToNextStepAutomatically: false,
+        nextStepPrepText: 'Retén hasta el maximo',
       ),
     ],
 

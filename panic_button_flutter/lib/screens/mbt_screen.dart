@@ -99,11 +99,10 @@ class _MbtScreenState extends State<MbtScreen>
   void _startMeasurement() {
     setState(() {
       _isShowingInstructions = true;
-      _instructionStep = 0;
+      _instructionStep = 1; // Start with step 1, not 0
       _instructionCountdownDouble = 0;
     });
-    // Start the instruction flow immediately
-    _advanceToNextInstruction();
+    // Don't automatically advance - let user click "Comenzar"
   }
 
   void _startInstructionTimer() {
@@ -115,33 +114,40 @@ class _MbtScreenState extends State<MbtScreen>
           _instructionCountdownDouble =
               math.max(0, _instructionCountdownDouble - 0.1);
         } else {
-          // Move to next instruction
-          _instructionStep++;
+          // Check if current step should move automatically
+          final currentInstruction = _instructionStep > 0 &&
+                  _instructionStep <=
+                      MetricConfigs.mbtConfig.enhancedInstructions.length
+              ? MetricConfigs
+                  .mbtConfig.enhancedInstructions[_instructionStep - 1]
+              : null;
 
-          switch (_instructionStep) {
-            case 1: // Inhale instruction
-              _instructionCountdownDouble = 5; // 5 seconds as per requirements
-              _breathAnimationController.reset();
-              _breathAnimationController.forward(from: 0.0);
-              break;
-            case 2: // Exhale instruction
-              _instructionCountdownDouble = 5; // 5 seconds as per requirements
-              _breathAnimationController.reset();
-              _breathAnimationController.forward(from: 0.0);
-              break;
-            case 3: // Pinch nose instruction - STOP here and wait for button click
-              // Cancel the timer - we'll wait for user to click the button
-              timer.cancel();
-              break;
-            case 4: // Walk counting steps - STOP here and wait for button click
-              // Cancel the timer - we'll wait for user to click the button
-              timer.cancel();
-              break;
-            case 5: // This case should only be reached via button click now
+          if (currentInstruction?.movesToNextStepAutomatically == true) {
+            // Move to next instruction automatically
+            _instructionStep++;
+
+            if (_instructionStep <=
+                MetricConfigs.mbtConfig.enhancedInstructions.length) {
+              final nextInstruction = MetricConfigs
+                  .mbtConfig.enhancedInstructions[_instructionStep - 1];
+              if (nextInstruction.isTimedStep) {
+                _instructionCountdownDouble =
+                    nextInstruction.durationSeconds?.toDouble() ?? 5.0;
+                _breathAnimationController.reset();
+                _breathAnimationController.forward(from: 0.0);
+              } else {
+                // Non-timed step, stop timer and wait for user action
+                timer.cancel();
+              }
+            } else {
+              // All instructions completed, show step selection
               _isShowingInstructions = false;
               _showStepSelection();
               timer.cancel();
-              break;
+            }
+          } else {
+            // Manual step, stop timer and wait for user action
+            timer.cancel();
           }
         }
       });
@@ -151,7 +157,7 @@ class _MbtScreenState extends State<MbtScreen>
   // Method to advance to the next instruction manually
   void _advanceToNextInstruction() {
     setState(() {
-      _instructionStep = 1; // Explicitly set to step 1 (inhale)
+      _instructionStep = 2; // Move from step 1 to step 2 (inhale)
       _instructionCountdownDouble = 5; // 5 seconds for inhale
       _breathAnimationController.reset();
       _breathAnimationController.duration =
@@ -162,10 +168,10 @@ class _MbtScreenState extends State<MbtScreen>
     });
   }
 
-  // Method to manually advance from step 3 to step 4
-  void _advanceToStep4() {
+  // Method to manually advance from step 4 to step 5
+  void _advanceToStep5() {
     setState(() {
-      _instructionStep = 4; // Move to step 4 (walk counting steps)
+      _instructionStep = 5; // Move to step 5 (walk counting steps)
     });
   }
 
@@ -206,11 +212,10 @@ class _MbtScreenState extends State<MbtScreen>
       _isComplete = false;
       _selectedSteps = 0;
       _isShowingInstructions = true;
-      _instructionStep = 0;
+      _instructionStep = 1; // Start with step 1, not 0
       _instructionCountdownDouble = 0;
     });
-    // Start the instruction flow immediately
-    _advanceToNextInstruction();
+    // Don't automatically advance - let user click "Comenzar"
   }
 
   // Shows the score info dialog
@@ -749,15 +754,17 @@ class _MbtScreenState extends State<MbtScreen>
             // Instruction overlay
             if (_isShowingInstructions)
               MetricInstructionOverlay(
+                key: const ValueKey('mbt_overlay'),
+                overlayKey: 'mbt_overlay',
                 instructionStep: _instructionStep,
-                instructions: MetricConfigs.mbtConfig.detailedInstructions,
+                instructions: MetricConfigs.mbtConfig.enhancedInstructions,
                 instructionCountdown: _instructionCountdown,
                 onClose: () => setState(() => _isShowingInstructions = false),
                 onNext: () {
-                  if (_instructionStep == 0) {
+                  if (_instructionStep == 1) {
                     _advanceToNextInstruction();
-                  } else if (_instructionStep == 3) {
-                    _advanceToStep4();
+                  } else if (_instructionStep == 4) {
+                    _advanceToStep5();
                   }
                 },
                 onStartMeasurement: () {
