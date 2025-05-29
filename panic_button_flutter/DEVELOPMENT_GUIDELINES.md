@@ -798,6 +798,8 @@ lib/
 
 ### Database Schema
 
+Database structure for breathing exercise can be found at: [DatabaseLogic.md](./DatabaseLogic.md)
+
 The breathing feature uses the following database structure:
 
 ```sql
