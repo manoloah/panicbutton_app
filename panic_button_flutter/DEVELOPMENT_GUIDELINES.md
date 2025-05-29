@@ -162,9 +162,8 @@ When making UI improvements or implementing design changes, it's essential to ma
    - Validate across different screen sizes
 
 6. **Documentation:**
-   - Document UI changes that affect user interaction
-   - Note any adjustments to component APIs
-   - Explain the rationale for significant UI changes
+   - Document UI changes that affect user interaction in panic_button_flutter/README.md and panic_button_flutter/DEVELOPMENT_GUIDELINES.md
+   - Note any adjustments to component APIs 
 
 **Visual Hierarchy Principles:**
 - Maintain clear visual hierarchy for primary, secondary, and tertiary actions
@@ -956,37 +955,6 @@ The app provides a reusable architecture for implementing different types of bre
    - Implement repository logic for data access
    - Use consistent naming conventions
 
-#### Example: BOLT Implementation
-
-The BOLT (Body Oxygen Level Test) implementation serves as the reference:
-
-```dart
-// Metric Configuration
-final boltMetricConfig = MetricConfig(
-  name: 'BOLT',
-  description: 'Body Oxygen Level Test',
-  instructions: [
-    'Siéntate cómodamente y respira normalmente por 2 minutos.',
-    'Toma una respiración normal, luego pinza tu nariz y cronometra.',
-    'Detén el cronómetro cuando sientas el primer deseo de respirar.',
-  ],
-  zones: [
-    MetricZone(min: 0, max: 20, label: 'Bajo', color: Colors.red),
-    MetricZone(min: 20, max: 30, label: 'Medio', color: Colors.amber),
-    MetricZone(min: 30, max: double.infinity, label: 'Alto', color: Colors.green),
-  ],
-  unitLabel: 'segundos',
-);
-
-// Usage in navigation
-GoRoute(
-  path: '/bolt',
-  builder: (context, state) => MetricScreen(
-    metricConfig: boltMetricConfig,
-    repository: ref.read(boltRepositoryProvider),
-  ),
-)
-```
 
 #### Example: MBT Implementation
 
@@ -1035,22 +1003,11 @@ GoRoute(
 )
 ```
 
-**Key MBT Implementation Features:**
-- **Step Selection UI**: Custom slider interface for selecting step count (0-200)
-- **Guided Instructions**: Timed breathing phases with visual countdown
-- **Breathing Circle Animation**: Synchronized with inhale/exhale instructions
-- **Score Interpretation**: Specific ranges based on walking step performance
-- **Responsive Design**: Optimized layout for mobile devices
-- **Instruction Flow**: 4-step guided process with proper button text and progression
-  - Step 1: "Inhala" (5-second timed phase)
-  - Step 2: "Exhala" (5-second timed phase)  
-  - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
-  - Step 4: "Camina contando tus pasos" (manual step selection with "Registra pasos" button)
 
 #### Guidelines for Adding New Metrics
 
 1. **Start from Reference Implementation**
-   - Use the BOLT implementation as a starting point
+   - Use the BOLT (panic_button_flutter/lib/screens/bolt_screen.dart) implementation as a starting point
    - Copy and adapt the metric configuration
    - Reuse UI components for consistency
 
@@ -1069,58 +1026,7 @@ GoRoute(
    - Document any unique scoring properties
    - Update navigation documentation if needed
 
-#### Recent MBT Implementation Improvements
-
-During the MBT feature development, several key improvements were made to enhance user experience and mobile responsiveness:
-
-1. **Navigation Flow Optimization**
-   - Fixed navbar routing to go through `/measurements` menu instead of direct `/bolt`
-   - Implemented proper back navigation: MBT → measurements menu → breath screen
-   - Added measurement menu as central hub for all metric tests
-
-2. **Mobile-First UI Design**
-   - **Compact Layout**: Reduced spacing and font sizes for better mobile fit
-   - **Responsive Instruction Overlay**: Made instruction screens more compact to prevent overflow
-   - **Chart Overflow Fix**: Added `ConstrainedBox` with height constraints to prevent RenderFlex overflow
-   - **First-View Optimization**: Ensured all CTAs are visible without scrolling
-
-3. **Enhanced Slider Interface**
-   - Added container background with border for better visibility
-   - Enhanced styling with proper colors and thumb design
-   - Added "Desliza para seleccionar" instruction text
-   - Improved visual feedback for step selection
-
-4. **Instruction Flow Improvements**
-   - **Fixed Instruction Sequence**: Implemented proper 4-step flow with correct button text
-     - Step 1: "Inhala" (5-second timed phase with breathing circle animation)
-     - Step 2: "Exhala" (5-second timed phase with breathing circle animation)
-     - Step 3: "Pincha tu nariz" (manual progression with "Siguiente" button)
-     - Step 4: "Camina contando tus pasos" (step selection with "Registra pasos" button)
-   - Fixed `_restartMeasurement()` and `_startMeasurement()` to properly restart instruction flow
-   - Added breathing circle with 5-second countdown for inhale/exhale steps
-   - Made instruction overlay more compact to prevent overflow on mobile
-   - Implemented automatic progression through breathing phases with manual control points
-
-5. **Score Range Accuracy**
-   - Updated MBT score ranges based on provided research data
-   - Implemented specific ranges: `<20`, `20-40`, `40-60`, `60-70`, `70-90`, `90-110`, `110-130`, `130+`
-   - Added corresponding descriptions and color functions for each range
-
-6. **Layout Optimization**
-   - Converted action buttons to 2-column grid layout for better visibility
-   - Made measurement menu cards more compact to fit in first view
-   - Added dynamic bottom padding for different screen sizes
-   - Used `Flexible` instead of `Expanded` to prevent layout issues
-
-**Testing Results:**
-- `flutter analyze`: No new errors introduced
-- `flutter build apk --debug`: Successful build
-- All UI elements fit properly on different screen sizes
-- Chart overflow resolved completely
-- Instruction flow works consistently across devices
-
 ---
-
 ### Route Names
 
 - All lowercase  
@@ -1432,6 +1338,8 @@ Following these practices ensures our app remains compatible with the latest Flu
 ---
 
 ### TestFlight & App Store Deployment
+
+Script has been created to do this almost automatically find it at: panic_button_flutter/scripts/build_ios.sh
 
 - **Pre-deployment Checklist**
   - Version number updated in `pubspec.yaml`
