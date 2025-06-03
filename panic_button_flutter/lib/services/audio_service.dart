@@ -141,7 +141,7 @@ class AudioService {
     'river': 'assets/sounds/music/ocean.mp3', // If river fails, try ocean
     'ocean':
         'assets/sounds/music/rainforest.mp3', // If ocean fails, try rainforest
-    'forest': 'assets/sounds/music/river.mp3', // If forest fails, try river
+    'forest': 'assets/sounds/music/river_new.mp3', // If forest fails, try river
   };
 
   // Guiding voice tracks - dynamically loaded
