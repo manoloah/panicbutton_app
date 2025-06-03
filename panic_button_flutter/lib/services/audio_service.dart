@@ -635,7 +635,7 @@ class AudioService {
   Future<void> _preloadCommonAudio() async {
     try {
       // Preload background music (river is commonly used)
-      final riverPath = 'assets/sounds/music/river.mp3';
+      final riverPath = 'assets/sounds/music/river_new.mp3';
       try {
         await rootBundle.load(riverPath);
       } catch (e) {
