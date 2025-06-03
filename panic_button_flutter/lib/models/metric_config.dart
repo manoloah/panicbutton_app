@@ -15,7 +15,14 @@ class MetricScoreZone {
   });
 }
 
-/// Enhanced instruction step that matches the CSV structure with all 5 parts
+/// Represents a single instruction row loaded from the CSV.
+///
+/// The CSV supplies five text parts: `stepNumber`, `mainText`,
+/// `supportText`, `callToActionText` and `nextStepPrepText`.
+/// Beyond those strings the class offers optional values for an [icon]
+/// or [imagePath] and timing related flags such as [isTimedStep] and
+/// [durationSeconds]. The required [movesToNextStepAutomatically]
+/// indicates whether the step advances on its own.
 class EnhancedInstructionStep {
   final int stepNumber;
   final String mainText;
