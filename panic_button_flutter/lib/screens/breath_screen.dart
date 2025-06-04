@@ -10,6 +10,7 @@ import 'package:panic_button_flutter/providers/breathing_playback_controller.dar
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
+import 'package:panic_button_flutter/models/breath_models.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -418,7 +419,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: BreathCircle(
-                          onTap: _toggleBreathing,
+                          onTap: () => _toggleBreathing(),
                           phaseIndicator: const Stack(
                             alignment: Alignment.center,
                             children: [
@@ -500,7 +501,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final isSmallScreen = screenSize.width < 360;
 
     return ElevatedButton(
-      onPressed: _toggleBreathing,
+      onPressed: () => _toggleBreathing(),
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -562,14 +563,28 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  void _toggleBreathing() {
+  Future<void> _toggleBreathing() async {
     if (_isDisposed) return;
 
     // Get all references we need upfront to avoid using ref after disposal
     final controller = ref.read(breathingPlaybackControllerProvider.notifier);
     final playbackState = ref.read(breathingPlaybackControllerProvider);
     final isPlaying = playbackState.isPlaying;
-    final expandedSteps = ref.read(expandedStepsProvider).value ?? [];
+    final stepsAsync = ref.read(expandedStepsProvider);
+    List<ExpandedStep> expandedSteps;
+    if (stepsAsync.hasValue) {
+      expandedSteps = stepsAsync.value ?? [];
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cargando patrón...'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+      expandedSteps = await ref.read(expandedStepsProvider.future);
+      if (_isDisposed) return;
+    }
     final hasExistingSession = playbackState.currentActivityId != null;
     final duration = ref.read(selectedDurationProvider);
 
