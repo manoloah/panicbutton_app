@@ -478,7 +478,7 @@ void showGoalPatternSheet(BuildContext context) {
     enableDrag: true,
     constraints: BoxConstraints(
       // Do not exceed 90% of the screen height
-      maxHeight: availableHeight * 0.9,
+      maxHeight: availableHeight * 1.2,
     ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -491,7 +491,7 @@ void showGoalPatternSheet(BuildContext context) {
           // Start the sheet around half of the screen height so it does not
           // immediately feel overwhelming. Users can still drag it higher up to
           // the 90% limit if desired.
-          height: availableHeight * 0.5,
+          height: availableHeight * 0.95,
           child: const GoalPatternSheet(),
         ),
       );
