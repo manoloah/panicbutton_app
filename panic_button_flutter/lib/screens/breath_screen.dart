@@ -10,6 +10,7 @@ import 'package:panic_button_flutter/providers/breathing_playback_controller.dar
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
+import 'package:panic_button_flutter/models/breath_models.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
