@@ -262,13 +262,13 @@ class BreathRepository {
     }
   }
 
-  Future<void> logPatternRun(String patternId, int targetMinutes) async {
+  Future<String?> logPatternRun(String patternId, int targetMinutes) async {
     // Wrap the entire function in a try-catch to ensure it never crashes the app
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
         debugPrint('⚠️ Cannot log pattern run: User not authenticated');
-        return; // Silently return if user is not authenticated
+        return null; // Silently return if user is not authenticated
       }
 
       // Record the start of the breathing activity with explicit values
@@ -305,6 +305,8 @@ class BreathRepository {
 
         debugPrint(
             '✓ Verified activity creation: ${checkResult['id']} - Pattern: ${checkResult['pattern_id']}, Expected duration: ${checkResult['expected_duration_seconds']}s');
+
+        return activityId;
       } catch (insertError) {
         debugPrint('⚠️ Error inserting breathing activity: $insertError');
         // Log full error details to help debug RLS issues
@@ -321,6 +323,8 @@ class BreathRepository {
       // Just silently log but don't rethrow - pattern logging is not essential
       debugPrint('⚠️ Error in logPatternRun: $e');
     }
+
+    return null;
   }
 
   // Add a new method to complete a breathing activity

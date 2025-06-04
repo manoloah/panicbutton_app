@@ -253,7 +253,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
             _buildRequirementItem(
               context,
               'Respirar más de',
-              provider.weeklyMinutes.toString(),
+              provider.weeklyMinutes.toStringAsFixed(1),
               nextLevel.minutesWeek.toString(),
               provider.weeklyMinutes / nextLevel.minutesWeek,
               isBolt: false,

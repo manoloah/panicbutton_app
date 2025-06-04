@@ -21,7 +21,7 @@ class JourneyProvider with ChangeNotifier {
   double _averageBolt = 0.0;
 
   /// User's total minutes of breathing practice in the last 7 days
-  int _weeklyMinutes = 0;
+  double _weeklyMinutes = 0.0;
 
   /// Loading state flag
   bool _isLoading = true;
@@ -61,7 +61,7 @@ class JourneyProvider with ChangeNotifier {
   double get averageBolt => _averageBolt;
 
   /// Get user's weekly minutes practiced
-  int get weeklyMinutes => _weeklyMinutes;
+  double get weeklyMinutes => _weeklyMinutes;
 
   /// Check if provider is loading data
   bool get isLoading => _isLoading;
@@ -237,7 +237,7 @@ class JourneyProvider with ChangeNotifier {
       final List<dynamic> data = response as List<dynamic>;
 
       if (data.isEmpty) {
-        _weeklyMinutes = 0;
+        _weeklyMinutes = 0.0;
         return;
       }
 
@@ -246,10 +246,10 @@ class JourneyProvider with ChangeNotifier {
         totalSeconds += (session['duration_seconds'] as int);
       }
 
-      _weeklyMinutes = totalSeconds ~/ 60;
+      _weeklyMinutes = totalSeconds / 60.0;
     } catch (e) {
       // If there's an error, default to 0
-      _weeklyMinutes = 0;
+      _weeklyMinutes = 0.0;
     }
   }
 
