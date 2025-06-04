@@ -268,7 +268,7 @@ class BreathRepository {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
         debugPrint('⚠️ Cannot log pattern run: User not authenticated');
-        return; // Silently return if user is not authenticated
+        return null; // Silently return if user is not authenticated
       }
 
       // Record the start of the breathing activity with explicit values
