@@ -464,7 +464,11 @@ void showGoalPatternSheet(BuildContext context) {
   final viewPadding = MediaQuery.of(context).viewPadding;
   final availableHeight = screenHeight - viewPadding.top - viewPadding.bottom;
 
-  // More reliable approach for modal sheets
+  // More reliable approach for modal sheets. Material guidelines recommend
+  // limiting modal sheets to around 90% of the available height so that the
+  // underlying content is still partially visible. This prevents the sheet
+  // from feeling like a full-screen takeover while keeping enough room for
+  // content.
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -473,7 +477,8 @@ void showGoalPatternSheet(BuildContext context) {
     isDismissible: true,
     enableDrag: true,
     constraints: BoxConstraints(
-      maxHeight: availableHeight * 0.65, // Explicit max height
+      // Do not exceed 90% of the screen height
+      maxHeight: availableHeight * 0.9,
     ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -483,8 +488,10 @@ void showGoalPatternSheet(BuildContext context) {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: Container(
           color: Theme.of(context).colorScheme.surface,
-          height: availableHeight *
-              0.43, // Initial height (43% of available screen)
+          // Start the sheet around half of the screen height so it does not
+          // immediately feel overwhelming. Users can still drag it higher up to
+          // the 90% limit if desired.
+          height: availableHeight * 0.5,
           child: const GoalPatternSheet(),
         ),
       );
