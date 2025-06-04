@@ -12,6 +12,8 @@ import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
 import 'package:provider/provider.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
+import 'package:panic_button_flutter/models/breath_models.dart';
+
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -429,7 +431,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: BreathCircle(
-                          onTap: _toggleBreathing,
+                          onTap: () => _toggleBreathing(),
                           phaseIndicator: const Stack(
                             alignment: Alignment.center,
                             children: [
@@ -511,7 +513,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final isSmallScreen = screenSize.width < 360;
 
     return ElevatedButton(
-      onPressed: _toggleBreathing,
+      onPressed: () => _toggleBreathing(),
       style: ElevatedButton.styleFrom(
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -532,12 +534,11 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final patternName = pattern?.name ?? 'Seleccionar patrón';
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
+    final buttonWidth = isSmallScreen ? 240.0 : 280.0;
 
     return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        maxWidth: isSmallScreen ? 280 : 350,
-      ),
+      width: buttonWidth,
+      constraints: BoxConstraints(maxWidth: buttonWidth),
       child: TextButton.icon(
         onPressed: () => showGoalPatternSheet(context),
         style: Theme.of(context).outlinedButtonTheme.style,
@@ -562,25 +563,39 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   Widget _buildDurationButton() {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
-
+    final buttonWidth = isSmallScreen ? 180.0 : 220.0;
     // Using a container to apply custom styling to the DurationSelectorButton
     return Container(
-      width: double.infinity,
+      width: buttonWidth,
       constraints: BoxConstraints(
-        maxWidth: isSmallScreen ? 280 : 350,
+        maxWidth: buttonWidth,
       ),
       child: const DurationSelectorButton(),
     );
   }
 
-  void _toggleBreathing() {
+  Future<void> _toggleBreathing() async {
     if (_isDisposed) return;
 
     // Get all references we need upfront to avoid using ref after disposal
     final controller = ref.read(breathingPlaybackControllerProvider.notifier);
     final playbackState = ref.read(breathingPlaybackControllerProvider);
     final isPlaying = playbackState.isPlaying;
-    final expandedSteps = ref.read(expandedStepsProvider).value ?? [];
+    final stepsAsync = ref.read(expandedStepsProvider);
+    List<ExpandedStep> expandedSteps;
+    if (stepsAsync.hasValue) {
+      expandedSteps = stepsAsync.value ?? [];
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cargando patrón...'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(milliseconds: 1500),
+        ),
+      );
+      expandedSteps = await ref.read(expandedStepsProvider.future);
+      if (_isDisposed) return;
+    }
     final hasExistingSession = playbackState.currentActivityId != null;
     final duration = ref.read(selectedDurationProvider);
 

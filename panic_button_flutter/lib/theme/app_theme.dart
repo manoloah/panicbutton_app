@@ -138,34 +138,44 @@ class AppTheme {
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
-      backgroundColor: WidgetStatePropertyAll(colors.surface),
-      foregroundColor: const WidgetStatePropertyAll(_white),
-      overlayColor: WidgetStatePropertyAll(colors.primary.withAlpha(40)),
-      iconColor: const WidgetStatePropertyAll(_white),
+      backgroundColor: WidgetStatePropertyAll(
+        AppTheme._white.withAlpha(10), // 10% opacity
+      ),
+      foregroundColor: WidgetStateProperty.resolveWith<Color>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.hovered)) {
+            return Colors.white.withAlpha(255); // Full opacity on hover
+          }
+          return Colors.white.withAlpha(179); // 70% otherwise
+        },
+      ),
+      overlayColor: WidgetStatePropertyAll(
+        Colors.white.withAlpha(31),
+      ),
+      iconColor: WidgetStateProperty.resolveWith<Color>(
+        (Set<WidgetState> states) {
+          if (states.contains(WidgetState.hovered)) {
+            return Colors.white.withAlpha(255);
+          }
+          return Colors.white.withAlpha(179);
+        },
+      ),
       textStyle: WidgetStatePropertyAll(
         GoogleFonts.cabin(
           fontWeight: FontWeight.w500,
           fontSize: 16,
+          // Leave out color here!
         ),
       ),
-      // 3D effect with elevation and shadow
-      elevation: const WidgetStatePropertyAll(4),
-      shadowColor: WidgetStatePropertyAll(
-        const Color(0xFF000000).withAlpha((0.5 * 255).toInt()),
-      ),
-      // Shaped border with subtle gradient effect
+      elevation: const WidgetStatePropertyAll(0),
+      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
       shape: WidgetStatePropertyAll(
         RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: colors.onSurface.withAlpha((0.3 * 255).toInt()),
-            width: 1,
-          ),
+          side: BorderSide.none,
         ),
       ),
-      surfaceTintColor: WidgetStatePropertyAll(
-        colors.primary.withAlpha((0.1 * 255).toInt()),
-      ),
+      surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
     );
 
     // ---- Component themes ----------------------------------------------
