@@ -283,7 +283,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     if (_isDisposed) return;
 
     // Use the shared helper from goal_pattern_sheet.dart so the bottom sheet
-    // never exceeds roughly 70% of the screen height.
+    // opens around 70% of the screen and can expand to about 80%.
     showGoalPatternSheet(context).then((_) {
       // Update the controller when the sheet is closed
       if (!_isDisposed) {

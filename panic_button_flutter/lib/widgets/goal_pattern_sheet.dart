@@ -473,8 +473,8 @@ Future<void> showGoalPatternSheet(BuildContext context) {
     isDismissible: true,
     enableDrag: true,
     constraints: BoxConstraints(
-      // Limit sheet height to ~70% of screen following common UI guidelines
-      maxHeight: availableHeight * 0.7,
+      // Allow expansion up to roughly 80% of the usable screen height
+      maxHeight: availableHeight * 0.8,
     ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -484,8 +484,8 @@ Future<void> showGoalPatternSheet(BuildContext context) {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: Container(
           color: Theme.of(context).colorScheme.surface,
-          // Start slightly over half the screen but allow expansion up to 70%
-          height: availableHeight * 0.6,
+          // Start near 70% of the available height for better visibility
+          height: availableHeight * 0.7,
           child: const GoalPatternSheet(),
         ),
       );

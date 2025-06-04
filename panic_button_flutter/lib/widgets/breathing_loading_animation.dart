@@ -103,11 +103,7 @@ class _BreathingLoadingAnimationState
         child: SingleChildScrollView(
           physics:
               useCompactLayout ? const NeverScrollableScrollPhysics() : null,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: constraints.maxHeight,
-            ),
-            child: Column(
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
