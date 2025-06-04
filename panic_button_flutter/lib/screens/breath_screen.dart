@@ -278,18 +278,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
   }
 
-  // Add this function to properly update when selecting a pattern from the sheet
-  void showGoalPatternSheet(BuildContext context) {
+  // Add this function to open the pattern sheet with height constraints
+  void _openGoalPatternSheet(BuildContext context) {
     if (_isDisposed) return;
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const GoalPatternSheet(),
-    ).then((_) {
-      // This will be called when the sheet is closed
-      // We need to update the controller to use the newly selected pattern
+    // Use the shared helper from goal_pattern_sheet.dart so the bottom sheet
+    // never exceeds roughly 70% of the screen height.
+    showGoalPatternSheet(context).then((_) {
+      // Update the controller when the sheet is closed
       if (!_isDisposed) {
         _updateBreathingController();
       }
@@ -529,7 +525,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         maxWidth: isSmallScreen ? 280 : 350,
       ),
       child: TextButton.icon(
-        onPressed: () => showGoalPatternSheet(context),
+        onPressed: () => _openGoalPatternSheet(context),
         style: Theme.of(context).outlinedButtonTheme.style,
         icon: const Icon(
           Icons.air,
@@ -600,7 +596,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         );
 
         // Show the pattern selector sheet
-        showGoalPatternSheet(context);
+        _openGoalPatternSheet(context);
         return;
       }
 

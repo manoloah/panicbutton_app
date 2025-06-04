@@ -458,14 +458,14 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
   }
 }
 
-void showGoalPatternSheet(BuildContext context) {
+Future<void> showGoalPatternSheet(BuildContext context) {
   // Get screen dimensions to calculate explicit heights
   final screenHeight = MediaQuery.of(context).size.height;
   final viewPadding = MediaQuery.of(context).viewPadding;
   final availableHeight = screenHeight - viewPadding.top - viewPadding.bottom;
 
   // More reliable approach for modal sheets
-  showModalBottomSheet(
+  return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
@@ -473,7 +473,8 @@ void showGoalPatternSheet(BuildContext context) {
     isDismissible: true,
     enableDrag: true,
     constraints: BoxConstraints(
-      maxHeight: availableHeight * 0.65, // Explicit max height
+      // Limit sheet height to ~70% of screen following common UI guidelines
+      maxHeight: availableHeight * 0.7,
     ),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -483,8 +484,8 @@ void showGoalPatternSheet(BuildContext context) {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         child: Container(
           color: Theme.of(context).colorScheme.surface,
-          height: availableHeight *
-              0.43, // Initial height (43% of available screen)
+          // Start slightly over half the screen but allow expansion up to 70%
+          height: availableHeight * 0.6,
           child: const GoalPatternSheet(),
         ),
       );
