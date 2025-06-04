@@ -522,12 +522,11 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     final patternName = pattern?.name ?? 'Seleccionar patrón';
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
+    final buttonWidth = isSmallScreen ? 240.0 : 280.0;
 
     return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(
-        maxWidth: isSmallScreen ? 280 : 350,
-      ),
+      width: buttonWidth,
+      constraints: BoxConstraints(maxWidth: buttonWidth),
       child: TextButton.icon(
         onPressed: () => showGoalPatternSheet(context),
         style: Theme.of(context).outlinedButtonTheme.style,
@@ -552,12 +551,12 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   Widget _buildDurationButton() {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
-
+    final buttonWidth = isSmallScreen ? 180.0 : 220.0;
     // Using a container to apply custom styling to the DurationSelectorButton
     return Container(
-      width: double.infinity,
+      width: buttonWidth,
       constraints: BoxConstraints(
-        maxWidth: isSmallScreen ? 280 : 350,
+        maxWidth: buttonWidth,
       ),
       child: const DurationSelectorButton(),
     );
