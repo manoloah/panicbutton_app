@@ -622,6 +622,24 @@ This approach provides:
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
+## Testing 
+
+To test on iOS use the script at: panic_button_flutter/scripts/debug_run.sh
+
+But first make sure there is a simulator working and if not booted following the next steps in the terminal: 
+   ```
+   xcrun simctl list devices #to list devices 
+   xcrun simctl boot 567812AF-D5BB-4EC6-9B22-69C18A832A1C  # Replace with desired device name or ID under (########)
+   ##if device is already booted then just open it with: 
+   open -a Simulator ##or specifying the device 
+   xcrun simctl create "Custom iPhone" "iPhone 15 Pro" "iOS17.0"
+   ```
+
+
+To test on Web use the script at: panic_button_flutter/scripts/dev_run.sh
+
+
+
 ## Applying Database Migrations
 
 ### Setting Default Breathing Pattern and Goal Order
@@ -769,3 +787,5 @@ The app recently migrated from a simple "tones" system to a sophisticated instru
 - **Maintained**: All existing functionality while adding new capabilities
 
 This implementation ensures that breathing exercises have precise, non-intrusive audio guidance that enhances the meditation experience without disrupting the natural flow of breathing.
+
+
