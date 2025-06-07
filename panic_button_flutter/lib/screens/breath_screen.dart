@@ -278,6 +278,34 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
   }
 
+  // Add this function to properly update when selecting a pattern from the sheet
+
+  void showGoalPatternSheet(BuildContext context) {
+    if (_isDisposed) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Container(
+            color: Theme.of(context).colorScheme.surface,
+            height:
+                MediaQuery.of(context).size.height * 0.85, // Adjust height here
+            child: const GoalPatternSheet(),
+          ),
+        );
+      },
+    ).then((_) {
+      // This will be called when the sheet is closed
+      // We need to update the controller to use the newly selected pattern
+      if (!_isDisposed) {
+        _updateBreathingController();
+      }
+    });
+  }
 
   // Navigate back to the journey screen
   void _navigateToJourney() {
