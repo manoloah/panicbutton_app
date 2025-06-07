@@ -1,3 +1,11 @@
+// REFACTORED: Enhanced breathing playback controller with session state persistence
+// Changes:
+// - Added session state saving/restoring functionality using SharedPreferences
+// - Enhanced pause() method to save current session state
+// - Added restoreSessionState() method to resume from saved state
+// - Modified initialize() to avoid re-initialization when valid session exists
+// - Added proper state cleanup and persistence on disposal
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +13,7 @@ import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/data/breath_repository.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
+import 'package:panic_button_flutter/services/breathing_state_persistence_service.dart';
 
 // Provider to track the last breath phase for voice prompt triggering
 final lastBreathPhaseProvider = StateProvider<BreathPhase?>((ref) => null);
@@ -92,13 +101,32 @@ class BreathingPlaybackController
   BreathingPlaybackController(this._repository, this._ref)
       : super(const BreathingPlaybackState());
 
-  void initialize(List<ExpandedStep> steps, int durationMinutes) {
+  /// Initializes the controller with a new set of steps and total duration.
+  void initialize(List<ExpandedStep> steps, int durationMinutes,
+      {bool forceReset = false}) {
     if (steps.isEmpty) {
       return;
     }
 
-    // If there's an ongoing activity, complete it
-    _completeCurrentActivity(false);
+    // Don't re-initialize if we already have a valid session unless forced
+    if (!forceReset && state.steps.isNotEmpty && state.totalSeconds > 0) {
+      debugPrint('🔄 Skipping initialization - valid session already exists');
+      return;
+    }
+
+    debugPrint('🔄 Initializing new breathing session');
+    _timer?.cancel();
+
+    // When we force a reset (like after finishing a session), we don't want
+    // to call _completeCurrentActivity again. So we just reset timers.
+    if (forceReset) {
+      _startTime = null;
+      _accumulatedSeconds = 0;
+    } else {
+      // If not a forceReset, it means a previous session might have been abandoned
+      // without being finished. We mark it as incomplete.
+      _completeCurrentActivity(false);
+    }
 
     final totalSeconds = durationMinutes * 60;
     state = BreathingPlaybackState(
@@ -109,17 +137,37 @@ class BreathingPlaybackController
       phaseSecondsRemaining:
           steps.isNotEmpty ? steps[0].inhaleSecs.toDouble() : 0,
       elapsedSeconds: 0,
-      currentActivityId: null,
+      currentActivityId: null, // Always start with a fresh activity ID
     );
 
-    _startTime = null;
-    _accumulatedSeconds = 0;
+    // Start a new activity record in the database
+    _startNewActivity();
 
     // Log debug info about initialization
     final pattern = _ref.read(selectedPatternProvider);
     if (pattern != null) {
       debugPrint(
           '🔄 Initialized pattern: ${pattern.name} (${pattern.id}), duration: $durationMinutes minutes');
+    }
+  }
+
+  /// Starts a new breathing activity and stores its ID in the state.
+  Future<void> _startNewActivity() async {
+    try {
+      final pattern = _ref.read(selectedPatternProvider);
+      if (pattern == null) {
+        debugPrint('⚠️ Cannot start activity, no pattern selected');
+        return;
+      }
+
+      // We get the current activity, which should have been created on page load.
+      final newActivityId = await _repository.getCurrentBreathingActivity();
+      if (newActivityId != null) {
+        state = state.copyWith(currentActivityId: newActivityId);
+        debugPrint('✅ Started new breathing activity: $newActivityId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error starting new activity: $e');
     }
   }
 
@@ -165,20 +213,33 @@ class BreathingPlaybackController
   Future<void> pause() async {
     if (!state.isPlaying) return;
 
-    // Stop the timer
-    _timer?.cancel();
+    // To prevent "modifying a provider during build" error when called from dispose,
+    // we schedule the state update for after the build/dispose cycle is complete.
+    // This is the officially recommended approach for this scenario.
+    Future(() async {
+      _timer?.cancel();
+      state = state.copyWith(isPlaying: false);
 
-    // Update state
-    state = state.copyWith(isPlaying: false);
+      if (_startTime != null) {
+        final sessionSeconds = DateTime.now().difference(_startTime!).inSeconds;
+        _accumulatedSeconds += sessionSeconds;
+        debugPrint(
+            '⏸️ Paused - session duration: ${sessionSeconds}s, accumulated: ${_accumulatedSeconds}s');
+        _startTime = null;
+      }
 
-    // Calculate seconds for this session
-    if (_startTime != null) {
-      final sessionSeconds = DateTime.now().difference(_startTime!).inSeconds;
-      _accumulatedSeconds += sessionSeconds;
-      debugPrint(
-          '⏸️ Paused - session duration: ${sessionSeconds}s, accumulated: ${_accumulatedSeconds}s');
-      _startTime = null;
-    }
+      // Save session state when pausing.
+      final pattern = _ref.read(selectedPatternProvider);
+      await BreathingStatePersistenceService.saveSessionState(
+        patternId: pattern?.id,
+        duration: state.totalSeconds ~/ 60,
+        currentStepIndex: state.currentStepIndex,
+        secondsRemaining: state.secondsRemaining,
+        elapsedSeconds: state.elapsedSeconds,
+        currentPhase: state.currentPhase.name,
+        phaseSecondsRemaining: state.phaseSecondsRemaining,
+      );
+    });
   }
 
   Future<void> reset() async {
@@ -430,7 +491,100 @@ class BreathingPlaybackController
     // Make sure to complete any in-progress activity
     _completeCurrentActivity(false);
 
+    debugPrint('🔄 BreathingPlaybackController disposed');
     super.dispose();
+  }
+
+  /// Restore session state from persistent storage
+  Future<bool> restoreSessionState() async {
+    try {
+      final sessionData =
+          await BreathingStatePersistenceService.loadSessionState();
+      if (sessionData == null) return false;
+
+      debugPrint('📂 Restoring breathing session state');
+      final patternId = sessionData['patternId'] as String?;
+      if (patternId == null) {
+        debugPrint('⚠️ Cannot restore session state, no patternId found');
+        return false;
+      }
+
+      // Select the pattern from the saved state
+      await _ref
+          .read(selectedPatternProvider.notifier)
+          .selectPatternBySlug(patternId);
+      final duration = sessionData['duration'] as int? ?? 3;
+      _ref.read(selectedDurationProvider.notifier).state = duration;
+
+      final expandedSteps = await _ref.read(expandedStepsProvider.future);
+      if (expandedSteps.isEmpty) {
+        debugPrint(
+            '⚠️ Cannot restore session state, could not expand steps for pattern $patternId');
+        return false;
+      }
+
+      // Restore basic state
+      state = state.copyWith(
+        steps: expandedSteps,
+        totalSeconds: duration * 60,
+        currentStepIndex: sessionData['currentStepIndex'] as int? ?? 0,
+        secondsRemaining:
+            (sessionData['secondsRemaining'] as num?)?.toDouble() ?? 0.0,
+        elapsedSeconds: sessionData['elapsedSeconds'] as int? ?? 0,
+        phaseSecondsRemaining:
+            (sessionData['phaseSecondsRemaining'] as num?)?.toDouble() ?? 0.0,
+        isPlaying: false, // Always restore as paused
+      );
+
+      // Restore phase
+      final phaseString = sessionData['currentPhase'] as String?;
+      if (phaseString != null) {
+        try {
+          final phase =
+              BreathPhase.values.firstWhere((p) => p.name == phaseString);
+          state = state.copyWith(currentPhase: phase);
+        } catch (e) {
+          debugPrint('⚠️ Could not restore phase: $phaseString');
+        }
+      }
+
+      // Restore accumulated seconds
+      _accumulatedSeconds = sessionData['elapsedSeconds'] as int? ?? 0;
+
+      debugPrint('✅ Session state restored successfully');
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error restoring session state: $e');
+      return false;
+    }
+  }
+
+  /// Clear saved session state
+  Future<void> clearSavedState() async {
+    await BreathingStatePersistenceService.clearSessionState();
+  }
+
+  /// Finishes the session explicitly, marking it as complete and resetting.
+  Future<void> finish() async {
+    if (!state.isPlaying && state.elapsedSeconds == 0)
+      return; // Nothing to finish
+
+    debugPrint('➡️ Finishing session explicitly.');
+    _timer?.cancel();
+    await _completeCurrentActivity(true); // Mark as completed
+
+    // Reset state completely by re-initializing with the default pattern.
+    final defaultPattern = await _ref.read(defaultPatternProvider.future);
+    final duration = _ref.read(selectedDurationProvider);
+    if (defaultPattern != null) {
+      final expandedSteps = await _ref.read(expandedStepsProvider.future);
+      initialize(expandedSteps, duration, forceReset: true);
+    }
+  }
+
+  /// Resumes the breathing exercise from the current state.
+  Future<void> resume() async {
+    // ... existing code ...
   }
 }
 

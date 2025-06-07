@@ -1,3 +1,10 @@
+// REFACTORED: Enhanced audio service with pause/resume functionality and settings persistence
+// Changes:
+// - Added pauseAllAudio() and resumeAllAudio() methods for robust audio control
+// - Added automatic saving/loading of audio settings (music, voice, instrument)
+// - Enhanced logging for better debugging of audio state changes
+// - Fixed audio lifecycle management to prevent audio playing when not on breathing screen
+
 import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -5,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:panic_button_flutter/services/breathing_state_persistence_service.dart';
 
 /// Provider for the audio service
 final audioServiceProvider = Provider<AudioService>((ref) {
@@ -508,21 +516,22 @@ class AudioService {
       // For simplicity and safety, we'll use numbered files
       final validPaths = <String>[];
 
-      // Try files with numbers 1-5 (reasonable number of variations)
-      for (int i = 1; i <= 5; i++) {
+      // Try files with numbers 1-2 only (most voice folders only have 1-2 files)
+      for (int i = 1; i <= 2; i++) {
         final path = '$folderPath/${i}.mp3';
         try {
           // Check if this file exists by trying to load its bytes
           await rootBundle.load(path);
           validPaths.add(path);
+          debugPrint('✅ Found voice file: $path');
         } catch (e) {
           // File doesn't exist, continue silently
+          debugPrint('⚠️ Voice file not found: $path');
         }
       }
 
       if (validPaths.isEmpty) {
-        // Only log when no valid files are found in a folder
-        debugPrint('No valid voice prompts found in: $folderPath');
+        debugPrint('❌ No valid voice prompts found in: $folderPath');
         return null;
       }
 
@@ -539,10 +548,12 @@ class AudioService {
 
       // Pick a random prompt
       final random = Random();
-      return promptsToChooseFrom[random.nextInt(promptsToChooseFrom.length)];
+      final selectedPath =
+          promptsToChooseFrom[random.nextInt(promptsToChooseFrom.length)];
+      debugPrint('🎵 Selected voice prompt: $selectedPath');
+      return selectedPath;
     } catch (e) {
-      // Only log unexpected errors
-      debugPrint('Error getting random prompt: $e');
+      debugPrint('❌ Error getting random prompt from $folderPath: $e');
       return null;
     }
   }
@@ -579,14 +590,59 @@ class AudioService {
   /// Stop all audio playback
   Future<void> stopAllAudio() async {
     try {
-      await stopAudio(AudioType.backgroundMusic);
-      await stopAudio(AudioType.instrumentCue);
-      await stopAudio(AudioType.guidingVoice);
+      debugPrint('🔇 AudioService: Stopping all audio');
 
-      // Cancel any pending instrument stop timer
+      // Cancel any pending instrument stop timer first
       _instrumentStopTimer?.cancel();
+      _instrumentStopTimer = null;
+
+      // Stop all players directly for immediate effect
+      await Future.wait([
+        _musicPlayer.stop(),
+        _instrumentPlayer.stop(),
+        _guidingVoicePlayer.stop(),
+      ]);
+
+      // Clear current tracks
+      _currentMusic = null;
+      _currentInstrument = null;
+      _currentGuidingVoice = null;
+
+      debugPrint('✅ All audio stopped successfully');
     } catch (e) {
-      debugPrint('Error stopping all audio: $e');
+      debugPrint('❌ Error stopping all audio: $e');
+      // Force clear tracks even if stopping failed
+      _currentMusic = null;
+      _currentInstrument = null;
+      _currentGuidingVoice = null;
+    }
+  }
+
+  /// Pause all audio playback
+  Future<void> pauseAllAudio() async {
+    try {
+      debugPrint('⏸️ AudioService: Pausing all audio');
+      if (_musicPlayer.playing) await _musicPlayer.pause();
+      if (_instrumentPlayer.playing) await _instrumentPlayer.pause();
+      if (_guidingVoicePlayer.playing) await _guidingVoicePlayer.pause();
+      _instrumentStopTimer?.cancel();
+      debugPrint('⏸️ All audio paused successfully');
+    } catch (e) {
+      debugPrint('❌ Error pausing all audio: $e');
+    }
+  }
+
+  /// Resume audio playback
+  Future<void> resumeAllAudio() async {
+    try {
+      debugPrint('▶️ AudioService: Resuming audio');
+      // Only resume background music. Cues and voice are event-driven.
+      if (_currentMusic != null && !_musicPlayer.playing) {
+        await _musicPlayer.play();
+        debugPrint('▶️ Resumed music player');
+      }
+    } catch (e) {
+      debugPrint('❌ Error resuming audio: $e');
     }
   }
 
@@ -665,7 +721,7 @@ final selectedAudioProvider =
 /// Provider to track the currently selected instrument
 final selectedInstrumentProvider =
     StateNotifierProvider<SelectedInstrumentNotifier, Instrument>(
-  (ref) => SelectedInstrumentNotifier(),
+  (ref) => SelectedInstrumentNotifier(ref),
 );
 
 /// Notifier to manage the selected audio state
@@ -678,17 +734,46 @@ class SelectedAudioNotifier extends StateNotifier<String?> {
   /// Select a track by id and start playback
   Future<void> selectTrack(String trackId) async {
     state = trackId;
-    await ref.read(audioServiceProvider).playTrack(type, trackId);
+    // Don't auto-play music when selecting, only set the track
+    if (type != AudioType.backgroundMusic) {
+      await ref.read(audioServiceProvider).playTrack(type, trackId);
+    } else {
+      // For music, just set the track, playback is controlled by play/pause buttons
+      final tracks = ref.read(audioServiceProvider).getTracksByType(type);
+      final track =
+          tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
+      ref.read(audioServiceProvider)._setCurrentTrack(type, track);
+    }
+    await _saveAudioSettings();
+  }
+
+  Future<void> _saveAudioSettings() async {
+    await BreathingStatePersistenceService.saveAudioSettings(
+      musicTrackId: ref.read(selectedAudioProvider(AudioType.backgroundMusic)),
+      voiceTrackId: ref.read(selectedAudioProvider(AudioType.guidingVoice)),
+      instrument: ref.read(selectedInstrumentProvider),
+    );
   }
 }
 
 /// Notifier to manage the selected instrument state
 class SelectedInstrumentNotifier extends StateNotifier<Instrument> {
-  SelectedInstrumentNotifier() : super(Instrument.gong); // Default to gong
+  final Ref ref;
+  SelectedInstrumentNotifier(this.ref)
+      : super(Instrument.gong); // Default to gong
 
   /// Select an instrument
   void selectInstrument(Instrument instrument) {
     state = instrument;
+    _saveAudioSettings();
+  }
+
+  Future<void> _saveAudioSettings() async {
+    await BreathingStatePersistenceService.saveAudioSettings(
+      musicTrackId: ref.read(selectedAudioProvider(AudioType.backgroundMusic)),
+      voiceTrackId: ref.read(selectedAudioProvider(AudioType.guidingVoice)),
+      instrument: state,
+    );
   }
 }
 

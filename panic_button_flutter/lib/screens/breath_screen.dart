@@ -1,3 +1,11 @@
+// REFACTORED: Enhanced breath screen with robust pause/resume and state persistence
+// Changes:
+// - Fixed navigation lifecycle: pause audio and save state on dispose, restore on return
+// - Added automatic restoration of audio settings and session state
+// - Enhanced audio control: pause on navigation away, resume on return to screen
+// - Added proper session state management to prevent re-initialization
+// - Improved logging for debugging navigation and state issues
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +19,7 @@ import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
+import 'package:panic_button_flutter/services/breathing_state_persistence_service.dart';
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -28,142 +37,133 @@ class BreathScreen extends ConsumerStatefulWidget {
 
 class _BreathScreenState extends ConsumerState<BreathScreen> {
   bool _isInitialized = false;
-  bool _isFirstBuild = true;
-  bool _isAudioInitialized = false;
-  bool _isDisposed = false;
-  AudioService? _audioService;
+
+  // Cache providers in `initState` to safely use in `dispose`.
+  late final AudioService _audioService;
+  late final BreathingPlaybackController _playbackController;
 
   @override
   void initState() {
     super.initState();
-    // Delay initialization to allow proper provider setup
+    _audioService = ref.read(audioServiceProvider);
+    _playbackController =
+        ref.read(breathingPlaybackControllerProvider.notifier);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_isDisposed) {
-        // Store audio service reference early
-        try {
-          _audioService = ref.read(audioServiceProvider);
-          // Set default audio selections immediately
-          _setDefaultAudioIfNeeded();
-        } catch (e) {
-          debugPrint(
-              'Error accessing audioServiceProvider during initState: $e');
-        }
-        _initializePattern();
-      }
+      _initializeScreen();
     });
   }
 
   @override
   void dispose() {
-    // Mark as disposed first
-    _isDisposed = true;
-
-    // Call super.dispose() to properly cleanup widget resources
+    debugPrint('🔄 BreathScreen: Disposing screen');
+    if (_playbackController.state.isPlaying) {
+      _playbackController.pause();
+    }
+    _audioService.pauseAllAudio();
     super.dispose();
+  }
 
-    // Then stop audio using the saved reference
+  Future<void> _initializeScreen() async {
     try {
-      if (_audioService != null) {
-        _audioService!.stopAllAudio();
+      debugPrint('🔄 BreathScreen: Initializing screen');
+
+      await _restoreAudioSettings();
+
+      bool stateRestored = false;
+      if (widget.patternSlug == null && !widget.autoStart) {
+        stateRestored = await _playbackController.restoreSessionState();
+      } else {
+        await _playbackController.clearSavedState();
+      }
+
+      if (stateRestored) {
+        debugPrint('✅ Session state restored, UI updated.');
+      } else {
+        debugPrint('🔄 No session state, initializing new pattern.');
+        await _initializeNewPattern();
+      }
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
       }
     } catch (e) {
-      debugPrint('Error stopping audio during dispose: $e');
+      debugPrint('❌ Error initializing screen: $e');
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
     }
   }
 
-  Future<void> _initializePattern() async {
-    try {
-      if (_isDisposed) return;
-
-      // Get all notifiers we'll need before any async operations
-      final selectedPatternNotifier =
-          ref.read(selectedPatternProvider.notifier);
-      final playbackController =
-          ref.read(breathingPlaybackControllerProvider.notifier);
-
-      if (widget.patternSlug != null) {
-        // If a patternSlug is provided, select the pattern by slug first
-        await selectedPatternNotifier.selectPatternBySlug(widget.patternSlug!);
-
-        if (_isDisposed) return;
-
-        // Get expanded steps for the selected pattern
-        final expandedSteps = await ref.read(expandedStepsProvider.future);
-
-        if (_isDisposed) return;
-        final duration = ref.read(selectedDurationProvider);
-
-        if (_isDisposed) return;
-
-        if (expandedSteps.isNotEmpty) {
-          // Initialize the playback controller with the steps
-          playbackController.initialize(expandedSteps, duration);
-
-          // Auto-start only if explicitly requested (coming from home screen)
-          if (widget.autoStart) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_isDisposed) return;
-
-              playbackController.play();
-
-              // Start default background music if user hasn't selected anything yet
-              _initializeAudio();
-            });
-          }
-
-          if (!_isDisposed) {
-            setState(() {
-              _isInitialized = true;
-            });
-          }
-          return;
-        }
-      }
-
-      // Fallback to default pattern if slug not provided or pattern not found
+  Future<void> _initializeNewPattern() async {
+    if (widget.patternSlug != null) {
+      await ref
+          .read(selectedPatternProvider.notifier)
+          .selectPatternBySlug(widget.patternSlug!);
+    } else {
       final defaultPattern = await ref.read(defaultPatternProvider.future);
-
-      if (_isDisposed) return;
-
       if (defaultPattern != null) {
-        // Set this as the selected pattern
-        selectedPatternNotifier.state = defaultPattern;
-
-        // Now get expanded steps for this pattern
-        final expandedSteps = await ref.read(expandedStepsProvider.future);
-
-        if (_isDisposed) return;
-        final duration = ref.read(selectedDurationProvider);
-
-        if (_isDisposed) return;
-
-        if (expandedSteps.isNotEmpty) {
-          // Initialize the playback controller with the steps
-          playbackController.initialize(expandedSteps, duration);
-        }
+        ref.read(selectedPatternProvider.notifier).state = defaultPattern;
       }
+    }
 
-      if (!_isDisposed) {
-        setState(() {
-          _isInitialized = true; // Still mark as initialized to show UI
-        });
-      }
-    } catch (e) {
-      debugPrint('Error initializing pattern: $e');
-      if (!_isDisposed) {
-        setState(() {
-          _isInitialized = true; // Still mark as initialized to show UI
+    if (!mounted) return;
+
+    final expandedSteps = await ref.read(expandedStepsProvider.future);
+    final duration = ref.read(selectedDurationProvider);
+
+    if (expandedSteps.isNotEmpty) {
+      _playbackController.initialize(expandedSteps, duration, forceReset: true);
+      if (widget.autoStart) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _playbackController.play();
         });
       }
     }
   }
 
-  // Method to ensure default audio options are set
-  void _setDefaultAudioIfNeeded() {
-    if (_isDisposed) return;
+  Future<void> _restoreAudioSettings() async {
+    final settings = await BreathingStatePersistenceService.loadAudioSettings();
+    if (settings == null) {
+      _setDefaultAudioIfNeeded();
+      return;
+    }
 
     try {
-      // Set default guiding voice if none is selected
+      debugPrint('📂 Restoring saved audio settings: $settings');
+      final musicId = settings['musicTrackId'] as String?;
+      final voiceId = settings['voiceTrackId'] as String?;
+      final instrumentName = settings['instrument'] as String?;
+
+      if (musicId != null)
+        ref
+            .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
+            .state = musicId;
+      if (voiceId != null)
+        ref.read(selectedAudioProvider(AudioType.guidingVoice).notifier).state =
+            voiceId;
+      if (instrumentName != null) {
+        final instrument = Instrument.values.firstWhere(
+            (i) => i.name == instrumentName,
+            orElse: () => Instrument.gong);
+        ref.read(selectedInstrumentProvider.notifier).state = instrument;
+      }
+    } catch (e) {
+      debugPrint(
+          '❌ Error restoring audio settings: $e, falling back to defaults.');
+      _setDefaultAudioIfNeeded();
+    }
+  }
+
+  void _setDefaultAudioIfNeeded() {
+    if (!mounted) return;
+
+    try {
       final currentVoice =
           ref.read(selectedAudioProvider(AudioType.guidingVoice));
       if (currentVoice == null || currentVoice.isEmpty) {
@@ -172,7 +172,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
             .selectTrack('manu');
       }
 
-      // Set default background music if none is selected
       final currentMusic =
           ref.read(selectedAudioProvider(AudioType.backgroundMusic));
       if (currentMusic == null || currentMusic.isEmpty) {
@@ -181,7 +180,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
             .selectTrack('river');
       }
 
-      // Set default instrument if none is selected (gong is default)
       final currentInstrument = ref.read(selectedInstrumentProvider);
       if (currentInstrument == Instrument.off) {
         ref
@@ -193,20 +191,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
   }
 
-  // Modify the existing _initializeAudio method to use the new method
-  void _initializeAudio() {
-    if (_isDisposed) return;
-
-    if (!_isAudioInitialized) {
-      // Set all default audio options if needed
-      _setDefaultAudioIfNeeded();
-      _isAudioInitialized = true;
-    }
-  }
-
-  // Show the audio selection sheet
   void _showAudioSelectionSheet(BuildContext context) {
-    if (_isDisposed) return;
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -217,60 +203,29 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  // Update breathing controller with the current pattern and duration
   Future<void> _updateBreathingController() async {
-    if (_isDisposed) return;
+    if (!mounted) return;
 
-    // Store local references to avoid accessing ref after widget disposal
-    final controller = ref.read(breathingPlaybackControllerProvider.notifier);
-    final wasPlaying = ref.read(breathingPlaybackControllerProvider).isPlaying;
-    final expandedStepsFuture = ref.read(expandedStepsProvider.future);
-    final duration = ref.read(selectedDurationProvider);
+    final wasPlaying = _playbackController.state.isPlaying;
 
-    // Save current audio selections before making changes
-    final currentMusicTrackId =
-        ref.read(selectedAudioProvider(AudioType.backgroundMusic));
-    final currentVoiceTrackId =
-        ref.read(selectedAudioProvider(AudioType.guidingVoice));
-    final currentInstrument = ref.read(selectedInstrumentProvider);
-
-    // Pause if playing
-    if (wasPlaying) {
-      controller.pause();
+    // If a session was in progress, finish it before starting a new one.
+    if (_playbackController.state.elapsedSeconds > 0) {
+      await _playbackController.finish();
     }
 
     try {
-      // Get expanded steps for the currently selected pattern
-      final expandedSteps = await expandedStepsFuture;
-
-      // Check if widget is still mounted before continuing
-      if (_isDisposed) return;
+      final expandedSteps = await ref.read(expandedStepsProvider.future);
+      if (!mounted) return;
 
       if (expandedSteps.isNotEmpty) {
-        // Initialize controller with new pattern and duration
-        controller.initialize(expandedSteps, duration);
-
-        // Restore the audio track selections
-        if (currentMusicTrackId != null && currentMusicTrackId.isNotEmpty) {
-          ref
-              .read(selectedAudioProvider(AudioType.backgroundMusic).notifier)
-              .selectTrack(currentMusicTrackId);
-        }
-
-        if (currentVoiceTrackId != null && currentVoiceTrackId.isNotEmpty) {
-          ref
-              .read(selectedAudioProvider(AudioType.guidingVoice).notifier)
-              .selectTrack(currentVoiceTrackId);
-        }
-
-        // Restore the instrument selection
-        ref
-            .read(selectedInstrumentProvider.notifier)
-            .selectInstrument(currentInstrument);
-
-        // Resume playback if it was playing before
+        _playbackController.initialize(
+          expandedSteps,
+          ref.read(selectedDurationProvider),
+          forceReset: true,
+        );
+        // If it was playing before, automatically start the new pattern.
         if (wasPlaying) {
-          controller.play();
+          _playbackController.play();
         }
       }
     } catch (e) {
@@ -278,10 +233,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     }
   }
 
-  // Add this function to properly update when selecting a pattern from the sheet
-
   void showGoalPatternSheet(BuildContext context) {
-    if (_isDisposed) return;
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -292,71 +245,50 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: Container(
             color: Theme.of(context).colorScheme.surface,
-            height:
-                MediaQuery.of(context).size.height * 0.85, // Adjust height here
+            height: MediaQuery.of(context).size.height * 0.85,
             child: const GoalPatternSheet(),
           ),
         );
       },
     ).then((_) {
-      // This will be called when the sheet is closed
-      // We need to update the controller to use the newly selected pattern
-      if (!_isDisposed) {
+      if (mounted) {
         _updateBreathingController();
       }
     });
   }
 
-  // Navigate back to the journey screen
   void _navigateToJourney() {
-    // Use Go Router to navigate back to the journey screen
     context.go('/journey');
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(selectedPatternProvider, (previous, next) {
+      if (next != null && _isInitialized) {
+        _updateBreathingController();
+      }
+    });
+
+    ref.listen(selectedDurationProvider, (previous, next) {
+      if (_isInitialized) {
+        _updateBreathingController();
+      }
+    });
+
+    ref.listen(breathingPlaybackControllerProvider.select((s) => s.isPlaying),
+        (wasPlaying, isPlaying) {
+      if (wasPlaying == isPlaying) return;
+
+      if (isPlaying) {
+        _audioService.resumeAllAudio();
+      } else {
+        _audioService.pauseAllAudio();
+      }
+    });
+
     final playbackState = ref.watch(breathingPlaybackControllerProvider);
     final cs = Theme.of(context).colorScheme;
 
-    // Setup listeners in the build method
-    if (_isFirstBuild && !_isDisposed) {
-      // Only add these listeners once
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_isDisposed) return;
-
-        // Ensure default audio is set when returning to screen
-        _setDefaultAudioIfNeeded();
-
-        // Setup pattern change listener
-        ref.listenManual(selectedPatternProvider, (previous, next) {
-          if (_isDisposed) return;
-          if (next != null && _isInitialized) {
-            _updateBreathingController();
-          }
-        });
-
-        // Setup duration change listener
-        ref.listenManual(selectedDurationProvider, (previous, next) {
-          if (_isDisposed) return;
-          if (_isInitialized) {
-            _updateBreathingController();
-          }
-        });
-
-        // Setup breathing playback state listener for audio control
-        ref.listenManual(breathingPlaybackControllerProvider, (previous, next) {
-          if (_isDisposed) return;
-          // Start audio when exercise starts
-          if (previous != null && !previous.isPlaying && next.isPlaying) {
-            _initializeAudio();
-          }
-        });
-
-        _isFirstBuild = false;
-      });
-    }
-
-    // Show loading indicator while initializing
     if (!_isInitialized) {
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -376,7 +308,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         bottom: false,
         child: CustomScrollView(
           slivers: [
-            // Custom app bar with music button
             SliverAppBar(
               floating: true,
               snap: true,
@@ -426,7 +357,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisSize: MainAxisSize.max,
                     children: [
-                      // Breathing circle centered
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         child: BreathCircle(
@@ -440,9 +370,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
                           ),
                         ),
                       ),
-                      // Timer display
                       _buildTimerDisplay(playbackState),
-                      // Control buttons with better layout
                       Padding(
                         padding: const EdgeInsets.only(bottom: 24, top: 16),
                         child: _buildControlsLayout(),
@@ -460,7 +388,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   }
 
   Widget _buildTimerDisplay(BreathingPlaybackState playbackState) {
-    // Ensure we don't show negative time
     final totalSeconds =
         playbackState.secondsRemaining > 0 ? playbackState.secondsRemaining : 0;
 
@@ -476,28 +403,32 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  // Reorganized layout for controls following the correct hierarchy
   Widget _buildControlsLayout() {
+    final playbackState = ref.watch(breathingPlaybackControllerProvider);
+    final hasActiveSession =
+        playbackState.isPlaying || playbackState.elapsedSeconds > 0;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Play button centered - primary action (#1 in hierarchy)
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
             child: _buildPlayPauseButton(),
           ),
-
-          // Pattern selector button (#2 in hierarchy)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _buildPatternButton(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildPatternButton(),
+              if (hasActiveSession) ...[
+                const SizedBox(width: 16),
+                _buildFinishButton(),
+              ],
+            ],
           ),
-
-          // Duration selector button (#3 in hierarchy)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: _buildDurationButton(),
           ),
         ],
@@ -505,7 +436,6 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  // Play/pause button - primary action
   Widget _buildPlayPauseButton() {
     final isPlaying = ref.watch(breathingPlaybackControllerProvider).isPlaying;
     final screenSize = MediaQuery.of(context).size;
@@ -527,13 +457,14 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  // Pattern selector button - uses new 3D secondary button style
   Widget _buildPatternButton() {
     final pattern = ref.watch(selectedPatternProvider);
     final patternName = pattern?.name ?? 'Seleccionar patrón';
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
-    final buttonWidth = isSmallScreen ? 240.0 : 280.0;
+    final buttonWidth = hasActiveSession(ref)
+        ? (isSmallScreen ? 140.0 : 160.0)
+        : (isSmallScreen ? 240.0 : 280.0);
 
     return Container(
       width: buttonWidth,
@@ -558,12 +489,42 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
     );
   }
 
-  // Duration selector - uses the DurationSelectorButton to preserve functionality
+  Widget _buildFinishButton() {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
+    final buttonWidth = isSmallScreen ? 140.0 : 160.0;
+
+    return Container(
+      width: buttonWidth,
+      constraints: BoxConstraints(maxWidth: buttonWidth),
+      child: TextButton(
+        onPressed: () async {
+          await _playbackController.finish();
+        },
+        style: TextButton.styleFrom(
+          backgroundColor: Theme.of(context).colorScheme.errorContainer,
+          foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+        ),
+        child: const Text(
+          'Terminar',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool hasActiveSession(WidgetRef ref) {
+    final playbackState = ref.watch(breathingPlaybackControllerProvider);
+    return playbackState.isPlaying || playbackState.elapsedSeconds > 0;
+  }
+
   Widget _buildDurationButton() {
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 360;
     final buttonWidth = isSmallScreen ? 180.0 : 220.0;
-    // Using a container to apply custom styling to the DurationSelectorButton
     return Container(
       width: buttonWidth,
       constraints: BoxConstraints(
@@ -574,9 +535,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
   }
 
   Future<void> _toggleBreathing() async {
-    if (_isDisposed) return;
+    if (!mounted) return;
 
-    // Get all references we need upfront to avoid using ref after disposal
     final controller = ref.read(breathingPlaybackControllerProvider.notifier);
     final playbackState = ref.read(breathingPlaybackControllerProvider);
     final isPlaying = playbackState.isPlaying;
@@ -593,7 +553,7 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
         ),
       );
       expandedSteps = await ref.read(expandedStepsProvider.future);
-      if (_isDisposed) return;
+      if (!mounted) return;
     }
     final hasExistingSession = playbackState.currentActivityId != null;
     final duration = ref.read(selectedDurationProvider);
@@ -609,25 +569,19 @@ class _BreathScreenState extends ConsumerState<BreathScreen> {
           ),
         );
 
-        // Show the pattern selector sheet
         showGoalPatternSheet(context);
         return;
       }
 
-      // First initialize audio before starting the exercise
-      _initializeAudio();
+      _audioService.resumeAllAudio();
 
-      // Small delay to ensure audio is preloaded before starting the first breathe
       Future.delayed(const Duration(milliseconds: 100), () {
-        if (_isDisposed) return;
+        if (!mounted) return;
 
-        // Check if we're resuming an existing session or starting a new one
         if (!hasExistingSession) {
-          // Only initialize when starting a new session, not when resuming
           controller.initialize(expandedSteps, duration);
         }
 
-        // Always call play
         controller.play();
       });
     }
