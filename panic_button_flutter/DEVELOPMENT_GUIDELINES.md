@@ -2,6 +2,8 @@
 
 All development of the app be done inside: panicbutton_app/panic_button_flutter, other folders are just for support. And a previous MVP was created at: panicbutton_app/calm-button-breathe-easy. 
 
+You can find supporting Development docs at: panic_button_flutter/development_guidelines_extradocs
+
 ### Language Rules
 
 **Code Elements (MUST BE IN ENGLISH)**  
