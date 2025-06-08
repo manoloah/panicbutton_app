@@ -363,12 +363,13 @@ class BreathingPlaybackController
     try {
       // Only get audio service when needed
       final audioService = _ref.read(audioServiceProvider);
+      final selectedVoiceId =
+          _ref.read(selectedAudioProvider(AudioType.guidingVoice));
 
       // If we have a voice track selected
-      final voiceTrack = audioService.getCurrentTrack(AudioType.guidingVoice);
-      if (voiceTrack != null && voiceTrack.id != 'off') {
+      if (selectedVoiceId != null && selectedVoiceId.isNotEmpty) {
         // Play the appropriate voice prompt for this phase
-        audioService.playVoicePrompt(phase.toVoicePhase());
+        audioService.playVoicePrompt(selectedVoiceId, phase.toVoicePhase());
       }
     } catch (e) {
       // Only log critical errors

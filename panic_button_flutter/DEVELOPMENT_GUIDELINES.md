@@ -1404,15 +1404,37 @@ Script has been created to do this almost automatically find it at: panic_button
 
 ### Audio Integration Best Practices
 
-The app includes a comprehensive audio system for breathing exercises that follows these guidelines:
+The app includes a comprehensive audio system for breathing exercises with advanced session management and automatic pausing capabilities. The system underwent major architectural improvements to provide persistent sessions and robust error handling. Follow these guidelines:
 
-1. **Audio Layer Architecture**
+1. **Session Management & Lifecycle Architecture**
+   - **Session State Machine**: Comprehensive state tracking with 4 distinct states:
+     - `notStarted`: Initial state, shows pattern/duration selectors
+     - `playing`: Active breathing session with audio/visual guidance
+     - `paused`: Session suspended, preserving progress and allowing resume
+     - `finished`: Session completed or stopped, ready for new session
+   
+   - **Persistent Sessions**: Sessions survive navigation and app backgrounding:
+     - User can navigate away and return to find session in paused state
+     - Session progress (accumulated time) is preserved
+     - Audio state (background music selection) is restored on resume
+   
+   - **RouteObserver Integration**: Automatic session management:
+     - Sessions automatically pause when user navigates to other screens
+     - Audio is stopped to prevent background playback during navigation
+     - No manual intervention required from user to maintain session state
+   
+   - **Enhanced Lifecycle Management**:
+     - Proper widget disposal prevents memory leaks and crashes
+     - Safe provider access with disposal checks throughout async operations
+     - Graceful handling of widget state changes during navigation
+
+2. **Audio Layer Architecture**
    - The audio system uses a three-layer approach:
      - **Background Music**: Ambient sounds for relaxation (river, rain, forest)
      - **Instrument Cues**: Audio cues that play at the start of inhale and exhale phases (replacing the old tones system)
      - **Voice Guidance**: Verbal instructions synchronized with breathing
 
-2. **Instrument Cues System (New Implementation)**
+3. **Instrument Cues System (New Implementation)**
    - **Purpose**: Provides precise audio cues at the beginning of inhale and exhale phases during breathing exercises
    - **Key Features**:
      - Phase-specific playback (inhale and exhale only, no hold phases)
@@ -1453,7 +1475,7 @@ The app includes a comprehensive audio system for breathing exercises that follo
      - Uses timer-based precision to stop audio exactly at phase transitions
      - Handles cases where audio file duration exceeds phase duration
 
-3. **File Format & Organization**
+4. **File Format & Organization**
    - **File Format**: Use MP3 over WAV for several advantages:
      - Significantly smaller file size (often 10x smaller)
      - Excellent quality-to-size ratio for voice and ambient sounds
@@ -1494,7 +1516,7 @@ The app includes a comprehensive audio system for breathing exercises that follo
        # ... other voice directories
      ```
 
-4. **Safe Audio Management**
+5. **Safe Audio Management**
    - **Memory Leak Prevention**:
      - Store audio service references early in widget lifecycle:
        ```dart
@@ -1525,14 +1547,14 @@ The app includes a comprehensive audio system for breathing exercises that follo
      - Store references locally instead of accessing providers after async gaps
      - Add disposal checks after every await
 
-5. **UI Integration**
+6. **UI Integration**
    - Provide clear audio controls with proper labeling
    - Use bottom sheets for audio selection interfaces
    - Include visual feedback when audio tracks are playing
    - Initialize default tracks when none are selected
    - **Instrument Selection**: New "Instrumentos" section in AudioSelectionSheet with circular buttons and visual feedback
 
-6. **Default Audio Selection Logic**
+7. **Default Audio Selection Logic**
    ```dart
    void _setDefaultAudioIfNeeded() {
      if (_isDisposed) return;
@@ -1548,27 +1570,65 @@ The app includes a comprehensive audio system for breathing exercises that follo
    }
    ```
 
-7. **Audio Performance**
+8. **Audio Performance & Mobile Compatibility**
    - Preload audio files for key interactions
    - Handle audio focus changes (e.g., phone calls interrupting)
    - Add progressive volume transitions for smoother experience
-   - Implement retry logic for audio loading errors
+   - **Enhanced Retry Logic**: Implement robust retry mechanism for iOS "Operation Stopped" errors:
+     - Use 3 retry attempts (increased from 2)
+     - Progressive delays of 200ms between retries (increased from 100ms)
+     - Proper error logging for debugging
+   - **Asset Path Resolution**: Automatic directory structure mapping for voice prompts:
+     - Convert camelCase enum values to snake_case directory names
+     - Handle `pauseAfterInhale` → `pause_after_inhale` conversion
+     - Ensure proper `assets/` prefix for Flutter asset loading
+   - **Resource Management**: Clean audio player state between operations:
+     - Stop existing audio before starting new playback
+     - Add 50ms delays for iOS audio system stability
+     - Proper timer cleanup and cancellation
    - Reduce excessive logging in production builds
    - **Precise Timing Control**: Use Timer-based stopping for instrument cues to ensure they don't overlap phases
 
-8. **Testing Audio Integration**
+9. **Testing Audio Integration**
    - Test navigation between screens multiple times to verify no leaks
    - Test device sleep/wake behavior with active audio
    - Test with different audio output devices (speaker, headphones)
    - **Test Instrument Cues**: Verify cues play only at phase starts and stop precisely at transitions
+   - **Mobile-Specific Testing**:
+     - Test on both iOS and Android devices for platform-specific issues
+     - Verify asset loading across different file structures
+     - Monitor console logs for "Operation Stopped" or asset loading errors
+     - Test breathing patterns with all voice characters (Manu, Andrea)
+     - Validate instrument cues work with all types (gong, synth, violin, human)
+     - Test audio restoration after app backgrounding/foregrounding
 
-9. **Migration from Tones to Instrument Cues**
+10. **Troubleshooting Audio Issues**
+   - **Asset Loading Failures**:
+     - Check file paths match actual directory structure exactly
+     - Verify `pubspec.yaml` includes all required asset directories
+     - Ensure file names follow snake_case convention for voice directories
+   - **"Operation Stopped" Errors on iOS**:
+     - Verify retry logic is properly implemented with sufficient delays
+     - Check for multiple simultaneous audio operations
+     - Ensure proper audio player cleanup between operations
+   - **Directory Structure Issues**:
+     - Voice files must use snake_case: `pause_after_inhale`, not `pauseAfterInhale`
+     - Instrument files follow pattern: `{phase}_{instrument}.mp3`
+     - All paths need proper `assets/` prefix for Flutter asset loading
+   - **Performance Issues**:
+     - Monitor memory usage during extended breathing sessions
+     - Check for audio player resource leaks
+     - Verify timers are properly cancelled when switching phases
+
+10. **Migration from Tones to Instrument Cues**
    - **Removed**: `AudioType.breathGuide`, `_breathGuidePlayer`, tones asset directory
    - **Added**: `AudioType.instrumentCue`, `_instrumentPlayer`, instrument cues asset structure
    - **Updated**: Audio selection UI, default settings, state management providers
    - **Maintained**: All existing functionality while improving precision and user experience
 
 Following these guidelines ensures audio integration that enhances the user experience while maintaining app stability and performance.
+
+**For detailed technical information about recent audio system improvements, see**: `development_guidelines_extradocs/improved_breathing_screen_playback_logic.md`
 
 ---
 

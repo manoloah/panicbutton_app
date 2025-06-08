@@ -28,6 +28,10 @@ bool isAuthenticated = false;
 // Router key for refreshing navigation state
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+// --- Route Observer ---
+// Used by breath_screen.dart to detect navigation and auto-pause sessions.
+final routeObserver = RouteObserver<PageRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -157,6 +161,7 @@ class MyApp extends StatelessWidget {
 
 final _router = GoRouter(
   navigatorKey: _rootNavigatorKey,
+  observers: [routeObserver],
   initialLocation: '/',
   redirect: (context, state) {
     // First check if Supabase is initialized

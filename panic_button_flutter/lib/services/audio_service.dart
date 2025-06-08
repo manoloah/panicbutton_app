@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
@@ -161,7 +162,7 @@ class AudioService {
     try {
       final session = await AudioSession.instance;
 
-      // Configure the session with proper settings
+      // Configure the session with iOS-optimized settings
       await session.configure(const AudioSessionConfiguration(
         avAudioSessionCategory: AVAudioSessionCategory.playback,
         avAudioSessionCategoryOptions:
@@ -172,14 +173,39 @@ class AudioService {
           usage: AndroidAudioUsage.media,
         ),
         androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
-        androidWillPauseWhenDucked: true,
+        androidWillPauseWhenDucked:
+            false, // Changed to false for better iOS compatibility
       ));
 
       // Ensure session is active
       await session.setActive(true);
+
+      // Add interruption handling for iOS
+      session.interruptionEventStream.listen((event) {
+        if (event.begin) {
+          // Interruption began, pause all audio
+          debugPrint('🔇 Audio session interrupted, pausing all audio');
+          _handleAudioInterruption();
+        } else {
+          // Interruption ended, can resume if needed
+          debugPrint('🎵 Audio session interruption ended');
+        }
+      });
     } catch (e) {
       // On web or during development, this might fail but we can continue
       debugPrint('Audio session initialization issue: $e');
+    }
+  }
+
+  /// Handle audio session interruptions (iOS specific)
+  void _handleAudioInterruption() {
+    try {
+      _musicPlayer.pause();
+      _instrumentPlayer.stop();
+      _guidingVoicePlayer.stop();
+      _instrumentStopTimer?.cancel();
+    } catch (e) {
+      debugPrint('Error handling audio interruption: $e');
     }
   }
 
@@ -249,64 +275,73 @@ class AudioService {
     // 5. The new voice will automatically appear in the UI for selection
   }
 
-  /// Play an instrument cue for the specified phase with precise timing
+  /// Play an instrument cue for the specified phase with iOS error handling
   Future<void> playInstrumentCue(
     Instrument instrument,
     BreathInstrumentPhase phase,
     int phaseDurationSeconds,
   ) async {
-    // Stop any currently playing instrument cue
-    _instrumentStopTimer?.cancel();
-    await _instrumentPlayer.stop();
-
-    // If instrument is off, don't play anything
-    if (instrument == Instrument.off) {
+    if (instrument.name == 'off' || instrument.name.toLowerCase() == 'off')
       return;
-    }
 
     try {
-      // Build the asset path
+      // Stop any current instrument playback first to prevent conflicts
+      _instrumentStopTimer?.cancel();
+      try {
+        await _instrumentPlayer.stop();
+      } catch (e) {
+        // Ignore stop errors, continue with setup
+      }
+
+      // Small delay to let the player reset (iOS specific)
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // Build the asset path (no leading 'assets/' prefix needed for setAsset)
       final phaseName =
           phase == BreathInstrumentPhase.inhale ? 'inhale' : 'exhale';
-      final instrumentName = instrument.name;
+      final instrumentName = instrument.name.toLowerCase();
       final assetPath =
           'assets/sounds/instrument_cues/$instrumentName/${phaseName}_$instrumentName.mp3';
 
-      // Load and play the instrument cue
-      await _instrumentPlayer.setAsset(assetPath);
-      await _instrumentPlayer.setVolume(0.8);
+      // Retry logic for iOS "Operation Stopped" errors
+      bool success = false;
+      int attempts = 0;
+      const maxAttempts = 3;
 
-      // Get the duration of the audio file
-      final audioDuration = _instrumentPlayer.duration;
+      while (!success && attempts < maxAttempts) {
+        attempts++;
+        try {
+          await _instrumentPlayer.setAsset(assetPath);
+          await _instrumentPlayer.setVolume(0.7);
+          await _instrumentPlayer.play();
+          success = true;
+          debugPrint('🎵 Playing instrument cue: $assetPath');
 
-      if (audioDuration != null) {
-        final audioDurationSeconds = audioDuration.inSeconds;
-
-        if (audioDurationSeconds <= phaseDurationSeconds) {
-          // Audio is shorter than or equal to phase duration - play once
-          await _instrumentPlayer.setLoopMode(LoopMode.off);
-        } else {
-          // Audio is longer than phase duration - play and stop at phase end
-          await _instrumentPlayer.setLoopMode(LoopMode.off);
-
-          // Schedule stop at phase end
+          // Set timer to stop the cue after the phase duration
           _instrumentStopTimer = Timer(
             Duration(seconds: phaseDurationSeconds),
             () async {
               try {
                 await _instrumentPlayer.stop();
               } catch (e) {
-                // Ignore errors when stopping
+                debugPrint('Error stopping instrument cue: $e');
               }
             },
           );
+        } catch (e) {
+          if (e.toString().contains('Operation Stopped') &&
+              attempts < maxAttempts) {
+            debugPrint('🔄 Instrument cue retry $attempts: Operation Stopped');
+            await Future.delayed(const Duration(milliseconds: 200));
+            continue;
+          } else {
+            debugPrint('❌ Error playing instrument cue: $e');
+            break;
+          }
         }
       }
-
-      // Start playback
-      await _instrumentPlayer.play();
     } catch (e) {
-      debugPrint('Error playing instrument cue: $e');
+      debugPrint('❌ Error in instrument cue setup: $e');
     }
   }
 
@@ -342,7 +377,7 @@ class AudioService {
         tracks.firstWhere((t) => t.id == trackId, orElse: () => tracks.first);
 
     // If "Off" is selected, stop playback
-    if (track.id == 'off') {
+    if (track.path.isEmpty) {
       await stopAudio(type);
       _setCurrentTrack(type, null);
       return;
@@ -365,14 +400,13 @@ class AudioService {
         bool loaded = false;
         int attempts = 0;
         const maxAttempts = 3;
-        String assetPath = track.path;
 
         while (!loaded && attempts < maxAttempts) {
           attempts++;
           try {
             // Small delay before retry to let resources free up
             if (attempts > 1) {
-              debugPrint('Retry attempt $attempts for $assetPath');
+              debugPrint('Retry attempt $attempts for $track.path');
               await Future.delayed(const Duration(milliseconds: 300));
             }
 
@@ -380,7 +414,7 @@ class AudioService {
             if (track.id == 'river' && attempts > 1) {
               // Try loading the asset as a byte array first
               try {
-                final data = await rootBundle.load(assetPath);
+                final data = await rootBundle.load(track.path);
                 await player.setAudioSource(
                   BytesAudioSource(data.buffer.asUint8List()),
                 );
@@ -392,7 +426,7 @@ class AudioService {
               }
             }
 
-            await player.setAsset(assetPath);
+            await player.setAsset(track.path);
             loaded = true;
           } catch (e) {
             // Check if this is a known "Operation Stopped" error that might resolve with retry
@@ -415,7 +449,7 @@ class AudioService {
             } else if (attempts >= maxAttempts) {
               // Log only on final failure
               debugPrint(
-                  'Failed to load audio asset after $attempts attempts: $assetPath - $e');
+                  'Failed to load audio asset after $attempts attempts: $track.path - $e');
               return;
             }
           }
@@ -445,120 +479,133 @@ class AudioService {
     }
   }
 
-  /// Play a guiding voice prompt for the specified phase
-  Future<void> playVoicePrompt(BreathVoicePhase phase) async {
-    // Get current guiding voice
-    final voiceTrack = _currentGuidingVoice;
-    if (voiceTrack == null || voiceTrack.id == 'off') {
-      return; // No voice selected or voice is off
-    }
-
-    // Get the base path for the voice
-    final basePath = voiceTrack.path;
-
-    // Map phase to folder name
-    String phaseFolder;
-    switch (phase) {
-      case BreathVoicePhase.inhale:
-        phaseFolder = 'inhale';
-        break;
-      case BreathVoicePhase.pauseAfterInhale:
-        phaseFolder = 'pause_after_inhale';
-        break;
-      case BreathVoicePhase.exhale:
-        phaseFolder = 'exhale';
-        break;
-      case BreathVoicePhase.pauseAfterExhale:
-        phaseFolder = 'pause_after_exhale';
-        break;
-    }
+  /// Play a voice prompt for the specified phase with iOS error handling
+  Future<void> playVoicePrompt(String voiceId, BreathVoicePhase phase) async {
+    if (voiceId.isEmpty) return;
 
     try {
-      // Get a random prompt that hasn't been played recently
-      final promptPath = await _getRandomPrompt('$basePath/$phaseFolder');
-      if (promptPath == null) {
-        return; // No prompt files found
+      // Stop any current voice playback first to prevent conflicts
+      try {
+        await _guidingVoicePlayer.stop();
+      } catch (e) {
+        // Ignore stop errors, continue with setup
       }
 
-      // Stop current voice playback
-      await _guidingVoicePlayer.stop();
+      // Small delay to let the player reset (iOS specific)
+      await Future.delayed(const Duration(milliseconds: 50));
 
-      // Set up new prompt
-      await _guidingVoicePlayer.setAsset(promptPath);
+      // Convert phase name to directory structure format
+      String phaseName = phase.toString().split('.').last;
+      // Convert camelCase to snake_case for directory names
+      phaseName = phaseName.replaceAllMapped(
+        RegExp(r'([A-Z])'),
+        (match) => '_${match.group(1)!.toLowerCase()}',
+      );
+      // Remove leading underscore if present
+      if (phaseName.startsWith('_')) {
+        phaseName = phaseName.substring(1);
+      }
 
-      // Configure one-time playback
-      await _guidingVoicePlayer.setLoopMode(LoopMode.off);
+      // Build the asset path with correct directory structure
+      final assetPath = 'assets/sounds/guiding_voices/$voiceId/$phaseName';
 
-      // Set volume and play
-      await _guidingVoicePlayer.setVolume(1.0);
-      await _guidingVoicePlayer.play();
+      // Define available files based on what actually exists in assets for each voice
+      final availableFiles = <String>[];
 
-      // Record this prompt as played
-      _recordPlayedPrompt(phaseFolder, promptPath);
-    } catch (e) {
-      // Just log error but don't interrupt breathing exercise
-      debugPrint('Error playing voice prompt: $e');
-    }
-  }
-
-  /// Get a random prompt from the specified folder that hasn't been played recently
-  Future<String?> _getRandomPrompt(String folderPath) async {
-    try {
-      // This would normally use a file system API to list files
-      // For simplicity and safety, we'll use numbered files
-      final validPaths = <String>[];
-
-      // Try files with numbers 1-5 (reasonable number of variations)
-      for (int i = 1; i <= 5; i++) {
-        final path = '$folderPath/${i}.mp3';
-        try {
-          // Check if this file exists by trying to load its bytes
-          await rootBundle.load(path);
-          validPaths.add(path);
-        } catch (e) {
-          // File doesn't exist, continue silently
+      if (voiceId == 'manu') {
+        // Manu voice files
+        if (phaseName == 'inhale') {
+          availableFiles.addAll(['$assetPath/1.mp3', '$assetPath/2.mp3']);
+        } else if (phaseName == 'exhale') {
+          availableFiles.addAll(
+              ['$assetPath/1.mp3', '$assetPath/2.mp3', '$assetPath/3.mp3']);
+        } else if (phaseName == 'pause_after_inhale') {
+          // Manu pause_after_inhale: has 1.mp3, 2.mp3, 3.mp3, 4.mp3
+          availableFiles.addAll([
+            '$assetPath/1.mp3',
+            '$assetPath/2.mp3',
+            '$assetPath/3.mp3',
+            '$assetPath/4.mp3'
+          ]);
+        } else if (phaseName == 'pause_after_exhale') {
+          // Manu pause_after_exhale: has 1.mp3, 2.mp3, 3.mp3, 4.mp3
+          availableFiles.addAll([
+            '$assetPath/1.mp3',
+            '$assetPath/2.mp3',
+            '$assetPath/3.mp3',
+            '$assetPath/4.mp3'
+          ]);
+        } else {
+          // For any other phases, try 1.mp3 and 2.mp3 as fallback
+          availableFiles.addAll(['$assetPath/1.mp3', '$assetPath/2.mp3']);
         }
+      } else if (voiceId == 'andrea') {
+        // Andrea voice files
+        if (phaseName == 'inhale') {
+          availableFiles.addAll(['$assetPath/1.mp3', '$assetPath/2.mp3']);
+        } else if (phaseName == 'exhale') {
+          availableFiles.add('$assetPath/1.mp3');
+        } else if (phaseName == 'pause_after_inhale') {
+          // Andrea pause_after_inhale: has 1.mp3, 2.mp3, 3.mp3, 4.mp3
+          availableFiles.addAll([
+            '$assetPath/1.mp3',
+            '$assetPath/2.mp3',
+            '$assetPath/3.mp3',
+            '$assetPath/4.mp3'
+          ]);
+        } else if (phaseName == 'pause_after_exhale') {
+          // Andrea pause_after_exhale: has 1.mp3, 2.mp3, 3.mp3, 4.mp3
+          availableFiles.addAll([
+            '$assetPath/1.mp3',
+            '$assetPath/2.mp3',
+            '$assetPath/3.mp3',
+            '$assetPath/4.mp3'
+          ]);
+        } else {
+          // For any other phases, try 1.mp3 as fallback
+          availableFiles.add('$assetPath/1.mp3');
+        }
+      } else {
+        // For other voices (future), try common files
+        availableFiles.addAll(['$assetPath/1.mp3', '$assetPath/2.mp3']);
       }
 
-      if (validPaths.isEmpty) {
-        // Only log when no valid files are found in a folder
-        debugPrint('No valid voice prompts found in: $folderPath');
-        return null;
+      if (availableFiles.isNotEmpty) {
+        // Randomly select from available files
+        final random = Random();
+        final selectedFile =
+            availableFiles[random.nextInt(availableFiles.length)];
+
+        // Retry logic for iOS "Operation Stopped" errors
+        bool success = false;
+        int attempts = 0;
+        const maxAttempts = 3;
+
+        while (!success && attempts < maxAttempts) {
+          attempts++;
+          try {
+            await _guidingVoicePlayer.setAsset(selectedFile);
+            await _guidingVoicePlayer.setVolume(0.8);
+            await _guidingVoicePlayer.play();
+            success = true;
+            debugPrint('🎵 Playing voice prompt: $selectedFile');
+          } catch (e) {
+            if (e.toString().contains('Operation Stopped') &&
+                attempts < maxAttempts) {
+              debugPrint('🔄 Voice prompt retry $attempts: Operation Stopped');
+              await Future.delayed(const Duration(milliseconds: 200));
+              continue;
+            } else {
+              debugPrint('❌ Error playing voice prompt: $e');
+              break;
+            }
+          }
+        }
+      } else {
+        debugPrint('⚠️ No valid voice files found for $voiceId/$phaseName');
       }
-
-      // Get a list of played prompts for this folder
-      final playedPrompts = _playedPrompts[folderPath] ?? [];
-
-      // Filter out recently played prompts if possible
-      final unplayedPrompts =
-          validPaths.where((path) => !playedPrompts.contains(path)).toList();
-
-      // If all prompts have been played, use any prompt
-      final promptsToChooseFrom =
-          unplayedPrompts.isNotEmpty ? unplayedPrompts : validPaths;
-
-      // Pick a random prompt
-      final random = Random();
-      return promptsToChooseFrom[random.nextInt(promptsToChooseFrom.length)];
     } catch (e) {
-      // Only log unexpected errors
-      debugPrint('Error getting random prompt: $e');
-      return null;
-    }
-  }
-
-  /// Record a prompt as played to avoid repetition
-  void _recordPlayedPrompt(String folder, String path) {
-    if (!_playedPrompts.containsKey(folder)) {
-      _playedPrompts[folder] = [];
-    }
-
-    // Add to played list
-    _playedPrompts[folder]!.add(path);
-
-    // Keep only the 3 most recent prompts to avoid repetition
-    if (_playedPrompts[folder]!.length > 3) {
-      _playedPrompts[folder]!.removeAt(0);
+      debugPrint('❌ Error in voice prompt setup: $e');
     }
   }
 
@@ -576,33 +623,57 @@ class AudioService {
     }
   }
 
-  /// Stop all audio playback
+  /// Stop all audio streams immediately with iOS-safe handling.
+  /// This is useful for when the user leaves the breathing screen.
   Future<void> stopAllAudio() async {
     try {
-      await stopAudio(AudioType.backgroundMusic);
-      await stopAudio(AudioType.instrumentCue);
-      await stopAudio(AudioType.guidingVoice);
-
-      // Cancel any pending instrument stop timer
+      // Cancel any pending timers first
       _instrumentStopTimer?.cancel();
+
+      // Stop all players individually with error handling (iOS safe)
+      final stopTasks = <Future>[];
+
+      // Stop music player
+      stopTasks.add(_stopPlayerSafely(_musicPlayer, 'music'));
+
+      // Stop instrument player
+      stopTasks.add(_stopPlayerSafely(_instrumentPlayer, 'instrument'));
+
+      // Stop voice player
+      stopTasks.add(_stopPlayerSafely(_guidingVoicePlayer, 'voice'));
+
+      // Wait for all stops to complete (with timeout for safety)
+      await Future.wait(stopTasks).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('⚠️ Audio stop timeout, continuing anyway');
+          return [];
+        },
+      );
+
+      // Reset current tracks
+      _setCurrentTrack(AudioType.backgroundMusic, null);
+      _setCurrentTrack(AudioType.instrumentCue, null);
+      _setCurrentTrack(AudioType.guidingVoice, null);
+
+      debugPrint('🔇 All audio stopped');
     } catch (e) {
-      debugPrint('Error stopping all audio: $e');
+      debugPrint('Error stopping audio: $e');
     }
   }
 
-  /// Dispose all players to free resources
-  Future<void> dispose() async {
+  /// Safely stop a player with error handling
+  Future<void> _stopPlayerSafely(AudioPlayer player, String playerName) async {
     try {
-      // Cancel any pending timers
-      _instrumentStopTimer?.cancel();
-
-      await _musicPlayer.dispose();
-      await _instrumentPlayer.dispose();
-      await _guidingVoicePlayer.dispose();
+      await player.stop();
     } catch (e) {
-      debugPrint('Error disposing audio players: $e');
+      // Ignore stop errors on iOS - they're often harmless
+      debugPrint('ℹ️ Stop $playerName player: $e');
     }
   }
+
+  // Note: dispose() method removed to prevent web compatibility issues.
+  // Use stopAllAudio() instead when cleaning up.
 
   /// Helper method to get the appropriate player by type
   AudioPlayer _getPlayerByType(AudioType type) {
@@ -652,6 +723,67 @@ class AudioService {
       }
     } catch (e) {
       // Silently ignore preloading errors
+    }
+  }
+
+  /// Load and play a music track with iOS error handling
+  Future<void> playMusic(AudioTrack track) async {
+    try {
+      // If "Off" is selected, stop playback
+      if (track.path.isEmpty) {
+        await stopAudio(AudioType.backgroundMusic);
+        _setCurrentTrack(AudioType.backgroundMusic, null);
+        return;
+      }
+
+      // Stop any current music playback first to prevent conflicts
+      try {
+        await _musicPlayer.stop();
+      } catch (e) {
+        // Ignore stop errors, continue with setup
+      }
+
+      // Small delay to let the player reset (iOS specific)
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Use the track path directly since it already includes the assets prefix
+      final assetPath = track.path;
+
+      // Retry logic for iOS "Operation Stopped" errors
+      bool success = false;
+      int attempts = 0;
+      const maxAttempts =
+          3; // More attempts for music since it's longer-running
+
+      while (!success && attempts < maxAttempts) {
+        attempts++;
+        try {
+          await _musicPlayer.setAsset(assetPath);
+          await _musicPlayer.setLoopMode(LoopMode.all);
+          await _musicPlayer
+              .setVolume(0.6); // Slightly lower volume for better mixing
+          await _musicPlayer.play();
+          success = true;
+
+          _setCurrentTrack(AudioType.backgroundMusic, track);
+          debugPrint('🎵 Playing music: ${track.name}');
+        } catch (e) {
+          if (e.toString().contains('Operation Stopped') &&
+              attempts < maxAttempts) {
+            debugPrint('🔄 Music retry $attempts: Operation Stopped');
+            await Future.delayed(
+                Duration(milliseconds: 200 * attempts)); // Increasing delay
+            continue;
+          } else {
+            debugPrint('❌ Error playing music: $e');
+            _setCurrentTrack(AudioType.backgroundMusic, null);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error in music setup: $e');
+      _setCurrentTrack(AudioType.backgroundMusic, null);
     }
   }
 }
