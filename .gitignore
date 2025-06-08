@@ -134,3 +134,4 @@ app.*.symbols
 scripts/debug_run.sh
 
 .DS_Store
+flutter/

@@ -17,6 +17,11 @@ class EnvConfig {
     defaultValue: '',
   );
 
+  static const String _hcaptchaSiteKey = String.fromEnvironment(
+    'HCAPTCHA_SITEKEY',
+    defaultValue: '',
+  );
+
   /// Load .env file in debug mode
   static Future<void> load() async {
     if (kDebugMode) {
@@ -68,6 +73,24 @@ class EnvConfig {
     if (kDebugMode) {
       debugPrint(
           '⚠️ SUPABASE_ANON_KEY missing. Use --dart-define or .env file');
+    }
+
+    return '';
+  }
+
+  /// Get hCaptcha site key with fallback logic
+  static String get hcaptchaSiteKey {
+    if (_hcaptchaSiteKey.isNotEmpty) {
+      return _hcaptchaSiteKey;
+    }
+
+    final envValue = dotenv.env['HCAPTCHA_SITEKEY'];
+    if (envValue != null && envValue.isNotEmpty) {
+      return envValue;
+    }
+
+    if (kDebugMode) {
+      debugPrint('⚠️ HCAPTCHA_SITEKEY missing.');
     }
 
     return '';
