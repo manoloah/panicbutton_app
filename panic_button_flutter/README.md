@@ -44,11 +44,13 @@ A calming app for anxiety and panic relief with breathing exercises.
 4. Configure Environment Variables:
    - Create a `.env` file in the root directory with your Supabase credentials:
      ```
-     SUPABASE_URL=your_supabase_url
-     SUPABASE_ANON_KEY=your_supabase_anon_key
-     ```
-   - IMPORTANT: Never commit this file to version control
-   - The app uses a centralized environment system in `lib/config/env_config.dart`
+    SUPABASE_URL=your_supabase_url
+    SUPABASE_ANON_KEY=your_supabase_anon_key
+    HCAPTCHA_SITEKEY=your_hcaptcha_site_key
+    ```
+  - IMPORTANT: Never commit this file to version control
+  - The app uses a centralized environment system in `lib/config/env_config.dart`
+  - `HCAPTCHA_SITEKEY` is required when hCaptcha is enabled in Supabase
    - For CI/CD environments, use `--dart-define` flags in your build commands
 
 5. Development Workflow Options:

@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/config/env_config.dart';
+import 'package:hcaptcha_flutter/hcaptcha_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'dart:async';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -100,6 +103,27 @@ class _AuthScreenState extends State<AuthScreen> {
     return 'Ha ocurrido un error. Por favor intenta de nuevo.';
   }
 
+  Future<String?> _getCaptchaToken() async {
+    if (EnvConfig.hcaptchaSiteKey.isEmpty) return null;
+
+    String? token;
+    final completer = Completer<String?>();
+    HCaptchaFlutter.setMethodCallHandler((MethodCall call) async {
+      if (call.method == 'success' && call.arguments != null) {
+        final res = call.arguments as Map<dynamic, dynamic>;
+        token = res['token'] as String?;
+        completer.complete(token);
+      } else if (call.method == 'error') {
+        completer.complete(null);
+      }
+    });
+    await HCaptchaFlutter.show({
+      'siteKey': EnvConfig.hcaptchaSiteKey,
+      'language': 'es',
+    });
+    return completer.future;
+  }
+
   Future<void> _handleSubmit() async {
     if (_configError) {
       _showError('Error de configuración. Contacte al soporte.');
@@ -122,9 +146,16 @@ class _AuthScreenState extends State<AuthScreen> {
           debugPrint('Using Supabase URL: ${EnvConfig.supabaseUrl}');
         }
 
+        final captchaToken = await _getCaptchaToken();
+        if (captchaToken == null) {
+          _showError('Por favor completa el captcha');
+          return;
+        }
+
         final response = await Supabase.instance.client.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          captchaToken: captchaToken,
         );
 
         if (response.user != null && !_isDisposed) {
@@ -151,9 +182,16 @@ class _AuthScreenState extends State<AuthScreen> {
               'Attempting signup with email: ${_emailController.text.trim()}');
         }
 
+        final captchaToken = await _getCaptchaToken();
+        if (captchaToken == null) {
+          _showError('Por favor completa el captcha');
+          return;
+        }
+
         final response = await Supabase.instance.client.auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          captchaToken: captchaToken,
         );
 
         if (response.user != null && !_isDisposed && mounted) {
