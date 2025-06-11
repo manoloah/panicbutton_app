@@ -38,29 +38,21 @@ class _HCaptchaWidgetState extends State<HCaptchaWidget> {
       return;
     }
 
-    // For now, we'll simulate the hCaptcha flow for web development
-    if (kIsWeb) {
-      Timer(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          // Simulate successful hCaptcha completion for development
-          Timer(const Duration(seconds: 1), () {
-            if (mounted) {
-              widget.onTokenReceived(
-                  'dev-hcaptcha-token-${DateTime.now().millisecondsSinceEpoch}');
-            }
-          });
-        }
-      });
-    } else {
-      // For mobile platforms
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'hCaptcha not implemented for mobile yet';
-      });
-    }
+    // Simulate the hCaptcha flow for development on both web and mobile
+    Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        // Simulate successful hCaptcha completion for development
+        Timer(const Duration(seconds: 1), () {
+          if (mounted) {
+            widget.onTokenReceived(
+                'dev-hcaptcha-token-${DateTime.now().millisecondsSinceEpoch}');
+          }
+        });
+      }
+    });
   }
 
   @override
@@ -172,77 +164,47 @@ class _HCaptchaWidgetState extends State<HCaptchaWidget> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-                if (kIsWeb) ...[
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.grey.shade50,
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.check_circle,
-                            size: 48, color: Colors.green),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'hCaptcha Simulation (Development)',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Site Key: ${siteKey.substring(0, 20)}...',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Auto-completing for development...',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
+                Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.green.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.green.shade50,
                   ),
-                ] else ...[
-                  Container(
-                    height: 150,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.blue.shade300),
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.blue.shade50,
-                    ),
-                    child: const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.phone_android, color: Colors.blue, size: 48),
-                        SizedBox(height: 8),
-                        Text(
-                          'Mobile hCaptcha',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
-                          ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.check_circle,
+                          size: 48, color: Colors.green),
+                      const SizedBox(height: 8),
+                      Text(
+                        kIsWeb
+                            ? 'hCaptcha Simulation (Web Dev)'
+                            : 'hCaptcha Simulation (Mobile Dev)',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Coming soon for mobile platforms',
-                          style: TextStyle(fontSize: 12, color: Colors.blue),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Site Key: ${siteKey.length > 20 ? siteKey.substring(0, 20) : siteKey}...',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontFamily: 'monospace',
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Auto-completing for development...',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),

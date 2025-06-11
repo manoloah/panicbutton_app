@@ -5,10 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/config/env_config.dart';
 import 'package:panic_button_flutter/widgets/hcaptcha_widget.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:async';
-import 'dart:io' show Platform;
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
