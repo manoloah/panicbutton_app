@@ -4,7 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:panic_button_flutter/config/env_config.dart';
 import 'package:panic_button_flutter/widgets/hcaptcha_widget.dart';
+import 'package:hcaptcha_flutter/hcaptcha_flutter.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 import 'dart:async';
 
@@ -103,7 +105,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<String?> _getCaptchaToken() async {
-    // Always check if hCaptcha is configured
     if (EnvConfig.hcaptchaSiteKey.isEmpty) {
       if (kDebugMode) {
         debugPrint('⚠️ hCaptcha site key not configured');
@@ -113,45 +114,78 @@ class _AuthScreenState extends State<AuthScreen> {
     }
 
     try {
-      final completer = Completer<String?>();
-
-      if (mounted) {
-        final result = await showDialog<String>(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('🔒 Verificación de Seguridad'),
-              content: SizedBox(
-                height: 450,
-                width: 400,
-                child: HCaptchaWidget(
-                  onTokenReceived: (token) {
-                    if (kDebugMode) {
-                      debugPrint(
-                          '✅ hCaptcha token received: ${token.substring(0, 20)}...');
-                    }
-                    Navigator.of(context).pop(token);
-                  },
-                  onError: () {
-                    if (kDebugMode) {
-                      debugPrint('❌ hCaptcha error occurred');
-                    }
-                    Navigator.of(context).pop(null);
-                  },
+      if (kIsWeb) {
+        // Web: Use simulation dialog (since hcaptcha_flutter doesn't support web)
+        if (mounted) {
+          final result = await showDialog<String>(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('🔒 Verificación de Seguridad'),
+                content: SizedBox(
+                  height: 450,
+                  width: 400,
+                  child: HCaptchaWidget(
+                    onTokenReceived: (token) {
+                      if (kDebugMode) {
+                        debugPrint(
+                            '✅ hCaptcha token received (web simulation): ${token.substring(0, 20)}...');
+                      }
+                      Navigator.of(context).pop(token);
+                    },
+                    onError: () {
+                      if (kDebugMode) {
+                        debugPrint(
+                            '❌ hCaptcha error occurred (web simulation)');
+                      }
+                      Navigator.of(context).pop(null);
+                    },
+                  ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(null),
-                  child: const Text('Cancelar'),
-                ),
-              ],
-            );
-          },
-        );
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(null),
+                    child: const Text('Cancelar'),
+                  ),
+                ],
+              );
+            },
+          );
+          return result;
+        }
+      } else {
+        // Mobile: Use real hCaptcha plugin
+        if (kDebugMode) {
+          debugPrint('🔒 Showing real hCaptcha on mobile...');
+        }
 
-        return result;
+        String? token;
+        final completer = Completer<String?>();
+
+        HCaptchaFlutter.setMethodCallHandler((MethodCall call) async {
+          if (call.method == 'success' && call.arguments != null) {
+            final res = call.arguments as Map<dynamic, dynamic>;
+            token = res['token'] as String?;
+            if (kDebugMode) {
+              debugPrint(
+                  '✅ Real hCaptcha token received: ${token?.substring(0, 20)}...');
+            }
+            completer.complete(token);
+          } else if (call.method == 'error') {
+            if (kDebugMode) {
+              debugPrint('❌ Real hCaptcha error occurred');
+            }
+            completer.complete(null);
+          }
+        });
+
+        await HCaptchaFlutter.show({
+          'siteKey': EnvConfig.hcaptchaSiteKey,
+          'language': 'es',
+        });
+
+        return completer.future;
       }
 
       return null;
@@ -194,7 +228,10 @@ class _AuthScreenState extends State<AuthScreen> {
         final response = await Supabase.instance.client.auth.signInWithPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          captchaToken: captchaToken.startsWith('debug-') ? null : captchaToken,
+          captchaToken: (captchaToken.startsWith('debug-') ||
+                  captchaToken.startsWith('dev-'))
+              ? null
+              : captchaToken,
         );
 
         if (response.user != null && !_isDisposed) {
@@ -230,7 +267,10 @@ class _AuthScreenState extends State<AuthScreen> {
         final response = await Supabase.instance.client.auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          captchaToken: captchaToken.startsWith('debug-') ? null : captchaToken,
+          captchaToken: (captchaToken.startsWith('debug-') ||
+                  captchaToken.startsWith('dev-'))
+              ? null
+              : captchaToken,
         );
 
         if (response.user != null && !_isDisposed && mounted) {

@@ -45,9 +45,8 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.9.0
 
-  # hCaptcha integration - using webview for better web support
-  webview_flutter: ^4.4.2
-  webview_flutter_web: ^0.2.2+4
+  # hCaptcha integration
+  hcaptcha_flutter: ^0.0.1+1
 
   # Firebase (for future auth)
   firebase_core: ^2.32.0
