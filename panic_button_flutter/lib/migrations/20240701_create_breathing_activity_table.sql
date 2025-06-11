@@ -24,11 +24,11 @@ ON breathing_activity
 FOR SELECT 
 USING (auth.uid() = user_id);
 
--- Allow users to insert their own activity
+-- Allow users to insert their own activity (allow 0 duration for initial creation)
 CREATE POLICY "Users can insert their own breathing activity" 
 ON breathing_activity 
 FOR INSERT 
-WITH CHECK (auth.uid() = user_id AND duration_seconds >= 10);
+WITH CHECK (auth.uid() = user_id AND duration_seconds >= 0);
 
 -- Allow users to update their own activity
 CREATE POLICY "Users can update their own breathing activity" 

@@ -88,6 +88,7 @@ class BreathingPlaybackController
   Timer? _timer;
   DateTime? _startTime;
   int _accumulatedSeconds = 0;
+  bool _activityCompleted = false;
 
   BreathingPlaybackController(this._repository, this._ref)
       : super(const BreathingPlaybackState());
@@ -96,6 +97,10 @@ class BreathingPlaybackController
     if (steps.isEmpty) {
       return;
     }
+
+    // Cancel any existing timer
+    _timer?.cancel();
+    _timer = null;
 
     // If there's an ongoing activity, complete it
     _completeCurrentActivity(false);
@@ -110,16 +115,18 @@ class BreathingPlaybackController
           steps.isNotEmpty ? steps[0].inhaleSecs.toDouble() : 0,
       elapsedSeconds: 0,
       currentActivityId: null,
+      currentStepIndex: 0, // Reset step index
     );
 
     _startTime = null;
     _accumulatedSeconds = 0;
+    _activityCompleted = false;
 
     // Log debug info about initialization
     final pattern = _ref.read(selectedPatternProvider);
     if (pattern != null) {
       debugPrint(
-          '🔄 Initialized pattern: ${pattern.name} (${pattern.id}), duration: $durationMinutes minutes');
+          '🔄 Initialized pattern: ${pattern.name} (${pattern.id}), duration: $durationMinutes minutes, totalSeconds: $totalSeconds');
     }
   }
 
@@ -152,9 +159,13 @@ class BreathingPlaybackController
         final activityId = await _repository.getCurrentBreathingActivity();
         if (activityId != null) {
           state = state.copyWith(currentActivityId: activityId);
+          debugPrint('✅ Activity tracking started: $activityId');
+        } else {
+          debugPrint('⚠️ Failed to get activity ID after creation');
         }
       } catch (e) {
-        debugPrint('Error starting activity tracking: $e');
+        debugPrint('❌ Error starting activity tracking: $e');
+        // Continue without activity tracking - the exercise can still run
       }
     }
 
@@ -211,7 +222,19 @@ class BreathingPlaybackController
   Future<void> _completeCurrentActivity(bool completed) async {
     try {
       final activityId = state.currentActivityId;
-      if (activityId == null) return;
+      if (activityId == null) {
+        debugPrint('⚠️ No activity ID to complete');
+        return;
+      }
+
+      // Prevent multiple completions of the same activity
+      if (_activityCompleted) {
+        debugPrint('⚠️ Activity already completed, skipping');
+        return;
+      }
+
+      debugPrint(
+          '🔄 _completeCurrentActivity called with completed: $completed');
 
       // Calculate final duration
       int totalDuration = _accumulatedSeconds;
@@ -223,15 +246,16 @@ class BreathingPlaybackController
         totalDuration += currentSessionSeconds;
       }
 
+      // Only update activities with meaningful duration or when explicitly completed
+      if (totalDuration <= 0 && !completed) {
+        debugPrint(
+            '⚠️ Skipping activity update with zero duration for incomplete session');
+        return;
+      }
+
       // Ensure minimum duration for completed activities (to trigger status update)
       if (completed && totalDuration < 10) {
         totalDuration = 10;
-      }
-
-      // Skip updating with zero duration
-      if (totalDuration <= 0) {
-        debugPrint('⚠️ Skipping activity update with zero duration');
-        return;
       }
 
       // Update the activity record
@@ -241,21 +265,26 @@ class BreathingPlaybackController
       debugPrint(
           '✅ Activity completed: $activityId, total duration: ${totalDuration}s, completed: $completed');
 
-      // Reset tracking
+      // Mark as completed to prevent multiple calls
+      _activityCompleted = true;
+
+      // Reset tracking only after successful update
       state = state.copyWith(currentActivityId: null, elapsedSeconds: 0);
       _startTime = null;
       _accumulatedSeconds = 0;
     } catch (e) {
       debugPrint('❌ Error completing activity: $e');
+      // Don't reset state on error to prevent losing the activity ID
     }
   }
 
   void _onTimerTick(Timer timer) {
-    // If we've reached the end of the session, stop
-    if (state.secondsRemaining <= 0) {
+    // If we've reached the end of the session, stop (only once)
+    if (state.secondsRemaining <= 0 && state.isPlaying) {
       timer.cancel();
-      state = state.copyWith(isPlaying: false);
+      state = state.copyWith(isPlaying: false, secondsRemaining: 0);
 
+      debugPrint('⏰ Time completed - marking as finished');
       // Mark activity as completed
       _completeCurrentActivity(true);
       return;
@@ -265,6 +294,7 @@ class BreathingPlaybackController
       timer.cancel();
       state = state.copyWith(isPlaying: false);
 
+      debugPrint('✨ All steps completed - marking as finished');
       // Mark activity as completed
       _completeCurrentActivity(true);
       return;
@@ -322,9 +352,11 @@ class BreathingPlaybackController
           newPhase = BreathPhase.inhale;
           phaseSeconds = state.steps[newIndex].inhaleSecs;
         } else {
-          // End of steps
+          // End of steps - mark as completed
+          debugPrint('🏁 Reached end of breathing steps - completing exercise');
           _timer?.cancel();
           state = state.copyWith(isPlaying: false);
+          _completeCurrentActivity(true);
           return;
         }
         break;

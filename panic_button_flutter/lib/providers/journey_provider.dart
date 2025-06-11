@@ -23,6 +23,9 @@ class JourneyProvider with ChangeNotifier {
   /// User's total minutes of breathing practice in the last 7 days
   int _weeklyMinutes = 0;
 
+  /// User's cumulative total minutes of breathing practice (all time)
+  int _cumulativeMinutes = 0;
+
   /// Loading state flag
   bool _isLoading = true;
 
@@ -63,6 +66,9 @@ class JourneyProvider with ChangeNotifier {
   /// Get user's weekly minutes practiced
   int get weeklyMinutes => _weeklyMinutes;
 
+  /// Get user's cumulative minutes practiced (all time)
+  int get cumulativeMinutes => _cumulativeMinutes;
+
   /// Check if provider is loading data
   bool get isLoading => _isLoading;
 
@@ -83,7 +89,7 @@ class JourneyProvider with ChangeNotifier {
       await _loadUserStats();
 
       // Calculate current level and progress
-      _calculateCurrentLevel();
+      await _calculateCurrentLevel();
 
       // Preload pattern names for all levels
       await _preloadPatternNames();
@@ -185,6 +191,7 @@ class JourneyProvider with ChangeNotifier {
       await Future.wait([
         _loadAverageBolt(),
         _loadWeeklyMinutes(),
+        _loadCumulativeMinutes(),
       ]);
     } catch (e) {
       throw Exception('Failed to load user stats: $e');
@@ -232,7 +239,7 @@ class JourneyProvider with ChangeNotifier {
           .from('breathing_activity')
           .select('duration_seconds')
           .gte('created_at', sevenDaysAgo.toIso8601String())
-          .eq('completed', true);
+          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
 
       final List<dynamic> data = response as List<dynamic>;
 
@@ -246,32 +253,144 @@ class JourneyProvider with ChangeNotifier {
         totalSeconds += (session['duration_seconds'] as int);
       }
 
-      _weeklyMinutes = totalSeconds ~/ 60;
+      _weeklyMinutes = (totalSeconds / 60).round();
     } catch (e) {
       // If there's an error, default to 0
       _weeklyMinutes = 0;
     }
   }
 
-  /// Calculate current level based on BOLT score and weekly minutes
-  void _calculateCurrentLevel() {
+  /// Load user's cumulative total minutes of breathing practice (all time)
+  Future<void> _loadCumulativeMinutes() async {
+    try {
+      final response = await _supabase
+          .from('breathing_activity')
+          .select('duration_seconds')
+          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+
+      final List<dynamic> data = response as List<dynamic>;
+
+      if (data.isEmpty) {
+        _cumulativeMinutes = 0;
+        return;
+      }
+
+      int totalSeconds = 0;
+      for (final session in data) {
+        totalSeconds += (session['duration_seconds'] as int);
+      }
+
+      _cumulativeMinutes = (totalSeconds / 60).round();
+    } catch (e) {
+      // If there's an error, default to 0
+      _cumulativeMinutes = 0;
+    }
+  }
+
+  /// Calculate current level based on new unlock logic
+  Future<void> _calculateCurrentLevel() async {
     if (_allLevels.isEmpty) return;
 
-    // Start at level 1
+    // Start at level 1 (everyone has access to level 1)
     _currentLevelId = 1;
 
-    // Find the highest level the user has unlocked
+    // Check each level sequentially to find the highest unlocked level
     for (final level in _allLevels) {
-      if (_averageBolt >= level.boltMin &&
-          _weeklyMinutes >= level.minutesWeek) {
+      if (level.id == 1) {
+        // Level 1 is always unlocked
+        _currentLevelId = 1;
+        continue;
+      }
+
+      // Check if level can be unlocked using new criteria
+      if (await _canUnlockLevel(level)) {
         _currentLevelId = level.id;
       } else {
+        // If this level can't be unlocked, stop checking higher levels
         break;
       }
     }
 
     // Calculate progress toward next level
     _calculateProgressPercent();
+  }
+
+  /// Check if a level can be unlocked using the new criteria
+  Future<bool> _canUnlockLevel(JourneyLevel level) async {
+    // Criteria 1: BOLT score minimum
+    if (_averageBolt < level.boltMin) {
+      return false;
+    }
+
+    // Criteria 2: Cumulative minutes required
+    // Formula: (Level Number) × (Minutes required for that level)
+    final requiredCumulativeMinutes = level.id * level.minutesWeek;
+    if (_cumulativeMinutes < requiredCumulativeMinutes) {
+      return false;
+    }
+
+    // Criteria 3: Must have completed at least 3 minutes of current level's exercise
+    // to unlock the NEXT level (except for level 1)
+    if (level.id > 1) {
+      final currentLevel = _allLevels.firstWhere((l) => l.id == level.id - 1);
+      if (currentLevel.patternSlugs.isNotEmpty) {
+        final hasCompletedCurrentExercise = await _hasCompletedExercise(
+          currentLevel.patternSlugs.first,
+          minMinutes: 3,
+        );
+        if (!hasCompletedCurrentExercise) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /// Check if user has completed at least the specified minutes of a specific exercise
+  Future<bool> _hasCompletedExercise(String patternSlug, {required int minMinutes}) async {
+    try {
+      // Get the pattern ID from the slug
+      final patternResponse = await _supabase
+          .from('breathing_patterns')
+          .select('id')
+          .eq('slug', patternSlug)
+          .maybeSingle();
+
+      if (patternResponse == null) {
+        debugPrint('Pattern not found for slug: $patternSlug');
+        return false;
+      }
+
+      final patternId = patternResponse['id'] as String;
+
+      // Get total duration for this specific pattern (cumulative, all time)
+      // Include ALL sessions, not just completed ones, since completion tracking may be buggy
+      final activityResponse = await _supabase
+          .from('breathing_activity')
+          .select('duration_seconds')
+          .eq('pattern_id', patternId)
+          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+
+      final List<dynamic> data = activityResponse as List<dynamic>;
+
+      if (data.isEmpty) {
+        debugPrint('No activities found for pattern: $patternSlug');
+        return false;
+      }
+
+      int totalSeconds = 0;
+      for (final session in data) {
+        totalSeconds += (session['duration_seconds'] as int);
+      }
+
+      final totalMinutes = totalSeconds / 60.0; // Keep decimal precision
+      debugPrint('Pattern $patternSlug: ${totalMinutes.toStringAsFixed(2)} minutes completed (need $minMinutes)');
+      return totalMinutes >= minMinutes;
+    } catch (e) {
+      debugPrint('Error checking exercise completion: $e');
+      return false;
+    }
   }
 
   /// Calculate progress percentage toward the next level
@@ -289,22 +408,91 @@ class JourneyProvider with ChangeNotifier {
 
     // Calculate BOLT progress
     final boltRange = nextLevel.boltMin - currentLevel.boltMin;
-    final boltProgress = (_averageBolt - currentLevel.boltMin) / boltRange;
+    final boltProgress = boltRange > 0 
+        ? (_averageBolt - currentLevel.boltMin) / boltRange
+        : 1.0;
     final boltPercent = boltProgress.clamp(0.0, 1.0);
 
-    // Calculate minutes progress
-    final minutesRange = nextLevel.minutesWeek - currentLevel.minutesWeek;
-    final minutesProgress =
-        (_weeklyMinutes - currentLevel.minutesWeek) / minutesRange;
+    // Calculate cumulative minutes progress using new formula
+    final currentRequiredMinutes = currentLevel.id * currentLevel.minutesWeek;
+    final nextRequiredMinutes = nextLevel.id * nextLevel.minutesWeek;
+    final minutesRange = nextRequiredMinutes - currentRequiredMinutes;
+    final minutesProgress = minutesRange > 0
+        ? (_cumulativeMinutes - currentRequiredMinutes) / minutesRange
+        : 1.0;
     final minutesPercent = minutesProgress.clamp(0.0, 1.0);
 
-    // Overall progress is the average of BOLT and minutes progress
+    // Overall progress is the average of BOLT and cumulative minutes progress
     _progressPercent = (boltPercent + minutesPercent) / 2;
   }
 
   /// Check if a specific level is unlocked
   bool isLevelUnlocked(int levelId) {
     return levelId <= _currentLevelId;
+  }
+
+  /// Check if a specific exercise pattern is unlocked
+  bool isExerciseUnlocked(String patternSlug) {
+    // Find which level this pattern belongs to
+    for (final level in _allLevels) {
+      if (level.patternSlugs.contains(patternSlug)) {
+        return isLevelUnlocked(level.id);
+      }
+    }
+    // If pattern not found in any level, default to unlocked (for legacy patterns)
+    return true;
+  }
+
+  /// Get the level required to unlock a specific exercise
+  int? getRequiredLevelForExercise(String patternSlug) {
+    for (final level in _allLevels) {
+      if (level.patternSlugs.contains(patternSlug)) {
+        return level.id;
+      }
+    }
+    return null;
+  }
+
+  /// Get minutes completed for a specific exercise pattern
+  Future<double> getMinutesCompletedForExercise(String patternSlug) async {
+    try {
+      // Get the pattern ID from the slug
+      final patternResponse = await _supabase
+          .from('breathing_patterns')
+          .select('id')
+          .eq('slug', patternSlug)
+          .maybeSingle();
+
+      if (patternResponse == null) {
+        return 0.0;
+      }
+
+      final patternId = patternResponse['id'] as String;
+
+      // Get total duration for this specific pattern (cumulative, all time)
+      // Include ALL sessions, not just completed ones, since completion tracking may be buggy
+      final activityResponse = await _supabase
+          .from('breathing_activity')
+          .select('duration_seconds')
+          .eq('pattern_id', patternId)
+          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+
+      final List<dynamic> data = activityResponse as List<dynamic>;
+
+      if (data.isEmpty) {
+        return 0.0;
+      }
+
+      int totalSeconds = 0;
+      for (final session in data) {
+        totalSeconds += (session['duration_seconds'] as int);
+      }
+
+      return totalSeconds / 60.0; // Return precise decimal minutes
+    } catch (e) {
+      debugPrint('Error getting minutes for exercise: $e');
+      return 0.0;
+    }
   }
 
   /// Check if user can unlock a specific level
@@ -337,7 +525,7 @@ class JourneyProvider with ChangeNotifier {
     final int previousLevel = _currentLevelId;
 
     await _loadUserStats();
-    _calculateCurrentLevel();
+    await _calculateCurrentLevel();
 
     notifyListeners();
 
