@@ -243,6 +243,9 @@ class BreathingPlaybackController
       state = state.copyWith(currentActivityId: null, elapsedSeconds: 0);
       _startTime = null;
       _accumulatedSeconds = 0;
+
+      // Refresh journey progress so weekly minutes update immediately
+      _ref.read(journeyProviderProvider).checkProgress();
     } catch (e) {
       debugPrint('❌ Error completing activity: $e');
     }

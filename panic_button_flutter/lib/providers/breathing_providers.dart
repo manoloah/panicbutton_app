@@ -2,11 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:panic_button_flutter/data/breath_repository.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
+import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:flutter/material.dart';
 
 // Supabase client provider
 final supabaseProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
+});
+
+/// Provides access to the [JourneyProvider] instance from Riverpod code.
+///
+/// The actual value is supplied in [main.dart] using an override so that
+/// non-Riverpod classes can read the journey progress provider.
+final journeyProviderProvider = Provider<JourneyProvider>((ref) {
+  throw UnimplementedError();
 });
 
 // Breath repository provider

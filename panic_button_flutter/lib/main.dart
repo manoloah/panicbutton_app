@@ -17,6 +17,7 @@ import 'package:panic_button_flutter/screens/mbt_screen.dart';
 import 'package:panic_button_flutter/screens/measurement_menu_screen.dart';
 import 'package:panic_button_flutter/theme/app_theme.dart';
 import 'package:panic_button_flutter/providers/journey_provider.dart';
+import 'package:panic_button_flutter/providers/breathing_providers.dart';
 import 'package:panic_button_flutter/config/app_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:panic_button_flutter/config/env_config.dart';
@@ -134,10 +135,15 @@ void main() async {
     }
   }
 
+  final journey = JourneyProvider();
+
   runApp(
-    provider_pkg.ChangeNotifierProvider(
-      create: (_) => JourneyProvider(),
-      child: const ProviderScope(child: MyApp()),
+    provider_pkg.ChangeNotifierProvider.value(
+      value: journey,
+      child: ProviderScope(
+        overrides: [journeyProviderProvider.overrideWithValue(journey)],
+        child: const MyApp(),
+      ),
     ),
   );
 }
