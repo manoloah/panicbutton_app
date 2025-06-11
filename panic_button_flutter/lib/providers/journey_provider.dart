@@ -197,9 +197,16 @@ class JourneyProvider with ChangeNotifier {
       final DateTime sevenDaysAgo =
           DateTime.now().subtract(const Duration(days: 7));
 
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        _averageBolt = 0.0;
+        return;
+      }
+
       final response = await _supabase
           .from('bolt_scores')
           .select('score_seconds')
+          .eq('user_id', userId)
           .gte('created_at', sevenDaysAgo.toIso8601String())
           .order('created_at', ascending: false);
 
@@ -228,10 +235,17 @@ class JourneyProvider with ChangeNotifier {
       final DateTime sevenDaysAgo =
           DateTime.now().subtract(const Duration(days: 7));
 
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) {
+        _weeklyMinutes = 0.0;
+        return;
+      }
+
       final response = await _supabase
           .from('breathing_activity')
           .select('duration_seconds')
-          .gte('created_at', sevenDaysAgo.toIso8601String())
+          .eq('user_id', userId)
+          .gte('started_at', sevenDaysAgo.toIso8601String())
           .eq('completed', true);
 
       final List<dynamic> data = response as List<dynamic>;

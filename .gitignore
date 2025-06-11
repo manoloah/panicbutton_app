@@ -134,3 +134,7 @@ app.*.symbols
 scripts/debug_run.sh
 
 .DS_Store
+flutter/
+last_commit.diff
+analysis.json
+flutter_test.log
