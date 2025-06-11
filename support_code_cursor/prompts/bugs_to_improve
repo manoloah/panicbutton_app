@@ -3,4 +3,6 @@
 
 ## List of pending bugs
 [ ] Follow the order in position for breathwork exercises so that the steps are followed in the right order to create the pattern. 
+[ ] When you go from the Journey Screen to the Breathing SCreen the panic_button_flutter/assets/sounds/music stops so if you start an exercise you need to reselect it. It should start by itself when landing into the breathing screen. 
+
 
