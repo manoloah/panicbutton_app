@@ -249,15 +249,32 @@ class _JourneyScreenState extends State<JourneyScreen> {
               provider.averageBolt / nextLevel.boltMin,
               isBolt: true,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             _buildRequirementItem(
               context,
-              'Respirar más de',
-              provider.weeklyMinutes.toString(),
-              nextLevel.minutesWeek.toString(),
-              provider.weeklyMinutes / nextLevel.minutesWeek,
+              'Minutos acumulados',
+              provider.cumulativeMinutes.toString(),
+              (nextLevel.id * nextLevel.minutesWeek).toString(),
+              provider.cumulativeMinutes / (nextLevel.id * nextLevel.minutesWeek),
               isBolt: false,
             ),
+            const SizedBox(height: 12),
+            // Add exercise completion requirement if next level exists
+            if (nextLevel.id > 1) 
+              FutureBuilder<double>(
+                future: provider.getMinutesCompletedForExercise(currentLevel.patternSlugs.first),
+                builder: (context, snapshot) {
+                  final completedMinutes = snapshot.data ?? 0.0;
+                  return _buildRequirementItem(
+                    context,
+                    'Ejercicio nivel ${currentLevel.id}',
+                    completedMinutes.toStringAsFixed(1),
+                    '3.0',
+                    completedMinutes / 3.0,
+                    isBolt: false,
+                  );
+                },
+              ),
           } else ...{
             Text(
               '¡Felicidades! Has alcanzado el nivel máximo.',
@@ -279,7 +296,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
     double progress, {
     required bool isBolt,
   }) {
-    String unit = isBolt ? 's' : 'min/semana';
+    String unit = isBolt ? 's' : 'min';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -617,10 +634,11 @@ class _JourneyScreenState extends State<JourneyScreen> {
       ),
     );
 
-    // Add minutes requirement
+    // Add cumulative minutes requirement
+    final requiredCumulativeMinutes = level.id * level.minutesWeek;
     requirements.add(
       Text(
-        'Respirar más de ${level.minutesWeek} min/semana',
+        'Minutos acumulados: $requiredCumulativeMinutes',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: provider.isLevelUnlocked(level.id)
                   ? const Color(0xFFB0B0B0)
@@ -630,6 +648,22 @@ class _JourneyScreenState extends State<JourneyScreen> {
         maxLines: 1,
       ),
     );
+
+    // Add exercise completion requirement for levels > 1
+    if (level.id > 1) {
+      requirements.add(
+        Text(
+          'Completar 3+ min del ejercicio nivel ${level.id - 1}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: provider.isLevelUnlocked(level.id)
+                    ? const Color(0xFFB0B0B0)
+                    : const Color(0xFF666666),
+              ),
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

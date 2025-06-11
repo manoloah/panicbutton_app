@@ -12,6 +12,7 @@ import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/main.dart'; // Import for routeObserver
+import 'package:panic_button_flutter/widgets/completion_dialog.dart';
 
 // --- SESSION STATE ENUM ---
 enum BreathingSessionState {
@@ -432,9 +433,21 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
           playbackState.secondsRemaining > 0 &&
           playbackState.currentActivityId != null) {
         _sessionState = BreathingSessionState.paused;
-      } else if (playbackState.secondsRemaining <= 0 &&
-          playbackState.currentActivityId == null) {
+      } else if (!playbackState.isPlaying &&
+          playbackState.secondsRemaining <= 0) {
+        // Exercise completed - check if we're transitioning to finished state
+        final wasFinished = _sessionState == BreathingSessionState.finished;
         _sessionState = BreathingSessionState.finished;
+
+        // Show completion notification if this is a new completion
+        if (!wasFinished && !_isDisposed) {
+          // Add a small delay to ensure the exercise state is fully processed
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (!_isDisposed && mounted) {
+              _showCompletionNotification();
+            }
+          });
+        }
       } else if (playbackState.currentActivityId == null) {
         _sessionState = BreathingSessionState.notStarted;
       }
@@ -839,5 +852,41 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
         _sessionState = BreathingSessionState.notStarted;
       });
     }
+  }
+
+  /// Shows a beautiful completion dialog when user finishes an exercise
+  void _showCompletionNotification() {
+    if (!mounted) return;
+
+    // Get pattern name and duration for the notification
+    final pattern = ref.read(selectedPatternProvider);
+    final duration = ref.read(selectedDurationProvider);
+    final patternName = pattern?.name ?? 'respiración';
+
+    // Show the completion dialog as an overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => CompletionDialog(
+        patternName: patternName,
+        durationMinutes: duration,
+        onContinue: () {
+          Navigator.of(context).pop();
+          // Reset the controller and session state properly
+          if (mounted) {
+            final controller =
+                ref.read(breathingPlaybackControllerProvider.notifier);
+            controller.reset();
+            setState(() {
+              _sessionState = BreathingSessionState.notStarted;
+            });
+          }
+        },
+        onClose: () {
+          Navigator.of(context).pop();
+          // Just close the dialog, user might want to navigate away
+        },
+      ),
+    );
   }
 }

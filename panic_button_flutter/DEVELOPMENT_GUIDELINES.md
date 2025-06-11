@@ -550,6 +550,127 @@ lib/
 
 ---
 
+### Journey Experience & Exercise Locking
+
+The journey system provides a progressive breathing experience where users unlock new exercises as they advance. Recent improvements include enhanced level progression logic, exercise locking UI, and beautiful completion notifications.
+
+**Journey Progression Logic (Updated 2024)**
+
+The journey uses a new unlock system that replaces the old "consecutive weeks" approach:
+
+1. **BOLT Score Requirement**: User's current BOLT score must meet the level's minimum requirement
+2. **Cumulative Minutes Formula**: `Required Minutes = (Level Number) × (Level Base Minutes)`
+   - Example: Level 4 requiring 25 base minutes = 4 × 25 = 100 cumulative minutes total
+3. **Previous Exercise Completion**: User must complete at least 3 minutes of the previous level's unlocked exercise
+
+**Key Components:**
+
+```dart
+// Journey Provider - Enhanced with cumulative tracking
+class JourneyProvider {
+  int _cumulativeMinutes = 0;      // All-time total breathing minutes
+  int _weeklyMinutes = 0;          // Legacy weekly tracking (maintained)
+  
+  // New unlock logic
+  Future<bool> _canUnlockLevel(JourneyLevel level) async {
+    // Check BOLT minimum
+    if (_averageBolt < level.boltMin) return false;
+    
+    // Check cumulative minutes using new formula
+    final requiredMinutes = level.id * level.minutesWeek;
+    if (_cumulativeMinutes < requiredMinutes) return false;
+    
+    // Check previous exercise completion (3+ minutes)
+    if (level.id > 1) {
+      final previousLevel = _allLevels.firstWhere((l) => l.id == level.id - 1);
+      return await _hasCompletedExercise(previousLevel.patternSlugs.first, minMinutes: 3);
+    }
+    
+    return true;
+  }
+}
+```
+
+**Exercise Locking & UI:**
+
+- **Lock Icons**: Locked exercises show lock overlay in breathing screen
+- **Unlock Dialogs**: Tapping locked exercises shows helpful unlock requirements
+- **Pattern Access Control**: Uses `isExerciseUnlocked(patternSlug)` to check availability
+- **Clear Messaging**: Spanish text explains level requirements for unlocking
+
+**Enhanced Completion System:**
+
+The completion notification system was completely redesigned for better UX:
+
+```dart
+// New CompletionDialog widget with beautiful animations
+class CompletionDialog extends StatefulWidget {
+  final String patternName;
+  final int durationMinutes;
+  final VoidCallback onContinue;    // "Respirar más" action
+  final VoidCallback onClose;       // X button for closing
+
+  // Features:
+  // - Animated success icon with gradient
+  // - Elastic scale animation on appearance
+  // - Rich text showing pattern name and duration
+  // - Two exit options: continue breathing or close dialog
+}
+```
+
+**Database Improvements:**
+
+- **Fixed RLS Policy**: Updated `breathing_activity` table policy to allow initial records with `duration_seconds >= 0`
+- **Enhanced Triggers**: Database triggers only process completed activities with 10+ seconds
+- **Better Activity Tracking**: Improved completion detection and duplicate prevention
+- **Cumulative Statistics**: Accurate tracking of all-time breathing minutes per user
+
+**Session State Management:**
+
+```dart
+enum BreathingSessionState {
+  notStarted,    // Ready to begin, shows pattern/duration selectors
+  playing,       // Active session with audio/visual guidance
+  paused,        // Session suspended, preserving progress
+  finished,      // Session completed, shows completion dialog
+}
+
+// Enhanced completion detection
+void _handleSessionStateChange() {
+  if (!playbackState.isPlaying && playbackState.secondsRemaining <= 0) {
+    final wasFinished = _sessionState == BreathingSessionState.finished;
+    _sessionState = BreathingSessionState.finished;
+    
+    // Show completion notification for new completions only
+    if (!wasFinished && !_isDisposed) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        _showCompletionNotification();
+      });
+    }
+  }
+}
+```
+
+**Journey Integration Best Practices:**
+
+1. **Pattern Slugs**: Use unique, descriptive slugs for each breathing pattern to connect with journey levels
+2. **Cumulative Tracking**: Always use cumulative minutes for progression, not just weekly
+3. **Completion Validation**: Validate exercise completion with minimum duration thresholds
+4. **User Feedback**: Provide clear messaging about unlock requirements and progress
+5. **State Persistence**: Ensure journey progress updates immediately after completing exercises
+
+**Testing Journey Changes:**
+
+- Use short-duration patterns (1 minute) for testing unlock logic
+- Verify completion notifications appear only once per session
+- Test exercise locking by checking different user progression states
+- Validate cumulative minute calculations across multiple sessions
+- Ensure database triggers work correctly with various session durations
+
+By following these guidelines, the journey system provides a clear, motivating progression path that encourages regular practice while maintaining accurate progress tracking.
+
+---
+
 ### Image Asset Management
 
 - **Organization**
@@ -1513,7 +1634,6 @@ The app includes a comprehensive audio system for breathing exercises with advan
        - assets/sounds/instrument_cues/violin/
        - assets/sounds/instrument_cues/human/
        - assets/sounds/guiding_voices/
-       # ... other voice directories
      ```
 
 5. **Safe Audio Management**

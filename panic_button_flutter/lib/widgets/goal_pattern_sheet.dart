@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider_pkg;
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/providers/breathing_providers.dart';
+import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 
 class GoalPatternSheet extends ConsumerStatefulWidget {
@@ -367,17 +369,22 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
   Widget _buildPatternListTile(PatternModel pattern) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    
+    // Check if this pattern is unlocked using the journey provider
+    final journeyProvider = provider_pkg.Provider.of<JourneyProvider>(context, listen: false);
+    final isUnlocked = journeyProvider.isExerciseUnlocked(pattern.slug);
+    final requiredLevel = journeyProvider.getRequiredLevelForExercise(pattern.slug);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: cs.surfaceContainerHighest,
+      color: isUnlocked ? cs.surfaceContainerHighest : cs.surfaceContainerHighest.withAlpha(128),
       elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () {
+        onTap: isUnlocked ? () {
           // Set selected pattern and duration
           ref.read(selectedPatternProvider.notifier).state = pattern;
           ref.read(selectedDurationProvider.notifier).state =
@@ -385,22 +392,31 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
 
           // Close the sheet
           Navigator.pop(context);
+        } : () {
+          // Show lock dialog
+          _showLockDialog(context, requiredLevel);
         },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              // Pattern icon
+              // Pattern icon or lock icon
               Container(
                 height: 50,
                 width: 50,
                 decoration: BoxDecoration(
-                  color: cs.primary.withAlpha(20),
+                  color: isUnlocked 
+                      ? cs.primary.withAlpha(20)
+                      : cs.onSurface.withAlpha(20),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _getPatternIcon(pattern.name),
-                  color: cs.primary,
+                  isUnlocked 
+                      ? _getPatternIcon(pattern.name)
+                      : Icons.lock,
+                  color: isUnlocked 
+                      ? cs.primary
+                      : cs.onSurface.withAlpha(128),
                 ),
               ),
               const SizedBox(width: 16),
@@ -414,30 +430,84 @@ class _GoalPatternSheetState extends ConsumerState<GoalPatternSheet> {
                       pattern.name,
                       style: tt.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: isUnlocked 
+                            ? cs.onSurface
+                            : cs.onSurface.withAlpha(128),
                       ),
                     ),
                     const SizedBox(height: 4),
                     if (pattern.description != null)
                       Text(
-                        pattern.description!,
+                        isUnlocked 
+                            ? pattern.description!
+                            : 'Alcanza el nivel $requiredLevel para desbloquear',
                         style: tt.bodySmall?.copyWith(
-                          color: cs.onSurface.withAlpha(60),
+                          color: isUnlocked 
+                              ? cs.onSurface.withAlpha(60)
+                              : cs.onSurface.withAlpha(96),
                         ),
                       ),
                   ],
                 ),
               ),
 
-              // Arrow icon
+              // Arrow or lock icon
               Icon(
-                Icons.arrow_forward_ios,
+                isUnlocked ? Icons.arrow_forward_ios : Icons.lock,
                 size: 16,
-                color: cs.onSurface,
+                color: isUnlocked 
+                    ? cs.onSurface
+                    : cs.onSurface.withAlpha(128),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  void _showLockDialog(BuildContext context, int? requiredLevel) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.lock,
+                color: cs.primary,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Ejercicio Bloqueado',
+                style: tt.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            requiredLevel != null
+                ? 'Alcanza el nivel $requiredLevel de tu camino de respiración para desbloquear esta respiración'
+                : 'Este ejercicio está bloqueado. Progresa en tu camino de respiración para desbloquearlo.',
+            style: tt.bodyLarge,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Entendido'),
+            ),
+          ],
+        );
+      },
     );
   }
 
