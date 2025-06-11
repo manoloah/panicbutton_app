@@ -434,7 +434,8 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
           playbackState.currentActivityId != null) {
         _sessionState = BreathingSessionState.paused;
       } else if (!playbackState.isPlaying &&
-          playbackState.secondsRemaining <= 0) {
+          playbackState.secondsRemaining <= 0 &&
+          playbackState.totalSeconds > 0) {
         // Exercise completed - check if we're transitioning to finished state
         final wasFinished = _sessionState == BreathingSessionState.finished;
         _sessionState = BreathingSessionState.finished;
