@@ -145,11 +145,9 @@ class BreathingPlaybackController
     // Create a new activity if needed
     if (state.currentActivityId == null && pattern != null) {
       try {
-        // Create a new activity record
-        await _repository.logPatternRun(pattern.id, duration);
-
-        // Get current activity ID
-        final activityId = await _repository.getCurrentBreathingActivity();
+        // Create a new activity record and get the ID
+        final activityId =
+            await _repository.logPatternRun(pattern.id, duration);
         if (activityId != null) {
           state = state.copyWith(currentActivityId: activityId);
         }
@@ -245,6 +243,9 @@ class BreathingPlaybackController
       state = state.copyWith(currentActivityId: null, elapsedSeconds: 0);
       _startTime = null;
       _accumulatedSeconds = 0;
+
+      // Refresh journey progress so weekly minutes update immediately
+      _ref.read(journeyProviderProvider).checkProgress();
     } catch (e) {
       debugPrint('❌ Error completing activity: $e');
     }

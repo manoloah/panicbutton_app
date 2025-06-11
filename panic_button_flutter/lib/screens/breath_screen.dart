@@ -10,6 +10,8 @@ import 'package:panic_button_flutter/providers/breathing_playback_controller.dar
 import 'package:panic_button_flutter/widgets/delayed_loading_animation.dart';
 import 'package:panic_button_flutter/widgets/audio_selection_sheet.dart';
 import 'package:panic_button_flutter/services/audio_service.dart';
+import 'package:provider/provider.dart';
+import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/main.dart'; // Import for routeObserver
 
@@ -20,6 +22,7 @@ enum BreathingSessionState {
   paused,
   finished,
 }
+
 
 class BreathScreen extends ConsumerStatefulWidget {
   final String? patternSlug;
@@ -471,6 +474,15 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
           // Start audio when exercise starts
           if (previous != null && !previous.isPlaying && next.isPlaying) {
             _initializeAudio();
+          }
+
+          // Refresh journey progress when a session finishes
+          if (previous != null &&
+              previous.isPlaying &&
+              !next.isPlaying &&
+              previous.currentActivityId != null &&
+              next.currentActivityId == null) {
+            context.read<JourneyProvider>().checkProgress();
           }
         });
 
