@@ -6,8 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
 import '../constants/spacing.dart';
-import '../services/notification_service.dart';
 import '../widgets/custom_sliver_app_bar.dart';
+import '../services/notification_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationsSettingsScreen extends ConsumerWidget {
@@ -31,7 +31,9 @@ class NotificationsSettingsScreen extends ConsumerWidget {
               showSettings: false,
               title: Text(
                 'Recordatorios',
-                style: theme.textTheme.headlineMedium,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontSize: 20, // Smaller font to fit
+                ),
               ),
               additionalActions: [
                 // Add notification button (+ icon)
@@ -53,18 +55,18 @@ class NotificationsSettingsScreen extends ConsumerWidget {
                     onPressed: () => _addNewReminder(context, notifier),
                   ),
                 ),
-                // Test notification button (debug mode only)
+                // Debug button to check pending notifications (debug mode only)
                 if (kDebugMode)
                   Container(
                     margin: const EdgeInsets.only(right: Spacing.s),
                     child: IconButton(
                       icon: Icon(
-                        Icons.bug_report,
+                        Icons.info_outline,
                         size: ComponentSpacing.iconMedium,
                         color: colorScheme.onSurface,
                       ),
-                      onPressed: () => _testNotification(context),
-                      tooltip: 'Test notification',
+                      onPressed: () => _checkPendingNotifications(context),
+                      tooltip: 'Check pending notifications',
                     ),
                   ),
               ],
@@ -256,49 +258,15 @@ class NotificationsSettingsScreen extends ConsumerWidget {
     context.push('/settings/notifications/${newNotification.id}');
   }
 
-  Future<void> _testNotification(BuildContext context) async {
+  Future<void> _checkPendingNotifications(BuildContext context) async {
     final notificationService = NotificationService();
-
-    // Create a test notification that triggers in 5 seconds
-    final testNotification = ReminderNotification(
-      time: TimeOfDay.now(),
-      days: {Day.values[DateTime.now().weekday - 1]},
-      exerciseSlug: 'calming',
-      enabled: true,
-      customTitle: 'Prueba de Notificación',
-    );
-
-    await notificationService.init();
-
-    // Schedule a notification for 5 seconds from now
-    final plugin = FlutterLocalNotificationsPlugin();
-    const details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        'test_channel',
-        'Notificaciones de Prueba',
-        channelDescription: 'Canal para probar notificaciones',
-        importance: Importance.high,
-        priority: Priority.high,
-      ),
-      iOS: DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      ),
-    );
-
-    await plugin.show(
-      999999,
-      '🧪 Prueba de Notificación',
-      'Esta es una notificación de prueba inmediata',
-      details,
-    );
+    final pending = await notificationService.getPendingNotifications();
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notificación de prueba enviada!'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text('Pending notifications: ${pending.length}'),
+          duration: const Duration(seconds: 3),
         ),
       );
     }

@@ -20,6 +20,51 @@ class NotificationService {
       // Initialize timezone data
       tz.initializeTimeZones();
 
+      // Set the local timezone to the device's timezone
+      // This automatically detects the device's timezone
+      final String deviceTimeZone = DateTime.now().timeZoneName;
+
+      try {
+        // Try to find the timezone location
+        final location = tz.getLocation(deviceTimeZone);
+        tz.setLocalLocation(location);
+        debugPrint('🌍 Timezone set to: ${location.name}');
+      } catch (e) {
+        // If device timezone name doesn't match tz database,
+        // try common timezone mappings or fallback to local
+        try {
+          // Common timezone mappings
+          final commonTimezones = {
+            'PST': 'America/Los_Angeles',
+            'PDT': 'America/Los_Angeles',
+            'EST': 'America/New_York',
+            'EDT': 'America/New_York',
+            'CST': 'America/Chicago',
+            'CDT': 'America/Chicago',
+            'MST': 'America/Denver',
+            'MDT': 'America/Denver',
+          };
+
+          final mappedTimezone = commonTimezones[deviceTimeZone];
+          if (mappedTimezone != null) {
+            tz.setLocalLocation(tz.getLocation(mappedTimezone));
+            debugPrint(
+                '🌍 Timezone mapped from $deviceTimeZone to: $mappedTimezone');
+          } else {
+            // Use the system's local timezone offset
+            final now = DateTime.now();
+            final offset = now.timeZoneOffset;
+            debugPrint(
+                '🌍 Using system timezone with offset: ${offset.inHours}h');
+            // tz.local will use the system's local timezone
+          }
+        } catch (e2) {
+          debugPrint(
+              '⚠️ Could not set specific timezone, using system local: $e2');
+          // tz.local will default to system timezone
+        }
+      }
+
       // Android settings
       const android = AndroidInitializationSettings('@mipmap/ic_launcher');
 
@@ -158,6 +203,8 @@ class NotificationService {
         notificationIdCounter++;
         debugPrint(
             '📅 Scheduled notification for ${day.name} at ${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}');
+        debugPrint(
+            '   📍 Scheduled time: $scheduled (${scheduled.timeZoneName})');
       }
 
       debugPrint(
@@ -227,6 +274,11 @@ class NotificationService {
   }
 
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return await _plugin.pendingNotificationRequests();
+    final pending = await _plugin.pendingNotificationRequests();
+    debugPrint('📋 Pending notifications: ${pending.length}');
+    for (final notification in pending) {
+      debugPrint('   - ID: ${notification.id}, Title: ${notification.title}');
+    }
+    return pending;
   }
 }
