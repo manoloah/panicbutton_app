@@ -157,7 +157,7 @@ class NotificationService {
 
         notificationIdCounter++;
         debugPrint(
-            '📅 Scheduled notification for ${day.name} at ${notification.time.format}');
+            '📅 Scheduled notification for ${day.name} at ${notification.time.hour}:${notification.time.minute.toString().padLeft(2, '0')}');
       }
 
       debugPrint(

@@ -283,7 +283,7 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
             }
 
             return Column(
-              children: patternsList.take(5).map((pattern) {
+              children: patternsList.take(5).map<Widget>((pattern) {
                 final isSelected = _exerciseSlug == pattern.slug;
                 return Card(
                   margin: const EdgeInsets.only(bottom: Spacing.s),
