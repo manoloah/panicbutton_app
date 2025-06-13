@@ -9,6 +9,7 @@ import 'package:panic_button_flutter/screens/breath_screen.dart';
 import 'package:panic_button_flutter/screens/settings_screen.dart';
 import 'package:panic_button_flutter/screens/profile_settings_screen.dart';
 import 'package:panic_button_flutter/screens/notifications_settings_screen.dart';
+import 'package:panic_button_flutter/screens/notification_edit_screen.dart';
 import 'package:panic_button_flutter/screens/preferences_settings_screen.dart';
 import 'package:panic_button_flutter/screens/journey_screen.dart';
 import 'package:panic_button_flutter/screens/auth_screen.dart';
@@ -216,6 +217,13 @@ final _router = GoRouter(
     GoRoute(
       path: '/settings/notifications',
       builder: (context, state) => const NotificationsSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/notifications/:id',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return NotificationEditScreen(id: id);
+      },
     ),
     GoRoute(
       path: '/settings/preferences',
