@@ -17,6 +17,7 @@ class JourneyScreen extends StatefulWidget {
 
 class _JourneyScreenState extends State<JourneyScreen> {
   int? expandedLevelId;
+  bool _isRequirementsExpanded = false;
   // Map to store pattern names locally
   final Map<String, String> _patternNames = {};
 
@@ -35,6 +36,16 @@ class _JourneyScreenState extends State<JourneyScreen> {
     11: Icons.electric_bolt, // Chispa Controlada - spark/electricity control
     12: Icons.insights, // Balance Supremo - harmony and equilibrium
   };
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider =
+          provider_pkg.Provider.of<JourneyProvider>(context, listen: false);
+      provider.init();
+    });
+  }
 
   void _toggleExpandLevel(int id) {
     setState(() {
@@ -65,6 +76,12 @@ class _JourneyScreenState extends State<JourneyScreen> {
       _patternNames[slug] = name;
     });
     return name;
+  }
+
+  // Helper method to get medal icon based on level
+  IconData _getMedalIcon(int levelId) {
+    // Use the same icon as in the level indicator for consistency
+    return _levelIcons[levelId] ?? Icons.emoji_events;
   }
 
   @override
@@ -189,17 +206,6 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
     if (currentLevel == null) return const SizedBox.shrink();
 
-    String patternName = 'Cargando...';
-    if (currentLevel.patternSlugs.isNotEmpty) {
-      final slug = currentLevel.patternSlugs.first;
-      if (_patternNames.containsKey(slug)) {
-        patternName = _patternNames[slug]!;
-      } else {
-        // Trigger loading
-        _getPatternName(slug, provider);
-      }
-    }
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -210,21 +216,50 @@ class _JourneyScreenState extends State<JourneyScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Nivel Actual ${currentLevel.id}: ${currentLevel.nameEs}',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          // Current level with medal
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF00B383),
+                  border: Border.all(
+                    color: const Color(0xFF00B383),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00B383).withAlpha(192),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
                 ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ejercicio: $patternName',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white.withAlpha(192),
+                child: Center(
+                  child: Icon(
+                    _getMedalIcon(currentLevel.id),
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Nivel Actual ${currentLevel.id}: ${currentLevel.nameEs}',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
+
+          // Progress bar
           LinearProgressIndicator(
             value: provider.progressPercent,
             backgroundColor: const Color(0xFF243649),
@@ -233,6 +268,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
             borderRadius: BorderRadius.circular(5),
           ),
           const SizedBox(height: 16),
+
           if (nextLevel != null) ...{
             Text(
               'Próximo nivel: ${nextLevel.nameEs}',
@@ -240,41 +276,86 @@ class _JourneyScreenState extends State<JourneyScreen> {
                     color: const Color(0xFFB0B0B0),
                   ),
             ),
-            const SizedBox(height: 8),
-            _buildRequirementItem(
-              context,
-              'BOLT mayor a',
-              provider.averageBolt.toStringAsFixed(1),
-              nextLevel.boltMin.toString(),
-              provider.averageBolt / nextLevel.boltMin,
-              isBolt: true,
-            ),
             const SizedBox(height: 16),
-            _buildRequirementItem(
-              context,
-              'Minutos acumulados',
-              provider.cumulativeMinutes.toString(),
-              (nextLevel.id * nextLevel.minutesWeek).toString(),
-              provider.cumulativeMinutes / (nextLevel.id * nextLevel.minutesWeek),
-              isBolt: false,
-            ),
-            const SizedBox(height: 12),
-            // Add exercise completion requirement if next level exists
-            if (nextLevel.id > 1) 
-              FutureBuilder<double>(
-                future: provider.getMinutesCompletedForExercise(currentLevel.patternSlugs.first),
-                builder: (context, snapshot) {
-                  final completedMinutes = snapshot.data ?? 0.0;
-                  return _buildRequirementItem(
-                    context,
-                    'Ejercicio nivel ${currentLevel.id}',
-                    completedMinutes.toStringAsFixed(1),
-                    '3.0',
-                    completedMinutes / 3.0,
-                    isBolt: false,
-                  );
-                },
+
+            // Collapsible requirements section
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isRequirementsExpanded = !_isRequirementsExpanded;
+                });
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF243649),
+                  borderRadius: BorderRadius.circular(8),
+                  border:
+                      Border.all(color: const Color(0xFF336699).withAlpha(128)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Estado de tu progreso',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    Icon(
+                      _isRequirementsExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: const Color(0xFF336699),
+                      size: 20,
+                    ),
+                  ],
+                ),
               ),
+            ),
+
+            // Expandable requirements content
+            if (_isRequirementsExpanded) ...[
+              const SizedBox(height: 12),
+              _buildRequirementItem(
+                context,
+                'BOLT mayor a',
+                provider.averageBolt.toStringAsFixed(1),
+                nextLevel.boltMin.toString(),
+                provider.averageBolt / nextLevel.boltMin,
+                isBolt: true,
+              ),
+              const SizedBox(height: 16),
+              _buildRequirementItem(
+                context,
+                'Minutos acumulados',
+                provider.cumulativeMinutes.toString(),
+                (nextLevel.id * nextLevel.minutesWeek).toString(),
+                provider.cumulativeMinutes /
+                    (nextLevel.id * nextLevel.minutesWeek),
+                isBolt: false,
+              ),
+              const SizedBox(height: 12),
+              // Add exercise completion requirement if next level exists
+              if (nextLevel.id > 1)
+                FutureBuilder<double>(
+                  future: provider.getMinutesCompletedForExercise(
+                      currentLevel.patternSlugs.first),
+                  builder: (context, snapshot) {
+                    final completedMinutes = snapshot.data ?? 0.0;
+                    return _buildRequirementItem(
+                      context,
+                      'Ejercicio nivel ${currentLevel.id}',
+                      completedMinutes.toStringAsFixed(1),
+                      '3.0',
+                      completedMinutes / 3.0,
+                      isBolt: false,
+                    );
+                  },
+                ),
+            ],
           } else ...{
             Text(
               '¡Felicidades! Has alcanzado el nivel máximo.',
@@ -297,6 +378,7 @@ class _JourneyScreenState extends State<JourneyScreen> {
     required bool isBolt,
   }) {
     String unit = isBolt ? 's' : 'min';
+    bool noBoltMeasurements = isBolt && (current == '0.0' || current == '0');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -305,42 +387,69 @@ class _JourneyScreenState extends State<JourneyScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Left side - title with optional info icon
-            isBolt
-                ? GestureDetector(
-                    onTap: _navigateToBoltScreen,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$title: $target$unit',
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+            Flexible(
+              flex: 2,
+              child: isBolt
+                  ? GestureDetector(
+                      onTap: _navigateToBoltScreen,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'BOLT promedio 7 días: $target$unit',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
                                     color: Colors.white,
                                   ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.info_outline,
-                          color: Color(0xFF336699),
-                          size: 16,
-                        ),
-                      ],
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Tooltip(
+                            message:
+                                'Este valor es el promedio de tus mediciones BOLT de los últimos 7 días.',
+                            child: const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFF336699),
+                              size: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Text(
+                      '$title: $target$unit',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.white,
+                          ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  )
-                : Text(
-                    '$title: $target$unit',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                        ),
-                  ),
+            ),
 
             // Right side - current value
-            Text(
-              '$current/$target$unit',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFB0B0B0),
-                  ),
-              textAlign: TextAlign.end,
+            Flexible(
+              flex: 1,
+              child: isBolt && noBoltMeasurements
+                  ? Text(
+                      'Medir BOLT',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFB0B0B0),
+                            fontStyle: FontStyle.italic,
+                          ),
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  : Text(
+                      '$current/$target$unit',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: const Color(0xFFB0B0B0),
+                          ),
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
+                    ),
             ),
           ],
         ),
@@ -600,31 +709,33 @@ class _JourneyScreenState extends State<JourneyScreen> {
 
   Widget _buildUnlockRequirements(
       BuildContext context, JourneyLevel level, JourneyProvider provider) {
-    final List<Widget> requirements = [];
-
-    // Add BOLT requirement with clickable link
-    requirements.add(
-      GestureDetector(
-        onTap: _navigateToBoltScreen,
+    return GestureDetector(
+      onTap: () => _showRequirementsPopup(context, level, provider),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: Colors.transparent,
+            width: 1,
+          ),
+        ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Text(
-                'BOLT mayor a: ${level.boltMin}s',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: provider.isLevelUnlocked(level.id)
-                          ? const Color(0xFFB0B0B0)
-                          : const Color(0xFF666666),
-                    ),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
+            Text(
+              'Ver requisitos',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: provider.isLevelUnlocked(level.id)
+                        ? const Color(0xFFB0B0B0)
+                        : const Color(0xFF666666),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
-            const SizedBox(width: 2),
+            const SizedBox(width: 4),
             Icon(
               Icons.info_outline,
-              size: 12,
+              size: 14,
               color: provider.isLevelUnlocked(level.id)
                   ? const Color(0xFF336699)
                   : const Color(0xFF666666),
@@ -632,56 +743,6 @@ class _JourneyScreenState extends State<JourneyScreen> {
           ],
         ),
       ),
-    );
-
-    // Add cumulative minutes requirement
-    final requiredCumulativeMinutes = level.id * level.minutesWeek;
-    requirements.add(
-      Text(
-        'Minutos acumulados: $requiredCumulativeMinutes',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: provider.isLevelUnlocked(level.id)
-                  ? const Color(0xFFB0B0B0)
-                  : const Color(0xFF666666),
-            ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-    );
-
-    // Add exercise completion requirement for levels > 1
-    if (level.id > 1) {
-      requirements.add(
-        Text(
-          'Completar 3+ min del ejercicio nivel ${level.id - 1}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: provider.isLevelUnlocked(level.id)
-                    ? const Color(0xFFB0B0B0)
-                    : const Color(0xFF666666),
-              ),
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Requisitos para desbloquear nivel:',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: provider.isLevelUnlocked(level.id)
-                    ? const Color(0xFFB0B0B0)
-                    : const Color(0xFF666666),
-              ),
-        ),
-        const SizedBox(height: 2),
-        ...requirements.map((widget) => Padding(
-              padding: const EdgeInsets.only(left: 8.0, top: 2.0),
-              child: widget,
-            )),
-      ],
     );
   }
 
@@ -715,6 +776,224 @@ class _JourneyScreenState extends State<JourneyScreen> {
           color: isUnlocked ? Colors.white : const Color(0xFF777777),
           size: 20,
         ),
+      ),
+    );
+  }
+
+  // Show requirements popup modal
+  void _showRequirementsPopup(
+      BuildContext context, JourneyLevel level, JourneyProvider provider) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A2A3C),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF336699), width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(128),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Requisitos para Nivel ${level.id}',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // Level name
+                Text(
+                  level.nameEs,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFF00B383),
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 20),
+
+                // Requirements list
+                _buildRequirementRow(
+                  context,
+                  Icons.bolt,
+                  'BOLT Score',
+                  'Mayor a ${level.boltMin}s',
+                  provider.averageBolt >= level.boltMin,
+                  'Actual: ${provider.averageBolt.toStringAsFixed(1)}s',
+                ),
+                const SizedBox(height: 12),
+
+                _buildRequirementRow(
+                  context,
+                  Icons.timer,
+                  'Minutos Acumulados',
+                  '${level.id * level.minutesWeek} minutos',
+                  provider.cumulativeMinutes >= (level.id * level.minutesWeek),
+                  'Actual: ${provider.cumulativeMinutes} min',
+                ),
+                const SizedBox(height: 12),
+
+                // Exercise completion requirement for levels > 1
+                if (level.id > 1)
+                  FutureBuilder<double>(
+                    future: provider.getMinutesCompletedForExercise(provider
+                        .allLevels
+                        .firstWhere((l) => l.id == level.id - 1)
+                        .patternSlugs
+                        .first),
+                    builder: (context, snapshot) {
+                      final completedMinutes = snapshot.data ?? 0.0;
+                      return _buildRequirementRow(
+                        context,
+                        Icons.fitness_center,
+                        'Ejercicio Nivel ${level.id - 1}',
+                        'Completar 3+ minutos',
+                        completedMinutes >= 3.0,
+                        'Actual: ${completedMinutes.toStringAsFixed(1)} min',
+                      );
+                    },
+                  ),
+
+                const SizedBox(height: 20),
+
+                // Action buttons
+                Row(
+                  children: [
+                    if (!provider.isLevelUnlocked(level.id)) ...[
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _navigateToBoltScreen,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF336699),
+                            side: const BorderSide(color: Color(0xFF336699)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Medir BOLT'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00B383),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text('Cerrar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Helper method to build requirement rows in the popup
+  Widget _buildRequirementRow(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String requirement,
+    bool isCompleted,
+    String currentValue,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isCompleted ? const Color(0xFF1A392A) : const Color(0xFF2A1A1A),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color:
+              isCompleted ? const Color(0xFF00B383) : const Color(0xFF666666),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color:
+                isCompleted ? const Color(0xFF00B383) : const Color(0xFF666666),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  requirement,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: const Color(0xFFB0B0B0),
+                      ),
+                ),
+                Text(
+                  currentValue,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: isCompleted
+                            ? const Color(0xFF00B383)
+                            : const Color(0xFF999999),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Icon(
+            isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+            color:
+                isCompleted ? const Color(0xFF00B383) : const Color(0xFF666666),
+            size: 20,
+          ),
+        ],
       ),
     );
   }

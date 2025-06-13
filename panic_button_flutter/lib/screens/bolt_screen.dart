@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 
 import '../widgets/custom_nav_bar.dart';
 import '../widgets/custom_sliver_app_bar.dart';
@@ -16,6 +17,7 @@ import '../widgets/metric_instruction_overlay.dart';
 import '../widgets/metric_score_info_dialog.dart';
 import '../constants/metric_configs.dart';
 import '../models/metric_score.dart';
+import '../providers/journey_provider.dart';
 
 /// Screen for measuring the BOLT (Body Oxygen Level Test) metric
 class BoltScreen extends StatefulWidget {
@@ -217,9 +219,23 @@ class _BoltScreenState extends State<BoltScreen>
         'user_id': user.id,
         'created_at': DateTime.now().toIso8601String(),
       });
+
+      // Reload local scores first
       await _loadScores();
+
+      // Refresh JourneyProvider so the journey screen updates
+      if (mounted) {
+        debugPrint(
+            '🔄 Refreshing JourneyProvider after BOLT measurement: $_seconds seconds');
+        final journeyProvider =
+            Provider.of<JourneyProvider>(context, listen: false);
+        await journeyProvider.init();
+        debugPrint('✅ JourneyProvider refreshed successfully');
+      }
+
       setState(() => _isComplete = false);
     } catch (e) {
+      debugPrint('❌ Error saving BOLT measurement: $e');
       _showSnackError('Error al guardar la puntuación');
     } finally {
       if (mounted) setState(() => _isLoading = false);

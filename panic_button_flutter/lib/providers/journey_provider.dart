@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:panic_button_flutter/models/journey_level.dart';
@@ -214,6 +215,7 @@ class JourneyProvider with ChangeNotifier {
 
       if (data.isEmpty) {
         _averageBolt = 0.0;
+        debugPrint('📊 BOLT: No measurements found in last 7 days');
         return;
       }
 
@@ -223,9 +225,12 @@ class JourneyProvider with ChangeNotifier {
       }
 
       _averageBolt = totalSeconds / data.length;
+      debugPrint(
+          '📊 BOLT: Found ${data.length} measurements, average: ${_averageBolt.toStringAsFixed(1)}s');
     } catch (e) {
       // If there's an error, default to 0
       _averageBolt = 0.0;
+      debugPrint('❌ Error loading BOLT average: $e');
     }
   }
 
@@ -239,7 +244,8 @@ class JourneyProvider with ChangeNotifier {
           .from('breathing_activity')
           .select('duration_seconds')
           .gte('created_at', sevenDaysAgo.toIso8601String())
-          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+          .gte('duration_seconds',
+              10); // Only count sessions longer than 10 seconds
 
       final List<dynamic> data = response as List<dynamic>;
 
@@ -266,7 +272,8 @@ class JourneyProvider with ChangeNotifier {
       final response = await _supabase
           .from('breathing_activity')
           .select('duration_seconds')
-          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+          .gte('duration_seconds',
+              10); // Only count sessions longer than 10 seconds
 
       final List<dynamic> data = response as List<dynamic>;
 
@@ -348,7 +355,8 @@ class JourneyProvider with ChangeNotifier {
   }
 
   /// Check if user has completed at least the specified minutes of a specific exercise
-  Future<bool> _hasCompletedExercise(String patternSlug, {required int minMinutes}) async {
+  Future<bool> _hasCompletedExercise(String patternSlug,
+      {required int minMinutes}) async {
     try {
       // Get the pattern ID from the slug
       final patternResponse = await _supabase
@@ -370,7 +378,8 @@ class JourneyProvider with ChangeNotifier {
           .from('breathing_activity')
           .select('duration_seconds')
           .eq('pattern_id', patternId)
-          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+          .gte('duration_seconds',
+              10); // Only count sessions longer than 10 seconds
 
       final List<dynamic> data = activityResponse as List<dynamic>;
 
@@ -385,7 +394,8 @@ class JourneyProvider with ChangeNotifier {
       }
 
       final totalMinutes = totalSeconds / 60.0; // Keep decimal precision
-      debugPrint('Pattern $patternSlug: ${totalMinutes.toStringAsFixed(2)} minutes completed (need $minMinutes)');
+      debugPrint(
+          'Pattern $patternSlug: ${totalMinutes.toStringAsFixed(2)} minutes completed (need $minMinutes)');
       return totalMinutes >= minMinutes;
     } catch (e) {
       debugPrint('Error checking exercise completion: $e');
@@ -408,9 +418,8 @@ class JourneyProvider with ChangeNotifier {
 
     // Calculate BOLT progress
     final boltRange = nextLevel.boltMin - currentLevel.boltMin;
-    final boltProgress = boltRange > 0 
-        ? (_averageBolt - currentLevel.boltMin) / boltRange
-        : 1.0;
+    final boltProgress =
+        boltRange > 0 ? (_averageBolt - currentLevel.boltMin) / boltRange : 1.0;
     final boltPercent = boltProgress.clamp(0.0, 1.0);
 
     // Calculate cumulative minutes progress using new formula
@@ -475,7 +484,8 @@ class JourneyProvider with ChangeNotifier {
           .from('breathing_activity')
           .select('duration_seconds')
           .eq('pattern_id', patternId)
-          .gte('duration_seconds', 10); // Only count sessions longer than 10 seconds
+          .gte('duration_seconds',
+              10); // Only count sessions longer than 10 seconds
 
       final List<dynamic> data = activityResponse as List<dynamic>;
 
