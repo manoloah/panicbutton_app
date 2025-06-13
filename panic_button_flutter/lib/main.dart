@@ -21,6 +21,7 @@ import 'package:panic_button_flutter/providers/journey_provider.dart';
 import 'package:panic_button_flutter/config/app_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:panic_button_flutter/config/env_config.dart';
+import 'package:panic_button_flutter/widgets/notification_initializer.dart';
 
 // Global variables to track initialization
 bool isInitialized = false;
@@ -152,10 +153,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: '${AppConfig.appName} - ${AppConfig.appDescription}',
-      theme: AppTheme.dark(),
-      routerConfig: _router,
+    return NotificationInitializer(
+      child: MaterialApp.router(
+        title: '${AppConfig.appName} - ${AppConfig.appDescription}',
+        theme: AppTheme.dark(),
+        routerConfig: _router,
+      ),
     );
   }
 }
