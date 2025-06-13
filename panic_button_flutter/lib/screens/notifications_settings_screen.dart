@@ -7,6 +7,7 @@ import '../providers/notification_provider.dart';
 import '../models/notification_model.dart';
 import '../constants/spacing.dart';
 import '../services/notification_service.dart';
+import '../widgets/custom_sliver_app_bar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationsSettingsScreen extends ConsumerWidget {
@@ -20,105 +21,125 @@ class NotificationsSettingsScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Recordatorios',
-          style: theme.textTheme.headlineMedium,
-        ),
-        centerTitle: false,
-        actions: [
-          // Add notification button (+ icon)
-          Container(
-            margin: const EdgeInsets.only(right: Spacing.m),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: colorScheme.onSurface.withOpacity(0.3),
-                width: 1,
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            CustomSliverAppBar(
+              showBackButton: true,
+              backRoute: '/settings',
+              showSettings: false,
+              title: Text(
+                'Recordatorios',
+                style: theme.textTheme.headlineMedium,
               ),
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.add,
-                size: ComponentSpacing.iconMedium,
-                color: colorScheme.onSurface,
-              ),
-              onPressed: () => _addNewReminder(context, notifier),
-            ),
-          ),
-          // Test notification button (debug mode only)
-          if (kDebugMode)
-            Container(
-              margin: const EdgeInsets.only(right: Spacing.s),
-              child: IconButton(
-                icon: Icon(
-                  Icons.bug_report,
-                  size: ComponentSpacing.iconMedium,
-                  color: colorScheme.onSurface,
+              additionalActions: [
+                // Add notification button (+ icon)
+                Container(
+                  margin: const EdgeInsets.only(right: Spacing.m),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: colorScheme.onSurface.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.add,
+                      size: ComponentSpacing.iconMedium,
+                      color: colorScheme.onSurface,
+                    ),
+                    onPressed: () => _addNewReminder(context, notifier),
+                  ),
                 ),
-                onPressed: () => _testNotification(context),
-                tooltip: 'Test notification',
-              ),
+                // Test notification button (debug mode only)
+                if (kDebugMode)
+                  Container(
+                    margin: const EdgeInsets.only(right: Spacing.s),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.bug_report,
+                        size: ComponentSpacing.iconMedium,
+                        color: colorScheme.onSurface,
+                      ),
+                      onPressed: () => _testNotification(context),
+                      tooltip: 'Test notification',
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
-      body: notifications.isEmpty
-          ? _buildEmptyState(context, notifier)
-          : _buildNotificationsList(context, notifications, notifier),
-    );
-  }
-
-  Widget _buildEmptyState(
-      BuildContext context, NotificationsNotifier notifier) {
-    final theme = Theme.of(context);
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(Spacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.notifications_outlined,
-              size: 64,
-              color: theme.colorScheme.onSurface.withOpacity(0.5),
-            ),
-            const SizedBox(height: Spacing.l),
-            Text(
-              'Sin recordatorios',
-              style: theme.textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: Spacing.s),
-            Text(
-              'Agrega recordatorios para mantener tu rutina de respiración',
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: Spacing.xl),
-            ElevatedButton(
-              onPressed: () => _addNewReminder(context, notifier),
-              child: const Text('Agregar Recordatorio'),
-            ),
+            notifications.isEmpty
+                ? _buildEmptyStateSliver(context, notifier)
+                : _buildNotificationsListSliver(
+                    context, notifications, notifier),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNotificationsList(
+  Widget _buildEmptyStateSliver(
+      BuildContext context, NotificationsNotifier notifier) {
+    final theme = Theme.of(context);
+
+    return SliverFillRemaining(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(Spacing.xl),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.notifications_outlined,
+                size: 64,
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
+              ),
+              const SizedBox(height: Spacing.l),
+              Text(
+                'Sin recordatorios',
+                style: theme.textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: Spacing.s),
+              Text(
+                'Agrega recordatorios para mantener tu rutina de respiración',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: Spacing.xl),
+              ElevatedButton(
+                onPressed: () => _addNewReminder(context, notifier),
+                child: const Text('Agregar Recordatorio'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationsListSliver(
     BuildContext context,
     List<ReminderNotification> notifications,
     NotificationsNotifier notifier,
   ) {
-    return ListView.separated(
+    return SliverPadding(
       padding: const EdgeInsets.all(Spacing.m),
-      itemCount: notifications.length,
-      separatorBuilder: (context, index) => const SizedBox(height: Spacing.s),
-      itemBuilder: (context, index) => _buildNotificationCard(
-        context,
-        notifications[index],
-        notifier,
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => Padding(
+            padding: EdgeInsets.only(
+              bottom: index < notifications.length - 1 ? Spacing.m : 0,
+            ),
+            child: _buildNotificationCard(
+              context,
+              notifications[index],
+              notifier,
+            ),
+          ),
+          childCount: notifications.length,
+        ),
       ),
     );
   }
@@ -135,61 +156,49 @@ class NotificationsSettingsScreen extends ConsumerWidget {
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Spacing.m),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: colorScheme.onSurface.withOpacity(0.1),
           width: 1,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(Spacing.m),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => context.push('/settings/notifications/${notification.id}'),
         child: Padding(
-          padding: const EdgeInsets.all(Spacing.m),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Time period icon
+              // Simplified time period icon
               Container(
-                width: ComponentSpacing.iconLarge + Spacing.s,
-                height: ComponentSpacing.iconLarge + Spacing.s,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
                   color: _getTimeIconColor(notification.time.hour, colorScheme),
-                  borderRadius: BorderRadius.circular(Spacing.s),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   _getTimeIcon(notification.time.hour),
                   color: Colors.white,
-                  size: ComponentSpacing.iconMedium,
+                  size: 20,
                 ),
               ),
-              const SizedBox(width: Spacing.m),
+              const SizedBox(width: 16),
 
-              // Notification details
+              // Simplified notification details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          notification.customTitle ??
-                              notification.timeDisplayName,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          notification.formatTime(context),
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Spacing.xs),
                     Text(
-                      notification.daysDisplayString,
+                      notification.customTitle ?? notification.timeDisplayName,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${notification.formatTime(context)} • ${notification.daysDisplayString}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurface.withOpacity(0.7),
                       ),
@@ -198,9 +207,7 @@ class NotificationsSettingsScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(width: Spacing.m),
-
-              // Toggle switch
+              // Compact toggle switch
               Switch.adaptive(
                 value: notification.enabled,
                 onChanged: (value) {

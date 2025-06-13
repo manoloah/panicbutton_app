@@ -4,6 +4,7 @@ import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
 import '../providers/breathing_providers.dart';
 import '../constants/spacing.dart';
+import '../widgets/custom_sliver_app_bar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationEditScreen extends ConsumerStatefulWidget {
@@ -100,43 +101,46 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
     final patterns = ref.watch(patternsForGoalProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _isNewNotification ? 'Nuevo Recordatorio' : 'Editar Recordatorio',
-          style: theme.textTheme.headlineMedium,
-        ),
-        centerTitle: false,
-        actions: [
-          if (!_isNewNotification)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _delete,
-              tooltip: 'Eliminar recordatorio',
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            CustomSliverAppBar(
+              showBackButton: true,
+              backRoute: '/settings/notifications',
+              showSettings: false,
+              title: Text(
+                _isNewNotification ? 'Nuevo Recordatorio' : 'Editar',
+                style: theme.textTheme.headlineMedium,
+              ),
+              additionalActions: [
+                if (!_isNewNotification)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _delete,
+                    tooltip: 'Eliminar recordatorio',
+                  ),
+              ],
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(Spacing.m),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
                   _buildTimeSection(theme, colorScheme),
-                  const SizedBox(height: Spacing.xl),
+                  const SizedBox(height: 24),
                   _buildDaysSection(theme, colorScheme),
-                  const SizedBox(height: Spacing.xl),
+                  const SizedBox(height: 24),
                   _buildExerciseSection(theme, colorScheme, patterns),
-                  const SizedBox(height: Spacing.xl),
+                  const SizedBox(height: 24),
                   _buildCustomTitleSection(theme, colorScheme),
-                ],
+                  const SizedBox(height: 100), // Space for save button
+                ]),
               ),
             ),
-          ),
-          _buildSaveButton(theme, colorScheme),
-        ],
+          ],
+        ),
       ),
+      bottomNavigationBar: _buildSaveButton(theme, colorScheme),
     );
   }
 
@@ -150,9 +154,17 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: Spacing.s),
+        const SizedBox(height: 8),
         Card(
           margin: EdgeInsets.zero,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: colorScheme.onSurface.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
           child: ListTile(
             leading: Icon(
               Icons.access_time,
@@ -180,9 +192,9 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: Spacing.s),
+        const SizedBox(height: 8),
 
-        // Quick select buttons
+        // Quick select buttons - more compact
         Row(
           children: [
             Expanded(
@@ -192,10 +204,13 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
                     _days = Day.values.toSet();
                   });
                 },
-                child: const Text('Todos'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child: const Text('Todos', style: TextStyle(fontSize: 12)),
               ),
             ),
-            const SizedBox(width: Spacing.s),
+            const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
@@ -209,10 +224,13 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
                     };
                   });
                 },
-                child: const Text('Semana'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child: const Text('Semana', style: TextStyle(fontSize: 12)),
               ),
             ),
-            const SizedBox(width: Spacing.s),
+            const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
@@ -220,13 +238,17 @@ class _NotificationEditState extends ConsumerState<NotificationEditScreen> {
                     _days = {Day.saturday, Day.sunday};
                   });
                 },
-                child: const Text('Fin de semana'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                child:
+                    const Text('Fin de semana', style: TextStyle(fontSize: 12)),
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: Spacing.m),
+        const SizedBox(height: 16),
 
         // Individual day chips
         Wrap(
