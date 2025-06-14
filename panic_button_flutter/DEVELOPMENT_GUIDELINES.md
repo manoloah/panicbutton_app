@@ -1877,9 +1877,164 @@ The app includes a comprehensive audio system for breathing exercises with advan
    - **Updated**: Audio selection UI, default settings, state management providers
    - **Maintained**: All existing functionality while improving precision and user experience
 
+11. **Background Music Preservation (Critical Fix)**
+   - **Issue**: Background music was stopping after breathing exercises ended
+   - **Solution**: Implemented selective audio stopping with `stopBreathingAudio()` method
+   - **Key Methods**:
+     ```dart
+     // Only stops breathing-related audio, preserves background music
+     await _audioService?.stopBreathingAudio();
+     
+     // Restores background music if it was selected but stopped
+     await _audioService?.restoreBackgroundMusicIfNeeded();
+     ```
+   - **Testing**: Verify background music continues after stopping breathing exercises
+   - **User Experience**: Users no longer need to reselect background music after each session
+
 Following these guidelines ensures audio integration that enhances the user experience while maintaining app stability and performance.
 
 **For detailed technical information about recent audio system improvements, see**: `development_guidelines_extradocs/improved_breathing_screen_playback_logic.md`
+
+---
+
+## Critical Bug Fixes & Pattern Validation
+
+### Breathing Pattern Step Ordering Fix (CRITICAL)
+
+**Issue**: Breathing patterns like "Triángulo Invertido" were playing steps in random order instead of following the database-defined sequence.
+
+**Root Cause**: PostgreSQL doesn't guarantee order in joined queries without explicit `ORDER BY` clauses.
+
+**Solution Implemented**:
+1. **Database Query Fix**: Added explicit ordering in all pattern fetching methods
+2. **Application-Level Sorting**: Added redundant sorting as safety net
+3. **Enhanced Debugging**: Added comprehensive logging for step validation
+
+**Critical Methods Updated**:
+- `expandPattern()` - Primary method for breathing exercise step expansion
+- `getPatternsByGoal()` - Pattern browsing with consistent ordering  
+- `getPatternBySlug()` - Specific pattern access with proper ordering
+
+**Developer Guidelines**:
+```dart
+// ALWAYS include ORDER BY when fetching pattern steps
+final patternData = await _supabase
+    .from('breathing_patterns')
+    .select('*, breathing_pattern_steps!inner(*, breathing_steps(*))')
+    .eq('id', patternId)
+    .order('breathing_pattern_steps.position', ascending: true)  // CRITICAL
+    .single();
+
+// ALWAYS add application-level sorting as safety net
+final sortedPatternSteps = List<Map<String, dynamic>>.from(patternSteps);
+sortedPatternSteps.sort((a, b) {
+  final positionA = a['position'] as int? ?? 0;
+  final positionB = b['position'] as int? ?? 0;
+  return positionA.compareTo(positionB);
+});
+```
+
+**Testing Requirements**:
+- Test patterns with 3+ steps to catch ordering issues
+- Use debug utility: `repository.debugPatternStepOrder('pattern-slug')`
+- Verify console logs show correct step sequence (1, 2, 3, etc.)
+
+### Pattern Validation & Invalid UUID Prevention
+
+**Issue**: App was crashing with "invalid input syntax for type uuid: default" errors.
+
+**Root Cause**: Fallback patterns were being created with invalid UUID strings like "default".
+
+**Solution Implemented**:
+1. **Enhanced Pattern Validation**: Added UUID format validation in `SelectedPatternNotifier`
+2. **Null Pattern Handling**: Return `null` instead of creating invalid patterns
+3. **Defensive Logging**: Added comprehensive pattern validation logging
+
+**Critical Validation Logic**:
+```dart
+class SelectedPatternNotifier extends StateNotifier<PatternModel?> {
+  @override
+  set state(PatternModel? pattern) {
+    // Validate pattern before setting
+    if (pattern != null) {
+      // Check if pattern has invalid ID
+      if (pattern.id == 'default' || pattern.id.isEmpty) {
+        debugPrint('⚠️ REJECTED invalid pattern with ID: "${pattern.id}", Name: "${pattern.name}"');
+        return; // Don't set invalid patterns
+      }
+      
+      // Check if pattern has valid UUID format
+      bool isValidUUID = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(pattern.id);
+      if (!isValidUUID) {
+        debugPrint('⚠️ REJECTED pattern with invalid UUID format: "${pattern.id}"');
+        return;
+      }
+      
+      debugPrint('✅ ACCEPTED valid pattern: "${pattern.name}" (${pattern.id.substring(0, 8)}...)');
+    }
+    
+    super.state = pattern;
+  }
+}
+```
+
+**Database Activity Logging Fix**:
+```dart
+// Only log activities for patterns with valid UUIDs
+if (state.currentActivityId == null && pattern != null) {
+  // Check if the pattern has a valid UUID
+  bool isValidUUID = pattern.id.isNotEmpty &&
+      pattern.id != 'default' &&
+      RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+          .hasMatch(pattern.id);
+  
+  if (isValidUUID) {
+    try {
+      await _repository.logPatternRun(pattern.id, duration);
+      // ... rest of activity logging
+    } catch (e) {
+      debugPrint('❌ Error starting activity tracking: $e');
+    }
+  } else {
+    debugPrint('⚠️ SKIPPED activity logging for invalid pattern UUID: "${pattern.id}"');
+  }
+}
+```
+
+### Developer Requirements
+
+**When Creating New Patterns**:
+1. Always use proper UUID format for pattern IDs
+2. Never use string literals like "default" for pattern IDs
+3. Validate pattern data before database insertion
+4. Test pattern creation with debug utilities
+
+**When Fetching Patterns**:
+1. Always include `ORDER BY position` for pattern steps
+2. Add application-level sorting as backup
+3. Validate returned pattern data before use
+4. Handle null patterns gracefully
+
+**When Debugging Pattern Issues**:
+1. Use `debugPatternStepOrder()` utility method
+2. Check console logs for pattern validation messages
+3. Verify step sequence in breathing exercises
+4. Test with complex patterns (triangle, box breathing, etc.)
+
+**Database Constraints (Recommended)**:
+```sql
+-- Ensure position values are unique within each pattern
+ALTER TABLE breathing_pattern_steps 
+ADD CONSTRAINT unique_pattern_position 
+UNIQUE (pattern_id, position);
+
+-- Ensure position values start from 1
+ALTER TABLE breathing_pattern_steps 
+ADD CONSTRAINT valid_position_range 
+CHECK (position > 0);
+```
+
+These fixes ensure breathing patterns play in correct order and prevent UUID-related crashes, providing users with reliable breathing exercise experiences.
 
 ---
 

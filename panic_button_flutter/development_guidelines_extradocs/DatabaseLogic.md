@@ -801,3 +801,138 @@ CHECK (position > 0);
 This fix ensures that all breathing patterns will consistently play their steps in the correct order as defined in the database, providing users with the intended breathing experience.
 
 ---
+
+## Audio Session Management & Background Music Preservation
+
+### Issue: Background Music Stops After Breathing Exercise
+
+**Problem**: When users clicked the stop button to finish a breathing exercise, the background music would stop playing and users had to manually reselect it to continue listening.
+
+**Root Cause**: The `_handleStop()` method in `breath_screen.dart` was calling `stopAllAudio()` which terminated all audio including background music, but there was no mechanism to restore the background music afterwards.
+
+**Impact**: Poor user experience as users lost their selected background music after each breathing session, requiring manual reselection.
+
+### Solution Implemented
+
+**New Audio Service Methods**: Added selective audio stopping capabilities:
+
+```dart
+// New method to stop only breathing-related audio while preserving background music
+Future<void> stopBreathingAudio() async {
+  try {
+    // Cancel any pending timers first
+    _instrumentStopTimer?.cancel();
+
+    // Stop only instrument and voice players, keep music playing
+    final stopTasks = <Future>[];
+
+    // Stop instrument player
+    stopTasks.add(_stopPlayerSafely(_instrumentPlayer, 'instrument'));
+
+    // Stop voice player
+    stopTasks.add(_stopPlayerSafely(_guidingVoicePlayer, 'voice'));
+
+    // Wait for stops to complete (without affecting music)
+    await Future.wait(stopTasks);
+
+    // Clear only non-music current tracks
+    _currentInstrumentCue = null;
+    _currentVoice = null;
+    // Note: _currentMusic is preserved
+
+    debugPrint('🔇 Breathing audio stopped, background music preserved');
+  } catch (e) {
+    debugPrint('Error stopping breathing audio: $e');
+  }
+}
+
+// Enhanced method to restore background music if needed
+Future<void> restoreBackgroundMusicIfNeeded() async {
+  try {
+    // Check if background music should be playing but isn't
+    if (_currentMusic != null && _currentMusic!.path.isNotEmpty) {
+      // Check if the music player is actually playing
+      final isPlaying = _musicPlayer.playing;
+      
+      if (!isPlaying) {
+        // Restart the background music
+        await playMusic(_currentMusic!);
+        debugPrint('🎵 Restored background music: ${_currentMusic!.name}');
+      }
+    }
+  } catch (e) {
+    debugPrint('Error restoring background music: $e');
+  }
+}
+```
+
+**Updated Stop Logic**: Modified the breathing screen stop handler:
+
+```dart
+// Updated _handleStop method in breath_screen.dart
+void _handleStop() async {
+  if (_isDisposed) return;
+  final controller = ref.read(breathingPlaybackControllerProvider.notifier);
+  await controller.reset(); // This pauses, completes, and resets the state
+
+  // Only stop breathing-related audio, preserve background music
+  await _audioService?.stopBreathingAudio();
+
+  // Restore background music if it was selected but not playing
+  await _audioService?.restoreBackgroundMusicIfNeeded();
+
+  if (mounted) {
+    setState(() {
+      _sessionState = BreathingSessionState.notStarted;
+    });
+  }
+}
+```
+
+### Key Improvements
+
+1. **Selective Audio Control**: 
+   - `stopBreathingAudio()` only stops instrument cues and voice guidance
+   - Background music continues playing uninterrupted
+   - Preserves user's music selection across sessions
+
+2. **Automatic Music Restoration**:
+   - `restoreBackgroundMusicIfNeeded()` checks if music should be playing
+   - Automatically restarts music if it was selected but stopped
+   - Handles edge cases where music might be interrupted
+
+3. **Enhanced User Experience**:
+   - Users can complete breathing exercises without losing their music
+   - No need to manually reselect background music after each session
+   - Seamless audio experience across multiple breathing sessions
+
+### Testing Guidelines
+
+**Verification Steps**:
+1. Start a breathing exercise with background music selected
+2. Complete or stop the exercise using the stop button
+3. Verify background music continues playing after exercise ends
+4. Test with different music tracks and exercise patterns
+5. Test navigation away and back to breathing screen
+
+**Edge Cases to Test**:
+- Music interrupted by phone calls or other apps
+- App backgrounding/foregrounding during exercises
+- Multiple start/stop cycles in succession
+- Different combinations of audio settings (music + voice + instruments)
+
+### Implementation Notes
+
+**Audio State Management**:
+- Background music state (`_currentMusic`) is preserved during breathing audio stops
+- Only breathing-specific audio players are affected by `stopBreathingAudio()`
+- Music restoration logic handles cases where music was selected but not actively playing
+
+**Error Handling**:
+- Graceful fallback if music restoration fails
+- Proper logging for debugging audio issues
+- Safe disposal of audio resources
+
+This improvement ensures users have a seamless audio experience where their background music preferences persist across breathing sessions, eliminating the need for manual reselection after each exercise.
+
+---
