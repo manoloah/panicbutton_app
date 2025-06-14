@@ -149,23 +149,45 @@ class BreathingPlaybackController
     final pattern = _ref.read(selectedPatternProvider);
     final duration = _ref.read(selectedDurationProvider);
 
-    // Create a new activity if needed
-    if (state.currentActivityId == null && pattern != null) {
-      try {
-        // Create a new activity record
-        await _repository.logPatternRun(pattern.id, duration);
+    // Debug: Log what pattern we're working with
+    if (pattern != null) {
+      debugPrint(
+          '🔍 PLAYBACK: Checking pattern - ID: "${pattern.id}", Name: "${pattern.name}"');
+    } else {
+      debugPrint('🔍 PLAYBACK: No pattern selected');
+    }
 
-        // Get current activity ID
-        final activityId = await _repository.getCurrentBreathingActivity();
-        if (activityId != null) {
-          state = state.copyWith(currentActivityId: activityId);
-          debugPrint('✅ Activity tracking started: $activityId');
-        } else {
-          debugPrint('⚠️ Failed to get activity ID after creation');
+    // Create a new activity only if we have a valid pattern with a proper UUID
+    if (state.currentActivityId == null && pattern != null) {
+      // Check if the pattern has a valid UUID
+      bool isValidUUID = pattern.id.isNotEmpty &&
+          pattern.id != 'default' &&
+          RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+              .hasMatch(pattern.id);
+
+      debugPrint(
+          '🔍 PLAYBACK: Pattern UUID validation - isValid: $isValidUUID');
+
+      if (isValidUUID) {
+        try {
+          // Create a new activity record
+          await _repository.logPatternRun(pattern.id, duration);
+
+          // Get current activity ID
+          final activityId = await _repository.getCurrentBreathingActivity();
+          if (activityId != null) {
+            state = state.copyWith(currentActivityId: activityId);
+            debugPrint('✅ Activity tracking started: $activityId');
+          } else {
+            debugPrint('⚠️ Failed to get activity ID after creation');
+          }
+        } catch (e) {
+          debugPrint('❌ Error starting activity tracking: $e');
+          // Continue without activity tracking - the exercise can still run
         }
-      } catch (e) {
-        debugPrint('❌ Error starting activity tracking: $e');
-        // Continue without activity tracking - the exercise can still run
+      } else if (pattern != null) {
+        debugPrint(
+            '⚠️ Skipping activity tracking for invalid pattern ID: ${pattern.id}');
       }
     }
 

@@ -70,9 +70,34 @@ class SelectedPatternNotifier extends StateNotifier<PatternModel?> {
   final Ref ref;
   SelectedPatternNotifier(this.ref) : super(null);
 
-  // Set pattern directly (for compatibility)
+  // Set pattern directly (for compatibility) - with validation
   @override
-  set state(PatternModel? pattern) => super.state = pattern;
+  set state(PatternModel? pattern) {
+    // Validate pattern before setting
+    if (pattern != null) {
+      // Check if pattern has invalid ID
+      if (pattern.id == 'default' || pattern.id.isEmpty) {
+        debugPrint(
+            '⚠️ REJECTED invalid pattern with ID: "${pattern.id}", Name: "${pattern.name}"');
+        return; // Don't set invalid patterns
+      }
+
+      // Check if pattern has valid UUID format
+      bool isValidUUID = RegExp(
+              r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')
+          .hasMatch(pattern.id);
+      if (!isValidUUID) {
+        debugPrint(
+            '⚠️ REJECTED pattern with invalid UUID format: "${pattern.id}", Name: "${pattern.name}"');
+        return; // Don't set patterns with invalid UUIDs
+      }
+
+      debugPrint(
+          '✅ ACCEPTED valid pattern: ID="${pattern.id}", Name="${pattern.name}"');
+    }
+
+    super.state = pattern;
+  }
 
   // Select a pattern by slug
   Future<void> selectPatternBySlug(String slug) async {
@@ -198,25 +223,13 @@ final defaultPatternProvider = FutureProvider<PatternModel?>((ref) async {
     }
 
     // Create a fallback pattern if none found
-    return PatternModel(
-      id: 'default',
-      name: 'Respiración 4-4',
-      goalId: 'default',
-      recommendedMinutes: 3,
-      cycleSecs: 8,
-      steps: [],
-    );
+    // Return null instead of creating invalid UUID pattern
+    debugPrint('⚠️ No patterns found, returning null for default pattern');
+    return null;
   } catch (e) {
     debugPrint('❌ Error getting default pattern: $e');
 
-    // Return a minimal fallback pattern
-    return PatternModel(
-      id: 'default',
-      name: 'Respiración 4-4',
-      goalId: 'default',
-      recommendedMinutes: 3,
-      cycleSecs: 8,
-      steps: [],
-    );
+    // Return null instead of creating invalid UUID pattern
+    return null;
   }
 });

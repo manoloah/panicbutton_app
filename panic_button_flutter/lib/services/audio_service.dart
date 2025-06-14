@@ -786,6 +786,62 @@ class AudioService {
       _setCurrentTrack(AudioType.backgroundMusic, null);
     }
   }
+
+  /// Stop only breathing-related audio (voice and instrument cues)
+  /// while preserving background music. This is used when stopping a
+  /// breathing exercise but wanting to keep background music playing.
+  Future<void> stopBreathingAudio() async {
+    try {
+      // Cancel any pending timers first
+      _instrumentStopTimer?.cancel();
+
+      // Stop only instrument and voice players, keep music playing
+      final stopTasks = <Future>[];
+
+      // Stop instrument player
+      stopTasks.add(_stopPlayerSafely(_instrumentPlayer, 'instrument'));
+
+      // Stop voice player
+      stopTasks.add(_stopPlayerSafely(_guidingVoicePlayer, 'voice'));
+
+      // Wait for stops to complete (with timeout for safety)
+      await Future.wait(stopTasks).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint('⚠️ Breathing audio stop timeout, continuing anyway');
+          return [];
+        },
+      );
+
+      // Reset only instrument and voice current tracks, keep music track
+      _setCurrentTrack(AudioType.instrumentCue, null);
+      _setCurrentTrack(AudioType.guidingVoice, null);
+
+      debugPrint('🔇 Breathing audio stopped (background music preserved)');
+    } catch (e) {
+      debugPrint('Error stopping breathing audio: $e');
+    }
+  }
+
+  /// Restore background music if a track is selected but not currently playing
+  /// This is useful when returning from a stopped state to resume music
+  Future<void> restoreBackgroundMusicIfNeeded() async {
+    try {
+      // Check if background music should be playing but isn't
+      if (_currentMusic != null && _currentMusic!.path.isNotEmpty) {
+        // Check if the music player is actually playing
+        final isPlaying = _musicPlayer.playing;
+
+        if (!isPlaying) {
+          // Restart the background music
+          await playMusic(_currentMusic!);
+          debugPrint('🎵 Restored background music: ${_currentMusic!.name}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring background music: $e');
+    }
+  }
 }
 
 /// Provider to track the currently selected audio for each type

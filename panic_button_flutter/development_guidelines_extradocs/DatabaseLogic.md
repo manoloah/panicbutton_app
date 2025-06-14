@@ -689,3 +689,115 @@ test('User can only access their own activities', () async {
 ```
 
 ---
+
+## Critical Step Ordering Requirements
+
+### Issue: Steps Not Respecting Position Order
+
+**Problem**: Breathing patterns like "Triángulo Invertido" were sometimes playing steps in random order instead of following the `breathing_pattern_steps.position` column order defined in the database.
+
+**Root Cause**: PostgreSQL does not guarantee any particular order when returning joined data unless an explicit `ORDER BY` clause is used. The original queries were missing proper ordering for the `breathing_pattern_steps` relation.
+
+**Impact**: This caused breathing exercises to play in incorrect sequences, making patterns like triangle breathing or other complex sequences ineffective or confusing for users.
+
+### Solution Implemented
+
+**Database Query Fix**: Added explicit ordering by position in all pattern fetching methods:
+
+```dart
+// BEFORE (incorrect - no guaranteed order)
+final patternData = await _supabase
+    .from('breathing_patterns')
+    .select('*, breathing_pattern_steps!inner(*, breathing_steps(*))')
+    .eq('id', patternId)
+    .single();
+
+// AFTER (correct - explicitly orders by position)
+final patternData = await _supabase
+    .from('breathing_patterns')
+    .select('*, breathing_pattern_steps!inner(*, breathing_steps(*))')
+    .eq('id', patternId)
+    .order('breathing_pattern_steps.position', ascending: true)
+    .single();
+```
+
+**Application-Level Sorting**: Added redundant sorting in the application layer as a safety net:
+
+```dart
+// Sort pattern steps by position before processing to ensure correct order
+final sortedPatternSteps = List<Map<String, dynamic>>.from(patternSteps);
+sortedPatternSteps.sort((a, b) {
+  final positionA = a['position'] as int? ?? 0;
+  final positionB = b['position'] as int? ?? 0;
+  return positionA.compareTo(positionB);
+});
+```
+
+**Enhanced Debugging**: Added comprehensive logging to track step processing order:
+
+```dart
+debugPrint('🔄 Processing ${sortedPatternSteps.length} steps in correct order for pattern: ${patternData['name']}');
+
+for (final stepData in sortedPatternSteps) {
+  final stepPosition = stepData['position'] as int? ?? 0;
+  debugPrint('  Step ${stepPosition}: ${step.cueText} - inhale:${step.inhaleSecs}s, hold:${step.holdInSecs}s, exhale:${step.exhaleSecs}s, hold:${step.holdOutSecs}s (${stepRepetitions} reps)');
+}
+```
+
+### Methods Updated
+
+1. **`expandPattern()`** - Primary fix for step expansion used during breathing exercises
+2. **`getPatternsByGoal()`** - Ensures consistent ordering when browsing patterns
+3. **`getPatternBySlug()`** - Ensures consistent ordering when accessing specific patterns
+
+### Testing and Validation
+
+**Debug Utility**: Added `debugPatternStepOrder()` method to validate step ordering:
+
+```dart
+// Usage example to test pattern ordering
+final repository = ref.read(breathRepositoryProvider);
+await repository.debugPatternStepOrder('triangulo-invertido');
+```
+
+**Verification Steps**:
+1. Check console logs show steps in correct position order (1, 2, 3, etc.)
+2. Verify breathing exercises follow the intended sequence
+3. Test complex patterns like triangle breathing maintain proper step flow
+
+### Prevention Guidelines
+
+**For Database Design**:
+- Always define position columns with proper constraints
+- Use CHECK constraints to ensure position uniqueness within a pattern
+- Consider using auto-incrementing position values
+
+**For Query Development**:
+- Always include `ORDER BY position` when fetching pattern steps
+- Use explicit column names in ORDER BY clauses for joined tables
+- Add application-level sorting as a safety net for critical sequences
+
+**For Testing**:
+- Create patterns with distinct timing to easily identify if steps are out of order
+- Test with patterns that have 3+ steps to catch ordering issues
+- Use the debug utility when adding new patterns to validate step flow
+
+### Database Constraints Recommendation
+
+Consider adding these constraints to prevent future ordering issues:
+
+```sql
+-- Ensure position values are unique within each pattern
+ALTER TABLE breathing_pattern_steps 
+ADD CONSTRAINT unique_pattern_position 
+UNIQUE (pattern_id, position);
+
+-- Ensure position values start from 1 and are sequential
+ALTER TABLE breathing_pattern_steps 
+ADD CONSTRAINT valid_position_range 
+CHECK (position > 0);
+```
+
+This fix ensures that all breathing patterns will consistently play their steps in the correct order as defined in the database, providing users with the intended breathing experience.
+
+---

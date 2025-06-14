@@ -13,6 +13,7 @@ import 'package:panic_button_flutter/services/audio_service.dart';
 import 'package:panic_button_flutter/models/breath_models.dart';
 import 'package:panic_button_flutter/main.dart'; // Import for routeObserver
 import 'package:panic_button_flutter/widgets/completion_dialog.dart';
+import 'package:flutter/foundation.dart';
 
 // --- SESSION STATE ENUM ---
 enum BreathingSessionState {
@@ -213,6 +214,28 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
           // Initialize the playback controller with the steps
           playbackController.initialize(expandedSteps, duration);
         }
+      } else {
+        // If no pattern is available, create a minimal fallback for the UI
+        debugPrint('⚠️ No default pattern available, using hardcoded fallback');
+
+        // Create a hardcoded pattern just for the breathing exercise
+        final fallbackSteps = List.generate(
+          (3 * 60 / 8).ceil(), // 3 minutes at 8 seconds per cycle
+          (_) => ExpandedStep(
+            cueText: 'Respira',
+            inhaleSecs: 4,
+            exhaleSecs: 4,
+            holdInSecs: 0,
+            holdOutSecs: 0,
+            inhaleMethod: 'nose',
+            exhaleMethod: 'nose',
+          ),
+        );
+
+        // Initialize playback controller with fallback steps
+        playbackController.initialize(fallbackSteps, 3);
+
+        debugPrint('✅ Initialized with ${fallbackSteps.length} fallback steps');
       }
 
       if (!_isDisposed) {
@@ -847,11 +870,54 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
     if (_isDisposed) return;
     final controller = ref.read(breathingPlaybackControllerProvider.notifier);
     await controller.reset(); // This pauses, completes, and resets the state
-    _audioService?.stopAllAudio();
+
+    // Only stop breathing-related audio, preserve background music
+    await _audioService?.stopBreathingAudio();
+
+    // Restore background music by restarting the selected track
+    _restoreAudioStateAfterStop();
+
     if (mounted) {
       setState(() {
         _sessionState = BreathingSessionState.notStarted;
       });
+    }
+  }
+
+  /// Restore background music after stopping a breathing exercise
+  void _restoreAudioStateAfterStop() {
+    if (_isDisposed || _audioService == null) return;
+
+    try {
+      // Get the currently selected background music
+      final selectedMusicId =
+          ref.read(selectedAudioProvider(AudioType.backgroundMusic));
+
+      if (selectedMusicId != null &&
+          selectedMusicId.isNotEmpty &&
+          selectedMusicId != 'off') {
+        // Find the music track and restart it
+        final audioService = ref.read(audioServiceProvider);
+        final musicTracks =
+            audioService.getTracksByType(AudioType.backgroundMusic);
+        final selectedTrack = musicTracks.firstWhere(
+          (track) => track.id == selectedMusicId,
+          orElse: () =>
+              musicTracks.first, // Fallback to first track if not found
+        );
+
+        if (selectedTrack.path.isNotEmpty) {
+          // Restart the background music after a small delay to ensure audio cleanup is complete
+          Future.delayed(const Duration(milliseconds: 300), () {
+            if (_isDisposed) return;
+            audioService.playMusic(selectedTrack);
+            debugPrint(
+                '🎵 Restored background music after stop: ${selectedTrack.name}');
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error restoring audio state after stop: $e');
     }
   }
 
@@ -889,5 +955,19 @@ class _BreathScreenState extends ConsumerState<BreathScreen> with RouteAware {
         },
       ),
     );
+  }
+
+  // Development helper - Add this method for testing pattern ordering
+  // Call this during development to validate step ordering for patterns
+  Future<void> _debugCurrentPattern() async {
+    if (kDebugMode) {
+      final pattern = ref.read(selectedPatternProvider);
+      if (pattern != null) {
+        final repository = ref.read(breathRepositoryProvider);
+        await repository.debugPatternStepOrder(pattern.id);
+      } else {
+        debugPrint('🔍 No pattern selected for debugging');
+      }
+    }
   }
 }

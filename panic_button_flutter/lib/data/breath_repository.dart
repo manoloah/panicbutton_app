@@ -146,7 +146,6 @@ class BreathRepository {
       // If no valid steps, create default steps based on pattern name
       if (patternSteps.isEmpty ||
           patternSteps.every((s) => s['breathing_steps'] == null)) {
-        // Extract breathing times from pattern name if possible
         final pattern = patternData['name'] as String;
 
         // Check if pattern contains numbers like "4-6" or "Box 4-4-4-4"
@@ -187,9 +186,20 @@ class BreathRepository {
         }
       }
 
-      // Convert to expanded steps (use regular implementation)
+      // FIXED: Sort pattern steps by position before processing to ensure correct order
+      final sortedPatternSteps = List<Map<String, dynamic>>.from(patternSteps);
+      sortedPatternSteps.sort((a, b) {
+        final positionA = a['position'] as int? ?? 0;
+        final positionB = b['position'] as int? ?? 0;
+        return positionA.compareTo(positionB);
+      });
+
+      debugPrint(
+          '🔄 Processing ${sortedPatternSteps.length} steps in correct order for pattern: ${patternData['name']}');
+
+      // Convert to expanded steps using the correctly sorted steps
       for (var i = 0; i < repetitions; i++) {
-        for (final stepData in patternSteps) {
+        for (final stepData in sortedPatternSteps) {
           if (stepData != null && stepData['breathing_steps'] != null) {
             try {
               final stepsData =
@@ -205,11 +215,16 @@ class BreathRepository {
 
               final step = StepModel.fromJson(stepsData);
               final stepRepetitions = stepData['repetitions'] as int? ?? 1;
+              final stepPosition = stepData['position'] as int? ?? 0;
+
+              debugPrint(
+                  '  Step ${stepPosition}: ${step.cueText} - inhale:${step.inhaleSecs}s, hold:${step.holdInSecs}s, exhale:${step.exhaleSecs}s, hold:${step.holdOutSecs}s (${stepRepetitions} reps)');
 
               for (var r = 0; r < stepRepetitions; r++) {
                 allSteps.add(ExpandedStep.fromStep(step));
               }
             } catch (stepError) {
+              debugPrint('❌ Error processing step: $stepError');
               // Skip invalid steps
               continue;
             }
@@ -237,7 +252,8 @@ class BreathRepository {
         }
       }
 
-      debugPrint('✅ Expanded to ${allSteps.length} steps');
+      debugPrint(
+          '✅ Expanded to ${allSteps.length} steps in correct order for ${repetitions} repetitions');
       return allSteps;
     } catch (e) {
       debugPrint('❌ Error expanding pattern: $e');
@@ -466,6 +482,110 @@ class BreathRepository {
     } catch (e) {
       debugPrint('❌ Error fetching pattern by slug: $e');
       return null;
+    }
+  }
+
+  // Debug utility function to validate step ordering for a pattern
+  Future<void> debugPatternStepOrder(String patternIdOrSlug) async {
+    try {
+      debugPrint('🔍 DEBUGGING STEP ORDER for pattern: $patternIdOrSlug');
+
+      PatternModel? pattern;
+
+      // Try to get pattern by ID first, then by slug
+      if (patternIdOrSlug.contains('-')) {
+        // Looks like a slug
+        pattern = await getPatternBySlug(patternIdOrSlug);
+      } else {
+        // Try as ID first
+        try {
+          final patternData = await _supabase
+              .from('breathing_patterns')
+              .select('*, breathing_pattern_steps!inner(*, breathing_steps(*))')
+              .eq('id', patternIdOrSlug)
+              .single();
+
+          if (patternData != null) {
+            final patternSteps = patternData['breathing_pattern_steps'] as List;
+
+            final pattern = PatternModel(
+              id: patternData['id'] as String? ?? '',
+              name: patternData['name'] as String? ?? '',
+              goalId: patternData['goal_id'] as String? ?? '',
+              recommendedMinutes:
+                  patternData['recommended_minutes'] as int? ?? 5,
+              cycleSecs: patternData['cycle_secs'] as int? ?? 8,
+              slug: patternData['slug'] as String? ?? '',
+            );
+
+            debugPrint('📋 Pattern: ${pattern.name} (${pattern.slug})');
+            debugPrint('🔄 Raw database order:');
+
+            for (int i = 0; i < patternSteps.length; i++) {
+              final stepData = patternSteps[i];
+              final position = stepData['position'] as int? ?? 0;
+              final repetitions = stepData['repetitions'] as int? ?? 1;
+              final stepDetails = stepData['breathing_steps'];
+
+              if (stepDetails != null) {
+                final cueText = stepDetails['cue_text'] as String? ?? 'No cue';
+                final inhale = stepDetails['inhale_secs'] as int? ?? 0;
+                final hold = stepDetails['hold_in_secs'] as int? ?? 0;
+                final exhale = stepDetails['exhale_secs'] as int? ?? 0;
+                final holdOut = stepDetails['hold_out_secs'] as int? ?? 0;
+
+                debugPrint(
+                    '  ${i + 1}. Position: $position, Reps: $repetitions');
+                debugPrint('     Cue: $cueText');
+                debugPrint(
+                    '     Timing: Inhale ${inhale}s, Hold ${hold}s, Exhale ${exhale}s, Hold ${holdOut}s');
+              }
+            }
+            return;
+          }
+        } catch (e) {
+          // If ID lookup fails, try as slug
+          pattern = await getPatternBySlug(patternIdOrSlug);
+        }
+      }
+
+      if (pattern != null) {
+        debugPrint('📋 Pattern: ${pattern.name} (${pattern.slug})');
+        debugPrint('🔄 Processed step order:');
+
+        for (int i = 0; i < pattern.steps.length; i++) {
+          final patternStep = pattern.steps[i];
+          final step = patternStep.step;
+
+          if (step != null) {
+            debugPrint(
+                '  ${i + 1}. Position: ${patternStep.position}, Reps: ${patternStep.repetitions}');
+            debugPrint('     Cue: ${step.cueText}');
+            debugPrint(
+                '     Timing: Inhale ${step.inhaleSecs}s, Hold ${step.holdInSecs}s, Exhale ${step.exhaleSecs}s, Hold ${step.holdOutSecs}s');
+          }
+        }
+
+        // Test expansion
+        debugPrint('🔄 Testing pattern expansion for 3 minutes:');
+        final expandedSteps = await expandPattern(pattern.id, targetMinutes: 3);
+        debugPrint('✅ Expanded to ${expandedSteps.length} total steps');
+
+        // Show first few expanded steps
+        for (int i = 0; i < expandedSteps.length && i < 6; i++) {
+          final step = expandedSteps[i];
+          debugPrint(
+              '  Expanded step ${i + 1}: ${step.cueText} - ${step.inhaleSecs}s/${step.holdInSecs}s/${step.exhaleSecs}s/${step.holdOutSecs}s');
+        }
+
+        if (expandedSteps.length > 6) {
+          debugPrint('  ... (${expandedSteps.length - 6} more steps)');
+        }
+      } else {
+        debugPrint('❌ Pattern not found: $patternIdOrSlug');
+      }
+    } catch (e) {
+      debugPrint('❌ Error debugging pattern: $e');
     }
   }
 }

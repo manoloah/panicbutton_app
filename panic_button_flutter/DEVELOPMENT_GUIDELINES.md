@@ -363,6 +363,16 @@ By following these guidelines, we ensure that UI improvements enhance the user e
     ./scripts/dev_run.sh -d chrome
 
     # For iOS simulator:
+    First check if simulator exists: 
+    ```
+    xcrun simctl list devices
+    ```
+    Then boot simulator: 
+    ````
+    xcrun simctl boot <device_id>
+    ```
+    Finally run app: 
+    ```  
     ./scripts/dev_run.sh -d "iPhone"
     ```
   - **Production builds:**
